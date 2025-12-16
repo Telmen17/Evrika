@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.4.2",
     "@rive-app/react-canvas": "^4.21.4",
     "@xstate/react": "^6.0.0",
     "framer-motion": "^12.23.0",
@@ -17,6 +19,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-spring": "^10.0.1",
+    "three": "^0.182.0",
     "xstate": "^5.20.1"
   },
   "devDependencies": {
