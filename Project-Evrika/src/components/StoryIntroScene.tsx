@@ -42,72 +42,58 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="scene">
-      <header className="scene-header">
-        <button
-          className="link-button"
-          type="button"
-          onClick={() => onNavigate('landing')}
-        >
-          ← Back to menu
-        </button>
-        <h2>{beat.title}</h2>
-      </header>
+    <div className="scene journey-scene">
+      <button
+        className="link-button menu-button"
+        type="button"
+        onClick={() => onNavigate('landing')}
+      >
+        ← Menu
+      </button>
 
-      <section className="scene-body">
-        <div className="scene-text">
-          <p>{beat.text}</p>
-
-          <div className="story-step-indicator">
-            Step {index + 1} of {beats.length}
-          </div>
-
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={toggle}
-          >
-            {isPlaying ? 'Pause narration' : 'Play narration'}
-          </button>
-        </div>
+      <div className="scene-visual-container">
         <div className="scene-visual-placeholder">
           <p className="scene-visual-caption">
             3D intro scene placeholder – a calm bath and a glowing crown will live here.
           </p>
         </div>
-      </section>
+      </div>
 
-      <footer className="scene-footer">
-        <div className="scene-footer-left">
+      <div className="narration-container">
+        <div className="scene-text">
+          <p>{beat.text}</p>
+          <div className="story-step-indicator">
+            Step {index + 1} of {beats.length}
+          </div>
+        </div>
+        <button
+          className="secondary-button narration-button"
+          type="button"
+          onClick={toggle}
+        >
+          {isPlaying ? 'Pause narration' : 'Play narration'}
+        </button>
+      </div>
+
+      <div className="next-button-container">
+        {index < beats.length - 1 ? (
           <button
-            className="secondary-button"
+            className="primary-button"
             type="button"
-            onClick={goPrev}
-            disabled={index === 0}
+            onClick={goNext}
           >
-            Previous
+            Next
           </button>
-        </div>
-        <div className="scene-footer-right">
-          {index < beats.length - 1 ? (
-            <button
-              className="primary-button"
-              type="button"
-              onClick={goNext}
-            >
-              Next
-            </button>
-          ) : (
-            <button
-              className="primary-button"
-              type="button"
-              onClick={() => onNavigate('bath')}
-            >
-              Continue to Buoyancy Bath
-            </button>
-          )}
-        </div>
-      </footer>
+        ) : (
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => onNavigate('bath')}
+          >
+            Continue to Buoyancy Bath
+          </button>
+        )}
+      </div>
     </div>
   )
 }

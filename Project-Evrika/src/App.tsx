@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import LandingPage, { type SceneId } from './components/LandingPage'
 import StoryIntroScene from './components/StoryIntroScene'
@@ -17,7 +17,15 @@ function App() {
     )
   }
 
-  let content: JSX.Element
+  useEffect(() => {
+    if (currentScene !== 'landing') {
+      document.body.classList.add('lesson-active')
+    } else {
+      document.body.classList.remove('lesson-active')
+    }
+  }, [currentScene])
+
+  let content
 
   switch (currentScene) {
     case 'intro':
