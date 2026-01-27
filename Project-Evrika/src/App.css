@@ -1,6 +1,11 @@
-body {
+html, body {
   margin: 0;
+  padding: 0;
   min-height: 100vh;
+  height: 100%;
+}
+
+body {
   background: radial-gradient(circle at 20% 10%, #f8e9c5 0%, #f0d8a1 28%, #d7b77c 60%, #2b1b1b 100%);
   color: #22160c;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
@@ -11,8 +16,21 @@ body.lesson-active {
   background: radial-gradient(circle at 20% 10%, #f8e9c5 0%, #f0d8a1 28%, #d7b77c 60%, #2b1b1b 100%);
 }
 
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .app-root {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -22,6 +40,11 @@ body.lesson-active {
 .app-root:has(.journey-scene) {
   padding: 0;
   align-items: stretch;
+}
+
+.app-root .journey-scene {
+  width: 100vw;
+  height: 100vh;
 }
 
 .layout {
@@ -37,6 +60,11 @@ body.lesson-active {
 .landing-hero {
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .landing-hero::before {
@@ -228,21 +256,18 @@ body.lesson-active {
 
 .journey-scene {
   position: relative;
-  width: 100%;
-  max-width: 100%;
+  width: 100vw;
+  max-width: 100vw;
   height: 100vh;
+  min-height: 100vh;
   border-radius: 0;
   padding: 0;
-  background-image: url('/digital-art-style-theatre-stage.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  margin: 0;
+  background: radial-gradient(circle at 20% 10%, #f8e9c5 0%, #f0d8a1 28%, #d7b77c 60%, #2b1b1b 100%);
+  display: block;
   box-shadow: none;
   border: none;
+  overflow: hidden;
 }
 
 .scene-header {
@@ -270,6 +295,29 @@ body.lesson-active {
   justify-content: center;
   width: 100%;
   padding: 2rem;
+}
+
+.scene-image-container {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  max-width: 1000px;
+  aspect-ratio: 16 / 9;
+  border: 4px solid rgba(146, 92, 28, 0.6);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  background: #fff;
+  z-index: 1;
+}
+
+.scene-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .scene-body {
@@ -362,10 +410,9 @@ body.lesson-active {
 .narration-container {
   position: absolute;
   bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 900px;
+  left: 2rem;
+  width: calc(50% - 3rem);
+  max-width: 500px;
   display: flex;
   align-items: flex-end;
   gap: 1rem;
@@ -374,6 +421,7 @@ body.lesson-active {
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(8px);
+  z-index: 10;
 }
 
 .journey-scene .scene-text {
@@ -433,12 +481,179 @@ body.lesson-active {
   color: #5b3a1f;
 }
 
+/* Tablet screens */
 @media (max-width: 960px) {
+  .app-root {
+    padding: 1.5rem;
+  }
+
+  .layout {
+    padding: 2rem;
+  }
+
   .menu-grid {
     grid-template-columns: 1fr;
   }
 
   .scene-body {
     grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .scene-image-container {
+    width: 85%;
+    top: 12%;
+  }
+
+  .narration-container {
+    width: calc(60% - 3rem);
+    max-width: 450px;
+  }
+}
+
+/* Mobile screens */
+@media (max-width: 640px) {
+  .app-root {
+    padding: 1rem;
+    align-items: flex-start;
+  }
+
+  .layout {
+    padding: 1.5rem;
+    border-radius: 16px;
+  }
+
+  .title {
+    font-size: 1.5rem;
+    letter-spacing: 0.03em;
+  }
+
+  .hero-kicker {
+    font-size: 0.7rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .hero-note {
+    font-size: 0.85rem;
+  }
+
+  .start-button {
+    padding: 0.75rem 1.8rem;
+    font-size: 0.95rem;
+  }
+
+  .menu-card {
+    padding: 1.25rem;
+  }
+
+  .menu-card h2 {
+    font-size: 1.05rem;
+  }
+
+  /* Journey Scene - Mobile */
+  .journey-scene {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .menu-button {
+    top: 1rem;
+    left: 1rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .scene-image-container {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: calc(100% - 2rem);
+    margin: 5rem 1rem 1rem;
+    aspect-ratio: 16 / 10;
+  }
+
+  .narration-container {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    width: calc(100% - 2rem);
+    max-width: none;
+    margin: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1.25rem;
+  }
+
+  .narration-button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .next-button-container {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    margin: 0 1rem 2rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .story-step-indicator {
+    margin-top: 0.75rem;
+  }
+
+  .scene-text p {
+    font-size: 0.95rem;
+  }
+
+  .primary-button,
+  .secondary-button {
+    padding: 0.5rem 1.2rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 400px) {
+  .app-root {
+    padding: 0.5rem;
+  }
+
+  .layout {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .scene-image-container {
+    margin: 4rem 0.5rem 0.75rem;
+    width: calc(100% - 1rem);
+    border-width: 3px;
+    border-radius: 12px;
+  }
+
+  .narration-container {
+    margin: 0.75rem 0.5rem;
+    width: calc(100% - 1rem);
+    padding: 1rem;
+  }
+
+  .next-button-container {
+    margin: 0 0.5rem 1.5rem;
   }
 }

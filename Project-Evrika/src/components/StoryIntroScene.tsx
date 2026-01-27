@@ -51,12 +51,12 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
         ← Menu
       </button>
 
-      <div className="scene-visual-container">
-        <div className="scene-visual-placeholder">
-          <p className="scene-visual-caption">
-            3D intro scene placeholder – a calm bath and a glowing crown will live here.
-          </p>
-        </div>
+      <div className="scene-image-container">
+        <img 
+          src="/digital-art-style-theatre-stage.jpg" 
+          alt="Theatre stage" 
+          className="scene-image"
+        />
       </div>
 
       <div className="narration-container">
