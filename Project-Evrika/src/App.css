@@ -261,13 +261,17 @@ body.lesson-active {
   height: 100vh;
   min-height: 100vh;
   border-radius: 0;
-  padding: 0;
+  padding: 5rem 2rem 5rem 2rem;
   margin: 0;
   background: radial-gradient(circle at 20% 10%, #f8e9c5 0%, #f0d8a1 28%, #d7b77c 60%, #2b1b1b 100%);
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
   box-shadow: none;
   border: none;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .scene-header {
@@ -298,12 +302,11 @@ body.lesson-active {
 }
 
 .scene-image-container {
-  position: absolute;
-  top: 15%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70%;
-  max-width: 1000px;
+  position: relative;
+  flex-shrink: 0;
+  /* Preserve 16:9; larger: cap height at 60vh so image + gap + narration fit */
+  width: min(88%, calc(60vh * 16 / 9));
+  max-width: min(1100px, calc(60vh * 16 / 9));
   aspect-ratio: 16 / 9;
   border: 4px solid rgba(146, 92, 28, 0.6);
   border-radius: 16px;
@@ -313,11 +316,38 @@ body.lesson-active {
   z-index: 1;
 }
 
+.scene-stage-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.scene-image-container img.scene-image {
+  object-fit: cover;
+}
+
 .scene-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* Archimedes on the stage floor – positioned to sit on the grassy stage */
+.scene-archimedes {
+  position: absolute;
+  bottom: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 38%;
+  width: auto;
+  max-width: 28%;
+  object-fit: contain;
+  object-position: bottom center;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .scene-body {
@@ -408,16 +438,17 @@ body.lesson-active {
 }
 
 .narration-container {
-  position: absolute;
-  bottom: 2rem;
-  left: 2rem;
-  width: calc(50% - 3rem);
-  max-width: 500px;
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 720px;
+  min-height: auto;
+  max-height: 5.25rem;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 1rem;
   background: rgba(255, 255, 255, 0.95);
-  padding: 1.5rem;
+  padding: 0.5rem 1.25rem;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(8px);
@@ -427,6 +458,23 @@ body.lesson-active {
 .journey-scene .scene-text {
   flex: 1;
   margin: 0;
+  min-width: 0;
+}
+
+.journey-scene .scene-text p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.journey-scene .story-step-indicator {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
 }
 
 .narration-button {
@@ -436,9 +484,13 @@ body.lesson-active {
 
 .next-button-container {
   position: absolute;
-  bottom: 2rem;
+  bottom: 1.5rem;
   right: 2rem;
   z-index: 10;
+}
+
+.journey-scene .narration-container {
+  width: min(88%, 720px);
 }
 
 .scene-visual-placeholder {
@@ -481,6 +533,39 @@ body.lesson-active {
   color: #5b3a1f;
 }
 
+/* Small desktop – preserve 16:9, image + narration in flow */
+@media (max-width: 1024px) {
+  .journey-scene {
+    padding: 4.5rem 1.5rem 4.5rem 1.5rem;
+    gap: 1rem;
+  }
+
+  .scene-image-container {
+    width: min(90%, calc(55vh * 16 / 9));
+    max-width: min(100%, calc(55vh * 16 / 9));
+  }
+
+  .journey-scene .narration-container {
+    width: min(90%, 600px);
+  }
+
+  .narration-container {
+    max-height: 5rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .journey-scene .scene-text p {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    font-size: 0.9rem;
+  }
+
+  .next-button-container {
+    bottom: 1.25rem;
+    right: 1.25rem;
+  }
+}
+
 /* Tablet screens */
 @media (max-width: 960px) {
   .app-root {
@@ -503,14 +588,22 @@ body.lesson-active {
     font-size: 2rem;
   }
 
+  .journey-scene {
+    padding: 4rem 1.5rem 4rem 1.5rem;
+    gap: 1rem;
+  }
+
   .scene-image-container {
-    width: 85%;
-    top: 12%;
+    width: min(92%, calc(50vh * 16 / 9));
+    max-width: min(100%, calc(50vh * 16 / 9));
+  }
+
+  .journey-scene .narration-container {
+    width: min(92%, 100%);
   }
 
   .narration-container {
-    width: calc(60% - 3rem);
-    max-width: 450px;
+    max-height: 4.75rem;
   }
 }
 
@@ -575,8 +668,9 @@ body.lesson-active {
     left: auto;
     transform: none;
     width: calc(100% - 2rem);
+    max-width: none;
     margin: 5rem 1rem 1rem;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 16 / 9;
   }
 
   .narration-container {
@@ -643,6 +737,8 @@ body.lesson-active {
   .scene-image-container {
     margin: 4rem 0.5rem 0.75rem;
     width: calc(100% - 1rem);
+    max-width: none;
+    aspect-ratio: 16 / 9;
     border-width: 3px;
     border-radius: 12px;
   }

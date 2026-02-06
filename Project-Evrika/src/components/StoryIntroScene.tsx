@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { useState } from 'react'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import type { SceneId } from './LandingPage'
+import archimedesImg from '../assets/archimedes.png'
 
 interface StoryIntroSceneProps {
   onNavigate: (scene: SceneId) => void
@@ -52,11 +53,18 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
       </button>
 
       <div className="scene-image-container">
-        <img 
-          src="/digital-art-style-theatre-stage.jpg" 
-          alt="Theatre stage" 
-          className="scene-image"
-        />
+        <div className="scene-stage-wrap">
+          <img 
+            src="/digital-art-style-theatre-stage.jpg" 
+            alt="Theatre stage" 
+            className="scene-image"
+          />
+          <img 
+            src={archimedesImg} 
+            alt="Archimedes" 
+            className="scene-archimedes"
+          />
+        </div>
       </div>
 
       <div className="narration-container">
