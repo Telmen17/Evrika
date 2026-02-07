@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import type { SceneId } from './LandingPage'
 import archimedesImg from '../assets/archimedes.png'
+import kingSitImg from '../assets/kingSit.png'
+import guardsImg from '../assets/guards.png'
 
 interface StoryIntroSceneProps {
   onNavigate: (scene: SceneId) => void
@@ -14,18 +16,6 @@ const beats = [
     title: 'A puzzle for Archimedes',
     text:
       "King Hiero of Syracuse suspects that his new crown isn't pure gold. He turns to Archimedes for an answer—without damaging the crown.",
-  },
-  {
-    id: 'bath',
-    title: 'A quiet bath, a loud idea',
-    text:
-      'While stepping into a bath, Archimedes notices the water level rise. The volume of water pushed aside must match the volume of his body.',
-  },
-  {
-    id: 'eureka',
-    title: 'Eureka!',
-    text:
-      'If water tells you volume, and a scale tells you mass, then density reveals the truth. Archimedes can now test the crown—and runs through the streets crying, "Eureka!"',
   },
 ]
 
@@ -64,6 +54,16 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
             alt="Archimedes" 
             className="scene-archimedes"
           />
+          <img 
+            src={guardsImg} 
+            alt="Palace guards" 
+            className="scene-guards"
+          />
+          <img 
+            src={kingSitImg} 
+            alt="King Hiero" 
+            className="scene-king"
+          />
         </div>
       </div>
 
@@ -96,9 +96,9 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
           <button
             className="primary-button"
             type="button"
-            onClick={() => onNavigate('bath')}
+            onClick={() => onNavigate('weigh')}
           >
-            Continue to Buoyancy Bath
+            Continue to the crown tests
           </button>
         )}
       </div>

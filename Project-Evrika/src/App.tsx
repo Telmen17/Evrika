@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import LandingPage, { type SceneId } from './components/LandingPage'
 import StoryIntroScene from './components/StoryIntroScene'
+import StoryBathScene from './components/StoryBathScene'
+import CrownWeighScene from './components/CrownWeighScene.tsx'
+import CrownMeltScene from './components/CrownMeltScene.tsx'
 import BuoyancyBathScene from './components/BuoyancyBathScene'
 import CrownDensityScene from './components/CrownDensityScene'
 import RecapScreen from './components/RecapScreen'
@@ -30,6 +33,15 @@ function App() {
   switch (currentScene) {
     case 'intro':
       content = <StoryIntroScene onNavigate={navigate} />
+      break
+    case 'bathStory':
+      content = <StoryBathScene onNavigate={navigate} />
+      break
+    case 'weigh':
+      content = <CrownWeighScene onNavigate={navigate} />
+      break
+    case 'melt':
+      content = <CrownMeltScene onNavigate={navigate} />
       break
     case 'bath':
       content = <BuoyancyBathScene onNavigate={navigate} />

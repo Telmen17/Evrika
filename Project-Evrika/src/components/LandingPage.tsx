@@ -1,6 +1,14 @@
 import type { FC } from 'react'
 
-export type SceneId = 'landing' | 'intro' | 'bath' | 'crown' | 'recap'
+export type SceneId =
+  | 'landing'
+  | 'intro'
+  | 'bathStory'
+  | 'weigh'
+  | 'melt'
+  | 'bath'
+  | 'crown'
+  | 'recap'
 
 interface LandingPageProps {
   onNavigate: (scene: SceneId) => void

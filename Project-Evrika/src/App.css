@@ -37,6 +37,27 @@ body.lesson-active {
   padding: 2rem;
 }
 
+/* Decorative vine frame around the lesson */
+.app-root::before {
+  content: '';
+  position: fixed;
+  inset: 0.75rem;
+  pointer-events: none;
+  border-radius: 28px;
+  border: 18px solid transparent;
+  border-image: repeating-linear-gradient(
+      to bottom,
+      #245c34,
+      #3f8c49 10px,
+      #2e6a3b 20px,
+      #f4d27a 22px,
+      #2e6a3b 24px
+    )
+    30 round;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.25);
+  opacity: 0.85;
+}
+
 .app-root:has(.journey-scene) {
   padding: 0;
   align-items: stretch;
@@ -339,11 +360,41 @@ body.lesson-active {
 .scene-archimedes {
   position: absolute;
   bottom: 12%;
-  left: 50%;
+  left: 68%;
   transform: translateX(-50%);
   height: 38%;
   width: auto;
   max-width: 28%;
+  object-fit: contain;
+  object-position: bottom center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Guards standing to the king's left */
+.scene-guards {
+  position: absolute;
+  bottom: 15%;
+  left: 32%;
+  transform: translateX(-50%);
+  height: 30%;
+  width: auto;
+  max-width: 22%;
+  object-fit: contain;
+  object-position: bottom center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* King sitting on the stage – centered */
+.scene-king {
+  position: absolute;
+  bottom: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 32%;
+  width: auto;
+  max-width: 22%;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;
@@ -381,6 +432,364 @@ body.lesson-active {
   overflow: hidden;
   border: 1px solid rgba(146, 92, 28, 0.25);
   background: radial-gradient(circle at 30% 20%, #f7e4b9, #d7b77c 60%, #3b2414 100%);
+}
+
+/* Crown weighing scene – physics-driven scale with stand, rod, strings, pans */
+.crown-weigh-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 380px;
+  padding: 1rem;
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.7), transparent 70%),
+    linear-gradient(to bottom, #fdf4da, #e2c795);
+}
+
+.scale-toolset {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 249, 237, 0.8);
+  border-radius: 12px;
+  border: 1px solid rgba(146, 92, 28, 0.25);
+}
+
+.scale-toolset-hint {
+  margin-bottom: 0.5rem;
+}
+
+.scale-toolset-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.scale-tool-draggable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+  border: 2px solid rgba(146, 92, 28, 0.35);
+  background: rgba(255, 249, 237, 0.95);
+  cursor: grab;
+  font-size: 0.75rem;
+  color: #3a230d;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  user-select: none;
+}
+
+.scale-tool-draggable:active {
+  cursor: grabbing;
+}
+
+.scale-tool-draggable:hover:not(.scale-tool-draggable-disabled) {
+  border-color: #b8860b;
+  background: #fffaf0;
+  transform: translateY(-1px);
+}
+
+.scale-tool-draggable-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.scale-tool-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.scale-toolset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.crown-scale {
+  position: relative;
+  width: 320px;
+  height: 260px;
+  margin: 1rem auto 0;
+}
+
+/* Tall vertical stand – runs up to the pivot */
+.crown-scale-stand {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 14px;
+  height: 228px;
+  transform: translateX(-50%);
+  background: linear-gradient(to right, #3d2a18, #5d3b1a 20%, #6b4a2a 50%, #5d3b1a 80%, #3d2a18);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Stand top cap – beam rests on this; pivot sits above it */
+.crown-scale-stand::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 24px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 2px;
+  background: linear-gradient(to bottom, #7a5a2a, #5d3b1a);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Pivot = bearing ring; beam passes through the centre */
+.crown-scale-pivot {
+  position: absolute;
+  left: 50%;
+  top: 32px;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: transparent;
+  border: 5px solid #9a7320;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(50, 30, 5, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.25);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Rotating assembly: rod + strings + pans */
+.crown-scale-beam {
+  position: absolute;
+  left: 50%;
+  top: 32px;
+  width: 260px;
+  height: 1px;
+  transform-origin: center center;
+  z-index: 2;
+}
+
+/* Long horizontal rod – full width so it passes through pivot centre */
+.crown-scale-rod {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(to bottom, #8a6a2a, #6d4b1a 20%, #9b7924 50%, #6d4b1a 80%, #5a4020);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Centre hub: beam meets pivot – pin that sits inside the pivot ring */
+.crown-scale-rod-cap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #9a7320, #5d3b1a 60%);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.25),
+    0 0 0 1px rgba(40, 25, 5, 0.6);
+}
+
+/* String: vertical line from rod to pan */
+.crown-scale-string {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  margin-top: 6px;
+}
+
+.crown-scale-string-line {
+  width: 2px;
+  height: 28px;
+  margin: 0 auto;
+  background: linear-gradient(to right, #2b1b1b, #4a3520, #2b1b1b);
+  border-radius: 1px;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+.crown-scale-string-left {
+  left: 10px;
+  transform: translateX(-50%);
+}
+
+.crown-scale-string-right {
+  right: 10px;
+  left: auto;
+  transform: translateX(50%);
+}
+
+/* Pan (plate) hanging from string – drop zone */
+.crown-scale-pan {
+  position: absolute;
+  top: 100%;
+  margin-top: 2px;
+  width: 92px;
+  min-height: 68px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 25%, #fdf9ed, #e8d4a0 40%, #c9a227 70%, #8b6914);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 6px 10px;
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.crown-scale-pan-drag-over {
+  box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.6), 0 6px 20px rgba(0, 0, 0, 0.3);
+  background: radial-gradient(circle at 50% 25%, #fffbf0, #ecd89a 40%, #d4a82a 70%, #9a7320);
+}
+
+.crown-scale-pan-left {
+  left: 50%;
+  transform: translate(-50%, 0);
+}
+
+.crown-scale-pan-right {
+  left: auto;
+  right: 50%;
+  transform: translate(50%, 0);
+}
+
+.crown-scale-pan-total {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #3a230d;
+  margin-bottom: 4px;
+}
+
+.crown-scale-pan-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+
+.scale-pan-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.scale-pan-item:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.scale-pan-item-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.scale-pan-item-mass {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #2b1b1b;
+}
+
+/* Crown melting scene */
+.crown-melt-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 30% 0%, rgba(255, 255, 255, 0.7), transparent 70%),
+    linear-gradient(to bottom, #fdf4da, #e2c795);
+}
+
+.crown-melt-stage {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.25rem 1.5rem;
+  border-radius: 14px;
+  background: rgba(255, 249, 237, 0.9);
+  border: 1px solid rgba(146, 92, 28, 0.35);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.crown-melt-stage-after {
+  background: rgba(255, 249, 237, 1);
+}
+
+.crown-melt-furnace {
+  width: 80px;
+  height: 52px;
+  border-radius: 999px 999px 0 0;
+  background: radial-gradient(circle at 50% 0%, #ffe3b3, #c05a1a);
+  margin: 0 auto 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.crown-melt-flame {
+  position: absolute;
+  bottom: -10%;
+  left: 50%;
+  width: 50px;
+  height: 70px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 50% 0%, #fff7d1, #ff9800 55%, rgba(255, 152, 0, 0));
+  opacity: 0.9;
+}
+
+.crown-melt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.crown-melt-crown,
+.crown-melt-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.crown-melt-icon {
+  width: 64px;
+  height: 40px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f8da5b, #f5b40a);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+.crown-melt-icon-block {
+  border-radius: 8px;
+  height: 32px;
+}
+
+.crown-melt-label {
+  font-size: 0.8rem;
+  color: #4a2c16;
+  text-align: center;
+}
+
+.crown-melt-arrow {
+  font-size: 1.5rem;
+  color: #7b5427;
 }
 
 .pill-group {
