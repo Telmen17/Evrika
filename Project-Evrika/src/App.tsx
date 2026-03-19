@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import LandingPage, { type SceneId } from './components/LandingPage'
+import leafImg from './assets/leaf.png'
 import StoryIntroScene from './components/StoryIntroScene'
 import StoryBathScene from './components/StoryBathScene'
 import CrownWeighScene from './components/CrownWeighScene.tsx'
@@ -63,7 +64,43 @@ function App() {
       break
   }
 
-  return <div className="app-root">{content}</div>
+  const leafCount = 6
+  const topLeafCount = 9
+  return (
+    <>
+      <div
+        className="frame-decoration"
+        aria-hidden
+      >
+        <div className="frame-edge frame-top">
+          {Array.from({ length: topLeafCount }, (_, i) => (
+            <div key={`t-${i}`} className="frame-leaf-slot">
+              <img
+                className="frame-leaf-img frame-leaf-img-top"
+                src={leafImg}
+                alt=""
+              />
+            </div>
+          ))}
+        </div>
+        <div className="frame-edge frame-left">
+          {Array.from({ length: leafCount }, (_, i) => (
+            <div key={`l-${i}`} className="frame-leaf-slot">
+              <img className="frame-leaf-img" src={leafImg} alt="" />
+            </div>
+          ))}
+        </div>
+        <div className="frame-edge frame-right">
+          {Array.from({ length: leafCount }, (_, i) => (
+            <div key={`r-${i}`} className="frame-leaf-slot">
+              <img className="frame-leaf-img" src={leafImg} alt="" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="app-root">{content}</div>
+    </>
+  )
 }
 
 export default App

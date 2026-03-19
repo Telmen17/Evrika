@@ -37,25 +37,67 @@ body.lesson-active {
   padding: 2rem;
 }
 
-/* Decorative vine frame around the lesson */
-.app-root::before {
-  content: '';
+/* Decorative leaf frame – 6 leaves per edge, top rotated 90° for continuous vine */
+.frame-decoration {
   position: fixed;
-  inset: 0.75rem;
+  inset: 0;
   pointer-events: none;
-  border-radius: 28px;
-  border: 18px solid transparent;
-  border-image: repeating-linear-gradient(
-      to bottom,
-      #245c34,
-      #3f8c49 10px,
-      #2e6a3b 20px,
-      #f4d27a 22px,
-      #2e6a3b 24px
-    )
-    30 round;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.25);
-  opacity: 0.85;
+  z-index: 1000;
+}
+
+.frame-edge {
+  position: absolute;
+  display: flex;
+  overflow: hidden;
+}
+
+.frame-edge.frame-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.frame-edge.frame-left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 120px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.frame-edge.frame-right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 120px;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.frame-leaf-slot {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* keep as close to the edge as possible */
+}
+
+.frame-leaf-img {
+  height: 120px; /* the “edge thickness” — same for top and sides */
+  width: auto; /* preserve original leaf aspect ratio */
+  display: block;
+  flex: none;
+}
+
+/* Top: rotate but keep the SAME rendered height (120px) */
+.frame-leaf-img-top {
+  transform: rotate(90deg);
+  transform-origin: top center;
 }
 
 .app-root:has(.journey-scene) {
