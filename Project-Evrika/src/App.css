@@ -53,42 +53,44 @@ body.lesson-active {
 
 .frame-edge.frame-top {
   top: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
+  /* inset so the first top leaf starts where the left side vine ends */
+  left: 140px;
+  right: 140px;
+  height: 140px;
   flex-direction: row;
   align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .frame-edge.frame-left {
   top: 0;
   left: 0;
   bottom: 0;
-  width: 120px;
+  width: 140px;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .frame-edge.frame-right {
   top: 0;
   right: 0;
   bottom: 0;
-  width: 120px;
+  width: 140px;
   flex-direction: column;
   align-items: flex-end;
+  justify-content: flex-start;
 }
 
 .frame-leaf-slot {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
+  flex: 0 0 auto;
   display: flex;
   justify-content: center;
   align-items: flex-start; /* keep as close to the edge as possible */
 }
 
 .frame-leaf-img {
-  height: 120px; /* the “edge thickness” — same for top and sides */
+  height: 140px; /* match edge thickness */
   width: auto; /* preserve original leaf aspect ratio */
   display: block;
   flex: none;
@@ -98,6 +100,16 @@ body.lesson-active {
 .frame-leaf-img-top {
   transform: rotate(90deg);
   transform-origin: top center;
+}
+
+/* Overlap leaves to remove visible gaps */
+.frame-edge.frame-top .frame-leaf-slot:not(:first-child) {
+  margin-left: -44px;
+}
+
+.frame-edge.frame-left .frame-leaf-slot:not(:first-child),
+.frame-edge.frame-right .frame-leaf-slot:not(:first-child) {
+  margin-top: -44px;
 }
 
 .app-root:has(.journey-scene) {
