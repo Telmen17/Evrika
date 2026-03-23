@@ -13,6 +13,7 @@ import RecapScreen from './components/RecapScreen'
 const LEAF_LENGTH_PX = 140
 const LEAF_OVERLAP_PX = 44
 const LEAF_STEP_PX = LEAF_LENGTH_PX - LEAF_OVERLAP_PX
+const SIDE_VINE_WIDTH_PX = LEAF_LENGTH_PX
 
 function App() {
   const [currentScene, setCurrentScene] = useState<SceneId>('landing')
@@ -85,10 +86,18 @@ function App() {
   }
 
   const leafCountForLength = (length: number) =>
-    Math.max(2, Math.ceil((length - LEAF_LENGTH_PX) / LEAF_STEP_PX) + 1)
+    Math.max(2, Math.floor((length - LEAF_LENGTH_PX) / LEAF_STEP_PX) + 1)
+
+  const topLeafCountForConnection = (viewportWidth: number) =>
+    Math.max(
+      2,
+      Math.ceil(
+        (viewportWidth - SIDE_VINE_WIDTH_PX - LEAF_LENGTH_PX) / LEAF_STEP_PX,
+      ) + 1,
+    )
 
   const sideLeafCount = leafCountForLength(viewport.height)
-  const topLeafCount = leafCountForLength(viewport.width)
+  const topLeafCount = topLeafCountForConnection(viewport.width)
 
   return (
     <>

@@ -1,85 +1,693 @@
 import type { FC } from 'react'
-import { useState, useMemo, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SceneId } from './LandingPage'
-import { useScalePhysics } from '../hooks/useScalePhysics'
 import crownSvg from '../assets/crown.svg'
-import nugget100Img from '../assets/goldNugget1png.png'
-import nugget200Img from '../assets/goldNugget2png.png'
-import nugget300Img from '../assets/goldNugget3.png'
+import matterScriptUrl from '../../matter.min.js?url'
 
-export type ScaleItemId = 'crown' | 'nugget100' | 'nugget200' | 'nugget300'
+type PanSide = 'left' | 'right'
+export type ScaleItemId =
+  | 'crown'
+  | 'goldBar'
+  | 'silverBar'
+  | 'mass100'
+  | 'mass200'
+  | 'mass300'
+
+interface MatterWindow extends Window {
+  Matter?: any
+}
+
+interface StageGeometry {
+  width: number
+  height: number
+  pivotX: number
+  pivotY: number
+  beamWidth: number
+  panWidth: number
+  panWallHeight: number
+  ropeLength: number
+}
+
+interface ItemDefinition {
+  label: string
+  massGrams: number
+  physicsMass: number
+  iconSrc: string
+  bodyShape: 'circle' | 'rectangle'
+  width?: number
+  height?: number
+  radius?: number
+  singleInstance?: boolean
+}
+
+interface PlacedItem {
+  instanceId: string
+  type: ScaleItemId
+  pan: PanSide
+}
+
+interface PhysicsSnapshot {
+  beamAngle: number
+  leftPan: { x: number; y: number; angle: number }
+  rightPan: { x: number; y: number; angle: number }
+  leftRopes: Array<{ x1: number; y1: number; x2: number; y2: number }>
+  rightRopes: Array<{ x1: number; y1: number; x2: number; y2: number }>
+}
+
+interface PhysicsRuntime {
+  Matter: any
+  engine: any
+  runner: any
+  beam: any
+  leftPan: any
+  rightPan: any
+  world: any
+  items: Map<string, { type: ScaleItemId; pan: PanSide }>
+  geometry: StageGeometry
+  applyPanMasses: () => void
+  syncView: () => void
+}
+
+const STAGE_GEOMETRY: StageGeometry = {
+  width: 440,
+  height: 390,
+  pivotX: 220,
+  pivotY: 106,
+  beamWidth: 248,
+  panWidth: 122,
+  panWallHeight: 38,
+  ropeLength: 112,
+}
+
+const DRAG_TYPE = 'application/x-evrika-scale-item'
+const BASE_PAN_PHYSICS_MASS = 5
+const BALANCE_RESTORE_STIFFNESS = 0.0018
+const BALANCE_RESTORE_DAMPING = 0.032
+const BASE_WIDTH_PX = 176
+const BASE_HEIGHT_PX = 20
+const BASE_BOTTOM_PX = 10
+const POST_WIDTH_PX = 18
+const POST_TOP_PX = STAGE_GEOMETRY.pivotY - 4
+const POST_HEIGHT_PX =
+  STAGE_GEOMETRY.height - BASE_BOTTOM_PX - BASE_HEIGHT_PX - POST_TOP_PX
+
+function toSvgDataUrl(svg: string) {
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+}
+
+function makeBarIcon(fill: string, accent: string, text: string) {
+  return toSvgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 48">
+      <rect x="10" y="10" width="52" height="28" rx="8" fill="${fill}" stroke="${accent}" stroke-width="3"/>
+      <rect x="15" y="14" width="42" height="8" rx="4" fill="rgba(255,255,255,0.25)"/>
+      <text x="36" y="31" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#2b1b1b">${text}</text>
+    </svg>
+  `)
+}
+
+function makeWeightIcon(fill: string, text: string) {
+  return toSvgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+      <path d="M23 18c0-5 4-9 9-9s9 4 9 9h-6c0-2-1-3-3-3s-3 1-3 3z" fill="${fill}" stroke="#5a4020" stroke-width="3"/>
+      <path d="M18 22h28l8 30c1 4-2 8-7 8H17c-5 0-8-4-7-8z" fill="${fill}" stroke="#5a4020" stroke-width="3"/>
+      <text x="32" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#2b1b1b">${text}</text>
+    </svg>
+  `)
+}
 
 const MASS_KG: Record<ScaleItemId, number> = {
   crown: 1.0,
-  nugget100: 0.1,
-  nugget200: 0.2,
-  nugget300: 0.3,
+  goldBar: 0.5,
+  silverBar: 0.3,
+  mass100: 0.1,
+  mass200: 0.2,
+  mass300: 0.3,
 }
 
 const ITEM_LABELS: Record<ScaleItemId, string> = {
   crown: 'Crown',
-  nugget100: '100 g',
-  nugget200: '200 g',
-  nugget300: '300 g',
+  goldBar: 'Gold bar',
+  silverBar: 'Silver bar',
+  mass100: '100 g',
+  mass200: '200 g',
+  mass300: '300 g',
 }
 
-const ITEM_IMGS: Record<ScaleItemId, string> = {
-  crown: crownSvg,
-  nugget100: nugget100Img,
-  nugget200: nugget200Img,
-  nugget300: nugget300Img,
+const ITEM_DEFS: Record<ScaleItemId, ItemDefinition> = {
+  crown: {
+    label: 'Crown 1 kg',
+    massGrams: 1000,
+    physicsMass: 10,
+    iconSrc: crownSvg,
+    bodyShape: 'circle',
+    radius: 18,
+    singleInstance: true,
+  },
+  goldBar: {
+    label: 'Gold bar 500 g',
+    massGrams: 500,
+    physicsMass: 5,
+    iconSrc: makeBarIcon('#f0b52d', '#8b6914', 'Au'),
+    bodyShape: 'rectangle',
+    width: 42,
+    height: 22,
+  },
+  silverBar: {
+    label: 'Silver bar 300 g',
+    massGrams: 300,
+    physicsMass: 3,
+    iconSrc: makeBarIcon('#d9dde7', '#7e8ba5', 'Ag'),
+    bodyShape: 'rectangle',
+    width: 40,
+    height: 20,
+  },
+  mass100: {
+    label: 'Dead mass 100 g',
+    massGrams: 100,
+    physicsMass: 1,
+    iconSrc: makeWeightIcon('#c49c45', '100'),
+    bodyShape: 'circle',
+    radius: 12,
+  },
+  mass200: {
+    label: 'Dead mass 200 g',
+    massGrams: 200,
+    physicsMass: 2,
+    iconSrc: makeWeightIcon('#b8842d', '200'),
+    bodyShape: 'circle',
+    radius: 14,
+  },
+  mass300: {
+    label: 'Dead mass 300 g',
+    massGrams: 300,
+    physicsMass: 3,
+    iconSrc: makeWeightIcon('#8e6b3a', '300'),
+    bodyShape: 'circle',
+    radius: 15,
+  },
 }
 
 interface CrownWeighSceneProps {
   onNavigate: (scene: SceneId) => void
 }
 
-function sumMass(items: ScaleItemId[]): number {
-  return items.reduce((s, id) => s + MASS_KG[id], 0)
+function rotatePoint(
+  centerX: number,
+  centerY: number,
+  offsetX: number,
+  offsetY: number,
+  angle: number,
+) {
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
+  return {
+    x: centerX + offsetX * cos - offsetY * sin,
+    y: centerY + offsetX * sin + offsetY * cos,
+  }
 }
 
-const DRAG_TYPE = 'application/x-evrika-scale-item'
+function lineStyle(x1: number, y1: number, x2: number, y2: number) {
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const length = Math.hypot(dx, dy)
+  const angle = Math.atan2(dy, dx)
+  return {
+    left: x1,
+    top: y1,
+    width: `${length}px`,
+    transform: `translateY(-50%) rotate(${angle}rad)`,
+  }
+}
+
+function createPanBody(Matter: any, x: number, y: number, group: number) {
+  const { Bodies, Body } = Matter
+  const base = Bodies.rectangle(x, y + 8, 122, 14, {
+    collisionFilter: { group },
+  })
+  const leftWall = Bodies.rectangle(x - 52, y - 6, 14, 44, {
+    collisionFilter: { group },
+  })
+  const rightWall = Bodies.rectangle(x + 52, y - 6, 14, 44, {
+    collisionFilter: { group },
+  })
+
+  const pan = Body.create({
+    parts: [base, leftWall, rightWall],
+    frictionAir: 0.14,
+    restitution: 0.05,
+    collisionFilter: { group },
+    label: 'scale-pan',
+  })
+
+  Body.setMass(pan, BASE_PAN_PHYSICS_MASS)
+  return pan
+}
+
+function sumPanPhysicsMass(
+  items: Map<string, { type: ScaleItemId; pan: PanSide }>,
+  pan: PanSide,
+) {
+  let total = BASE_PAN_PHYSICS_MASS
+  items.forEach((item) => {
+    if (item.pan === pan) total += ITEM_DEFS[item.type].physicsMass
+  })
+  return total
+}
+
+async function ensureMatterLoaded() {
+  const win = window as MatterWindow
+  if (win.Matter) return win.Matter
+
+  await new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector(
+      'script[data-evrika-matter="true"]',
+    ) as HTMLScriptElement | null
+
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener(
+        'error',
+        () => reject(new Error('Failed to load Matter.js')),
+        { once: true },
+      )
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = matterScriptUrl
+    script.async = true
+    script.dataset.evrikaMatter = 'true'
+    script.addEventListener('load', () => resolve(), { once: true })
+    script.addEventListener(
+      'error',
+      () => reject(new Error('Failed to load Matter.js')),
+      { once: true },
+    )
+    document.head.appendChild(script)
+  })
+
+  return (window as MatterWindow).Matter
+}
 
 const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
-  const [leftPanItems, setLeftPanItems] = useState<ScaleItemId[]>([])
-  const [rightPanItems, setRightPanItems] = useState<ScaleItemId[]>([])
-  const [dragOverPan, setDragOverPan] = useState<'left' | 'right' | null>(null)
+  const runtimeRef = useRef<PhysicsRuntime | null>(null)
+  const nextItemIdRef = useRef(0)
+  const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
+  const [dragOverPan, setDragOverPan] = useState<PanSide | null>(null)
+  const [matterReady, setMatterReady] = useState(false)
+  const [physicsSnapshot, setPhysicsSnapshot] = useState<PhysicsSnapshot>({
+    beamAngle: 0,
+    leftPan: {
+      x: STAGE_GEOMETRY.pivotX - STAGE_GEOMETRY.beamWidth / 2,
+      y: STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+      angle: 0,
+    },
+    rightPan: {
+      x: STAGE_GEOMETRY.pivotX + STAGE_GEOMETRY.beamWidth / 2,
+      y: STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+      angle: 0,
+    },
+    leftRopes: [],
+    rightRopes: [],
+  })
 
-  const crownInPool =
-    !leftPanItems.includes('crown') && !rightPanItems.includes('crown')
+  const crownInPool = !placedItems.some((item) => item.type === 'crown')
+  const leftMass = useMemo(
+    () =>
+      placedItems
+        .filter((item) => item.pan === 'left')
+        .reduce((sum, item) => sum + MASS_KG[item.type], 0),
+    [placedItems],
+  )
+  const rightMass = useMemo(
+    () =>
+      placedItems
+        .filter((item) => item.pan === 'right')
+        .reduce((sum, item) => sum + MASS_KG[item.type], 0),
+    [placedItems],
+  )
+  const canContinue = placedItems.length > 0
 
-  const leftMass = useMemo(() => sumMass(leftPanItems), [leftPanItems])
-  const rightMass = useMemo(() => sumMass(rightPanItems), [rightPanItems])
-  const beamRef = useScalePhysics(leftMass, rightMass)
+  useEffect(() => {
+    let cancelled = false
 
-  const addToLeft = useCallback((id: ScaleItemId) => {
-    if (id === 'crown' && !crownInPool) return
-    setLeftPanItems((prev) => [...prev, id])
-  }, [crownInPool])
+    ensureMatterLoaded()
+      .then(() => {
+        if (!cancelled) setMatterReady(true)
+      })
+      .catch((error) => {
+        console.error('Unable to load Matter.js', error)
+      })
 
-  const addToRight = useCallback((id: ScaleItemId) => {
-    if (id === 'crown' && !crownInPool) return
-    setRightPanItems((prev) => [...prev, id])
-  }, [crownInPool])
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  const removeFromLeft = (index: number) => {
-    setLeftPanItems((prev) => prev.filter((_, i) => i !== index))
-  }
+  useEffect(() => {
+    if (!matterReady) return
 
-  const removeFromRight = (index: number) => {
-    setRightPanItems((prev) => prev.filter((_, i) => i !== index))
-  }
+    const Matter = (window as MatterWindow).Matter
+    if (!Matter) return
 
-  const clearPans = () => {
-    setLeftPanItems([])
-    setRightPanItems([])
-  }
+    const { Engine, Runner, Bodies, Body, Composite, Constraint, Events } =
+      Matter
 
-  const canContinue =
-    leftPanItems.length > 0 || rightPanItems.length > 0
+    const engine = Engine.create({
+      gravity: { x: 0, y: 1.35 },
+    })
+    const world = engine.world
+    const scaleGroup = Body.nextGroup(true)
+
+    const post = Bodies.rectangle(
+      STAGE_GEOMETRY.pivotX,
+      STAGE_GEOMETRY.pivotY + 118,
+      18,
+      188,
+      {
+        isStatic: true,
+        collisionFilter: { group: scaleGroup },
+        render: { visible: false },
+      },
+    )
+    const base = Bodies.rectangle(
+      STAGE_GEOMETRY.pivotX,
+      STAGE_GEOMETRY.height - 24,
+      180,
+      22,
+      {
+        isStatic: true,
+        collisionFilter: { group: scaleGroup },
+        render: { visible: false },
+      },
+    )
+    const floor = Bodies.rectangle(
+      STAGE_GEOMETRY.pivotX,
+      STAGE_GEOMETRY.height + 30,
+      STAGE_GEOMETRY.width + 80,
+      60,
+      {
+        isStatic: true,
+        render: { visible: false },
+      },
+    )
+    const wallLeft = Bodies.rectangle(-24, STAGE_GEOMETRY.height / 2, 48, STAGE_GEOMETRY.height * 2, {
+      isStatic: true,
+      render: { visible: false },
+    })
+    const wallRight = Bodies.rectangle(
+      STAGE_GEOMETRY.width + 24,
+      STAGE_GEOMETRY.height / 2,
+      48,
+      STAGE_GEOMETRY.height * 2,
+      {
+        isStatic: true,
+        render: { visible: false },
+      },
+    )
+
+    const beam = Bodies.rectangle(
+      STAGE_GEOMETRY.pivotX,
+      STAGE_GEOMETRY.pivotY,
+      STAGE_GEOMETRY.beamWidth,
+      14,
+      {
+        frictionAir: 0.085,
+        collisionFilter: { group: scaleGroup },
+        render: { visible: false },
+      },
+    )
+    Body.setMass(beam, 7)
+
+    const leftPan = createPanBody(
+      Matter,
+      STAGE_GEOMETRY.pivotX - STAGE_GEOMETRY.beamWidth / 2 + 8,
+      STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+      scaleGroup,
+    )
+    const rightPan = createPanBody(
+      Matter,
+      STAGE_GEOMETRY.pivotX + STAGE_GEOMETRY.beamWidth / 2 - 8,
+      STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+      scaleGroup,
+    )
+
+    const pivotConstraint = Constraint.create({
+      pointA: { x: STAGE_GEOMETRY.pivotX, y: STAGE_GEOMETRY.pivotY },
+      bodyB: beam,
+      pointB: { x: 0, y: 0 },
+      stiffness: 1,
+      length: 0,
+      render: { visible: false },
+    })
+
+    const leftRopeA = Constraint.create({
+      bodyA: beam,
+      pointA: { x: -STAGE_GEOMETRY.beamWidth / 2 + 8, y: 0 },
+      bodyB: leftPan,
+      pointB: { x: -40, y: -16 },
+      stiffness: 0.95,
+      length: STAGE_GEOMETRY.ropeLength,
+      render: { visible: false },
+    })
+    const leftRopeB = Constraint.create({
+      bodyA: beam,
+      pointA: { x: -STAGE_GEOMETRY.beamWidth / 2 + 8, y: 0 },
+      bodyB: leftPan,
+      pointB: { x: 40, y: -16 },
+      stiffness: 0.95,
+      length: STAGE_GEOMETRY.ropeLength,
+      render: { visible: false },
+    })
+    const rightRopeA = Constraint.create({
+      bodyA: beam,
+      pointA: { x: STAGE_GEOMETRY.beamWidth / 2 - 8, y: 0 },
+      bodyB: rightPan,
+      pointB: { x: -40, y: -16 },
+      stiffness: 0.95,
+      length: STAGE_GEOMETRY.ropeLength,
+      render: { visible: false },
+    })
+    const rightRopeB = Constraint.create({
+      bodyA: beam,
+      pointA: { x: STAGE_GEOMETRY.beamWidth / 2 - 8, y: 0 },
+      bodyB: rightPan,
+      pointB: { x: 40, y: -16 },
+      stiffness: 0.95,
+      length: STAGE_GEOMETRY.ropeLength,
+      render: { visible: false },
+    })
+
+    Composite.add(world, [
+      floor,
+      wallLeft,
+      wallRight,
+      post,
+      base,
+      beam,
+      leftPan,
+      rightPan,
+      pivotConstraint,
+      leftRopeA,
+      leftRopeB,
+      rightRopeA,
+      rightRopeB,
+    ])
+
+    const runtime: PhysicsRuntime = {
+      Matter,
+      engine,
+      runner: Runner.create(),
+      beam,
+      leftPan,
+      rightPan,
+      world,
+      items: new Map(),
+      geometry: STAGE_GEOMETRY,
+      applyPanMasses: () => {
+        Body.setMass(runtime.leftPan, sumPanPhysicsMass(runtime.items, 'left'))
+        Body.setMass(runtime.rightPan, sumPanPhysicsMass(runtime.items, 'right'))
+      },
+      syncView: () => {
+        const leftBeamAnchor = rotatePoint(
+          beam.position.x,
+          beam.position.y,
+          -STAGE_GEOMETRY.beamWidth / 2 + 8,
+          0,
+          beam.angle,
+        )
+        const rightBeamAnchor = rotatePoint(
+          beam.position.x,
+          beam.position.y,
+          STAGE_GEOMETRY.beamWidth / 2 - 8,
+          0,
+          beam.angle,
+        )
+        const leftPanAnchorLeft = rotatePoint(
+          leftPan.position.x,
+          leftPan.position.y,
+          -40,
+          -16,
+          leftPan.angle,
+        )
+        const leftPanAnchorRight = rotatePoint(
+          leftPan.position.x,
+          leftPan.position.y,
+          40,
+          -16,
+          leftPan.angle,
+        )
+        const rightPanAnchorLeft = rotatePoint(
+          rightPan.position.x,
+          rightPan.position.y,
+          -40,
+          -16,
+          rightPan.angle,
+        )
+        const rightPanAnchorRight = rotatePoint(
+          rightPan.position.x,
+          rightPan.position.y,
+          40,
+          -16,
+          rightPan.angle,
+        )
+
+        setPhysicsSnapshot({
+          beamAngle: beam.angle,
+          leftPan: {
+            x: leftPan.position.x,
+            y: leftPan.position.y,
+            angle: leftPan.angle,
+          },
+          rightPan: {
+            x: rightPan.position.x,
+            y: rightPan.position.y,
+            angle: rightPan.angle,
+          },
+          leftRopes: [
+            {
+              x1: leftBeamAnchor.x,
+              y1: leftBeamAnchor.y,
+              x2: leftPanAnchorLeft.x,
+              y2: leftPanAnchorLeft.y,
+            },
+            {
+              x1: leftBeamAnchor.x,
+              y1: leftBeamAnchor.y,
+              x2: leftPanAnchorRight.x,
+              y2: leftPanAnchorRight.y,
+            },
+          ],
+          rightRopes: [
+            {
+              x1: rightBeamAnchor.x,
+              y1: rightBeamAnchor.y,
+              x2: rightPanAnchorLeft.x,
+              y2: rightPanAnchorLeft.y,
+            },
+            {
+              x1: rightBeamAnchor.x,
+              y1: rightBeamAnchor.y,
+              x2: rightPanAnchorRight.x,
+              y2: rightPanAnchorRight.y,
+            },
+          ],
+        })
+
+        setPlacedItems(
+          Array.from(runtime.items.entries()).map(([instanceId, item]) => ({
+            instanceId,
+            type: item.type,
+            pan: item.pan,
+          })),
+        )
+      },
+    }
+
+    runtimeRef.current = runtime
+
+    const handleBeforeUpdate = () => {
+      const restoringTorque =
+        -beam.angle * BALANCE_RESTORE_STIFFNESS -
+        beam.angularVelocity * BALANCE_RESTORE_DAMPING
+
+      beam.torque += restoringTorque
+    }
+    const handleAfterUpdate = () => runtime.syncView()
+    Events.on(engine, 'beforeUpdate', handleBeforeUpdate)
+    Events.on(engine, 'afterUpdate', handleAfterUpdate)
+    runtime.syncView()
+    Runner.run(runtime.runner, engine)
+
+    return () => {
+      Events.off(engine, 'beforeUpdate', handleBeforeUpdate)
+      Events.off(engine, 'afterUpdate', handleAfterUpdate)
+      Runner.stop(runtime.runner)
+      Composite.clear(world, false)
+      Engine.clear(engine)
+      runtimeRef.current = null
+      setPlacedItems([])
+    }
+  }, [matterReady])
+
+  const spawnIntoPan = useCallback((pan: PanSide, type: ScaleItemId) => {
+    const runtime = runtimeRef.current
+    if (!runtime) return
+
+    const def = ITEM_DEFS[type]
+    if (def.singleInstance && placedItems.some((item) => item.type === type)) {
+      return
+    }
+
+    const instanceId = `${type}-${nextItemIdRef.current++}`
+    runtime.items.set(instanceId, {
+      type,
+      pan,
+    })
+    runtime.applyPanMasses()
+    runtime.syncView()
+  }, [placedItems])
+
+  const removePlacedItem = useCallback((instanceId: string) => {
+    const runtime = runtimeRef.current
+    if (!runtime) return
+    const item = runtime.items.get(instanceId)
+    if (!item) return
+
+    runtime.items.delete(instanceId)
+    runtime.applyPanMasses()
+    runtime.syncView()
+  }, [])
+
+  const clearPans = useCallback(() => {
+    const runtime = runtimeRef.current
+    if (!runtime) return
+
+    runtime.items.clear()
+    runtime.applyPanMasses()
+
+    runtime.Matter.Body.setAngle(runtime.beam, 0)
+    runtime.Matter.Body.setAngularVelocity(runtime.beam, 0)
+    runtime.Matter.Body.setVelocity(runtime.beam, { x: 0, y: 0 })
+    runtime.Matter.Body.setPosition(runtime.leftPan, {
+      x: STAGE_GEOMETRY.pivotX - STAGE_GEOMETRY.beamWidth / 2 + 8,
+      y: STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+    })
+    runtime.Matter.Body.setPosition(runtime.rightPan, {
+      x: STAGE_GEOMETRY.pivotX + STAGE_GEOMETRY.beamWidth / 2 - 8,
+      y: STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+    })
+    runtime.Matter.Body.setAngle(runtime.leftPan, 0)
+    runtime.Matter.Body.setAngle(runtime.rightPan, 0)
+    runtime.Matter.Body.setVelocity(runtime.leftPan, { x: 0, y: 0 })
+    runtime.Matter.Body.setVelocity(runtime.rightPan, { x: 0, y: 0 })
+    runtime.Matter.Body.setAngularVelocity(runtime.leftPan, 0)
+    runtime.Matter.Body.setAngularVelocity(runtime.rightPan, 0)
+    runtime.syncView()
+  }, [])
 
   function handleDragStart(e: React.DragEvent, id: ScaleItemId) {
-    if (id === 'crown' && !crownInPool) {
+    if (ITEM_DEFS[id].singleInstance && !crownInPool) {
       e.preventDefault()
       return
     }
@@ -93,40 +701,40 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     e.dataTransfer.dropEffect = 'copy'
   }
 
-  function handleDropLeft(e: React.DragEvent) {
+  function handleDropToPan(e: React.DragEvent, pan: PanSide) {
     e.preventDefault()
     setDragOverPan(null)
     const id = e.dataTransfer.getData(DRAG_TYPE) as ScaleItemId | ''
-    if (id && (id === 'crown' ? crownInPool : true)) addToLeft(id)
-  }
-
-  function handleDropRight(e: React.DragEvent) {
-    e.preventDefault()
-    setDragOverPan(null)
-    const id = e.dataTransfer.getData(DRAG_TYPE) as ScaleItemId | ''
-    if (id && (id === 'crown' ? crownInPool : true)) addToRight(id)
+    if (!id) return
+    if (ITEM_DEFS[id].singleInstance && !crownInPool) return
+    spawnIntoPan(pan, id)
   }
 
   function handleDragLeave(e: React.DragEvent) {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverPan(null)
   }
 
-  function renderItem(id: ScaleItemId, index: number, side: 'left' | 'right') {
-    const label = id === 'crown' ? '1 kg' : ITEM_LABELS[id]
-    return (
-      <button
-        key={`${side}-${id}-${index}`}
-        type="button"
-        className="scale-pan-item"
-        onClick={() =>
-          side === 'left' ? removeFromLeft(index) : removeFromRight(index)
-        }
-        title="Click to remove"
-      >
-        <img src={ITEM_IMGS[id]} alt={id} className="scale-pan-item-img" />
-        <span className="scale-pan-item-mass">{label}</span>
-      </button>
-    )
+  function renderPanItems(pan: PanSide) {
+    return placedItems
+      .filter((item) => item.pan === pan)
+      .map((item) => (
+        <button
+          key={item.instanceId}
+          type="button"
+          className="crown-scale-pan-item"
+          onClick={(e) => {
+            e.stopPropagation()
+            removePlacedItem(item.instanceId)
+          }}
+          title={`Remove ${ITEM_LABELS[item.type]}`}
+        >
+          <img
+            src={ITEM_DEFS[item.type].iconSrc}
+            alt={ITEM_LABELS[item.type]}
+            className="crown-scale-pan-item-img"
+          />
+        </button>
+      ))
   }
 
   return (
@@ -146,68 +754,47 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
         <div className="experiment-controls">
           <h3>Archimedes&apos; first idea</h3>
           <p className="scene-text">
-            Drag the crown and gold nuggets onto the left or right pan. The
-            crown is 1 kg; nuggets are 100 g, 200 g, and 300 g. The scale
-            responds to the total mass on each side.
+            Drag the crown, metal bars, and dead masses onto either bowl. A
+            Matter-powered balance beam reacts to every object you place, and
+            the bowl walls keep the loads contained as the scale tilts.
           </p>
 
           <div className="scale-toolset">
             <p className="helper-text scale-toolset-hint">
-              Drag items onto a pan. Click an item on a pan to remove it.
+              Drag items onto a bowl. Remove an object only by clicking its icon
+              inside the bowl.
             </p>
             <div className="scale-toolset-items">
-              <div
-                draggable={crownInPool}
-                onDragStart={(e) => handleDragStart(e, 'crown')}
-                onDragEnd={() => setDragOverPan(null)}
-                className={`scale-tool-draggable ${!crownInPool ? 'scale-tool-draggable-disabled' : ''}`}
-                title="Crown (1 kg) – drag to a pan"
-              >
-                <img src={crownSvg} alt="Crown" className="scale-tool-img" />
-                <span>Crown 1 kg</span>
-              </div>
-              <div
-                draggable
-                onDragStart={(e) => handleDragStart(e, 'nugget100')}
-                onDragEnd={() => setDragOverPan(null)}
-                className="scale-tool-draggable"
-                title="100 g – drag to a pan"
-              >
-                <img
-                  src={nugget100Img}
-                  alt="100 g nugget"
-                  className="scale-tool-img"
-                />
-                <span>100 g</span>
-              </div>
-              <div
-                draggable
-                onDragStart={(e) => handleDragStart(e, 'nugget200')}
-                onDragEnd={() => setDragOverPan(null)}
-                className="scale-tool-draggable"
-                title="200 g – drag to a pan"
-              >
-                <img
-                  src={nugget200Img}
-                  alt="200 g nugget"
-                  className="scale-tool-img"
-                />
-                <span>200 g</span>
-              </div>
-              <div
-                draggable
-                onDragStart={(e) => handleDragStart(e, 'nugget300')}
-                onDragEnd={() => setDragOverPan(null)}
-                className="scale-tool-draggable"
-                title="300 g – drag to a pan"
-              >
-                <img
-                  src={nugget300Img}
-                  alt="300 g nugget"
-                  className="scale-tool-img"
-                />
-                <span>300 g</span>
-              </div>
+              {(
+                [
+                  'crown',
+                  'goldBar',
+                  'silverBar',
+                  'mass100',
+                  'mass200',
+                  'mass300',
+                ] as ScaleItemId[]
+              ).map((id) => {
+                const def = ITEM_DEFS[id]
+                const disabled = Boolean(def.singleInstance && !crownInPool)
+                return (
+                  <div
+                    key={id}
+                    draggable={!disabled}
+                    onDragStart={(e) => handleDragStart(e, id)}
+                    onDragEnd={() => setDragOverPan(null)}
+                    className={`scale-tool-draggable ${disabled ? 'scale-tool-draggable-disabled' : ''}`}
+                    title={`${def.label} – drag to a bowl`}
+                  >
+                    <img
+                      src={def.iconSrc}
+                      alt={ITEM_LABELS[id]}
+                      className="scale-tool-img"
+                    />
+                    <span>{def.label}</span>
+                  </div>
+                )
+              })}
             </div>
             <div className="scale-toolset-actions">
               <button
@@ -221,67 +808,132 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
           </div>
 
           <div className="helper-text">
-            When both pans have the same total mass, the scale balances. Mass
-            alone cannot reveal whether the crown is pure gold or mixed with
-            silver.
+            When both bowls hold the same total mass, the beam settles level.
+            That is why equal weight alone cannot reveal whether the crown is
+            pure gold or alloyed with silver.
           </div>
         </div>
 
         <div className="experiment-canvas crown-weigh-canvas">
-          <div className="crown-scale">
-            <div className="crown-scale-stand" />
-            <div className="crown-scale-pivot" aria-hidden />
+          <div className="crown-scale-shell">
             <div
-              ref={beamRef}
-              className="crown-scale-beam"
-              role="img"
-              aria-label="Balance scale"
+              className="crown-scale-stage"
+              style={{
+                width: `${STAGE_GEOMETRY.width}px`,
+                height: `${STAGE_GEOMETRY.height}px`,
+              }}
             >
-              <div className="crown-scale-rod">
-                <div className="crown-scale-rod-cap" aria-hidden />
-              </div>
-              <div className="crown-scale-string crown-scale-string-left">
-                <div className="crown-scale-string-line" />
-                <div
-                  className={`crown-scale-pan crown-scale-pan-left ${dragOverPan === 'left' ? 'crown-scale-pan-drag-over' : ''}`}
-                  onDragOver={(e) => {
-                    handleDragOver(e)
-                    setDragOverPan('left')
-                  }}
-                  onDrop={handleDropLeft}
-                  onDragLeave={handleDragLeave}
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Left pan – drop items here"
-                >
-                  <div className="crown-scale-pan-total">
-                    Total: {(leftMass * 1000).toFixed(0)} g
-                  </div>
-                  <div className="crown-scale-pan-items">
-                    {leftPanItems.map((id, i) => renderItem(id, i, 'left'))}
-                  </div>
+              <div
+                className="crown-scale-base"
+                style={{
+                  left: `${STAGE_GEOMETRY.pivotX}px`,
+                  width: `${BASE_WIDTH_PX}px`,
+                  height: `${BASE_HEIGHT_PX}px`,
+                  bottom: `${BASE_BOTTOM_PX}px`,
+                }}
+                aria-hidden
+              />
+              <div
+                className="crown-scale-post"
+                style={{
+                  left: `${STAGE_GEOMETRY.pivotX}px`,
+                  top: `${POST_TOP_PX}px`,
+                  width: `${POST_WIDTH_PX}px`,
+                  height: `${POST_HEIGHT_PX}px`,
+                }}
+                aria-hidden
+              />
+              <div
+                className="crown-scale-pivot"
+                style={{
+                  left: `${STAGE_GEOMETRY.pivotX}px`,
+                  top: `${STAGE_GEOMETRY.pivotY}px`,
+                }}
+                aria-hidden
+              />
+
+              <div
+                className="crown-scale-beam"
+                style={{
+                  left: `${STAGE_GEOMETRY.pivotX}px`,
+                  top: `${STAGE_GEOMETRY.pivotY}px`,
+                  width: `${STAGE_GEOMETRY.beamWidth}px`,
+                  transform: `translate(-50%, -50%) rotate(${physicsSnapshot.beamAngle}rad)`,
+                }}
+                role="img"
+                aria-label="Matter.js balance scale"
+              >
+                <div className="crown-scale-rod">
+                  <div className="crown-scale-rod-cap" aria-hidden />
                 </div>
               </div>
-              <div className="crown-scale-string crown-scale-string-right">
-                <div className="crown-scale-string-line" />
+
+              {physicsSnapshot.leftRopes.map((rope, index) => (
                 <div
-                  className={`crown-scale-pan crown-scale-pan-right ${dragOverPan === 'right' ? 'crown-scale-pan-drag-over' : ''}`}
-                  onDragOver={(e) => {
-                    handleDragOver(e)
-                    setDragOverPan('right')
-                  }}
-                  onDrop={handleDropRight}
-                  onDragLeave={handleDragLeave}
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Right pan – drop items here"
-                >
-                  <div className="crown-scale-pan-total">
-                    Total: {(rightMass * 1000).toFixed(0)} g
-                  </div>
-                  <div className="crown-scale-pan-items">
-                    {rightPanItems.map((id, i) => renderItem(id, i, 'right'))}
-                  </div>
+                  key={`left-rope-${index}`}
+                  className="crown-scale-rope"
+                  style={lineStyle(rope.x1, rope.y1, rope.x2, rope.y2)}
+                  aria-hidden
+                />
+              ))}
+              {physicsSnapshot.rightRopes.map((rope, index) => (
+                <div
+                  key={`right-rope-${index}`}
+                  className="crown-scale-rope"
+                  style={lineStyle(rope.x1, rope.y1, rope.x2, rope.y2)}
+                  aria-hidden
+                />
+              ))}
+
+              <div
+                className={`crown-scale-pan crown-scale-pan-left ${dragOverPan === 'left' ? 'crown-scale-pan-drag-over' : ''}`}
+                style={{
+                  left: `${physicsSnapshot.leftPan.x}px`,
+                  top: `${physicsSnapshot.leftPan.y}px`,
+                  transform: `translate(-50%, -50%) rotate(${physicsSnapshot.leftPan.angle}rad)`,
+                }}
+                onDragOver={(e) => {
+                  handleDragOver(e)
+                  setDragOverPan('left')
+                }}
+                onDrop={(e) => handleDropToPan(e, 'left')}
+                onDragLeave={handleDragLeave}
+                role="button"
+                tabIndex={0}
+                aria-label="Left bowl – drop items here"
+              >
+                <div className="crown-scale-pan-total">
+                  {(leftMass * 1000).toFixed(0)} g
+                </div>
+                <div className="crown-scale-pan-remove-hint">Drop or remove</div>
+                <div className="crown-scale-pan-items">
+                  {renderPanItems('left')}
+                </div>
+              </div>
+
+              <div
+                className={`crown-scale-pan crown-scale-pan-right ${dragOverPan === 'right' ? 'crown-scale-pan-drag-over' : ''}`}
+                style={{
+                  left: `${physicsSnapshot.rightPan.x}px`,
+                  top: `${physicsSnapshot.rightPan.y}px`,
+                  transform: `translate(-50%, -50%) rotate(${physicsSnapshot.rightPan.angle}rad)`,
+                }}
+                onDragOver={(e) => {
+                  handleDragOver(e)
+                  setDragOverPan('right')
+                }}
+                onDrop={(e) => handleDropToPan(e, 'right')}
+                onDragLeave={handleDragLeave}
+                role="button"
+                tabIndex={0}
+                aria-label="Right bowl – drop items here"
+              >
+                <div className="crown-scale-pan-total">
+                  {(rightMass * 1000).toFixed(0)} g
+                </div>
+                <div className="crown-scale-pan-remove-hint">Drop or remove</div>
+                <div className="crown-scale-pan-items">
+                  {renderPanItems('right')}
                 </div>
               </div>
             </div>
