@@ -10,9 +10,18 @@ import BuoyancyBathScene from './components/BuoyancyBathScene'
 import CrownDensityScene from './components/CrownDensityScene'
 import RecapScreen from './components/RecapScreen'
 
+const FRAME_THICKNESS_PX = 140
+const LEAF_LENGTH_PX = 140
+const LEAF_OVERLAP_PX = 44
+const LEAF_STEP_PX = LEAF_LENGTH_PX - LEAF_OVERLAP_PX
+
 function App() {
   const [currentScene, setCurrentScene] = useState<SceneId>('landing')
   const [completedScenes, setCompletedScenes] = useState<SceneId[]>([])
+  const [viewport, setViewport] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }))
 
   const navigate = (scene: SceneId) => {
     setCurrentScene(scene)
@@ -28,6 +37,18 @@ function App() {
       document.body.classList.remove('lesson-active')
     }
   }, [currentScene])
+
+  useEffect(() => {
+    const onResize = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      })
+    }
+
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   let content
 
@@ -64,8 +85,14 @@ function App() {
       break
   }
 
-  const leafCount = 6
-  const topLeafCount = 9
+  const leafCountForLength = (length: number) =>
+    Math.max(2, Math.ceil((length - LEAF_LENGTH_PX) / LEAF_STEP_PX) + 1)
+
+  const sideLeafCount = leafCountForLength(viewport.height)
+  const topLeafCount = leafCountForLength(
+    Math.max(0, viewport.width - FRAME_THICKNESS_PX * 2),
+  )
+
   return (
     <>
       <div
@@ -84,14 +111,14 @@ function App() {
           ))}
         </div>
         <div className="frame-edge frame-left">
-          {Array.from({ length: leafCount }, (_, i) => (
+          {Array.from({ length: sideLeafCount }, (_, i) => (
             <div key={`l-${i}`} className="frame-leaf-slot">
               <img className="frame-leaf-img" src={leafImg} alt="" />
             </div>
           ))}
         </div>
         <div className="frame-edge frame-right">
-          {Array.from({ length: leafCount }, (_, i) => (
+          {Array.from({ length: sideLeafCount }, (_, i) => (
             <div key={`r-${i}`} className="frame-leaf-slot">
               <img className="frame-leaf-img" src={leafImg} alt="" />
             </div>

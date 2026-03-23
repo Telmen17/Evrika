@@ -3,6 +3,7 @@ html, body {
   padding: 0;
   min-height: 100vh;
   height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -26,6 +27,7 @@ body.lesson-active {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .app-root {
@@ -96,13 +98,13 @@ body.lesson-active {
   flex: none;
 }
 
-/* Top: rotate but keep the SAME rendered height (120px) */
+/* Top: rotate while keeping the same rendered leaf size */
 .frame-leaf-img-top {
   transform: rotate(90deg);
   transform-origin: top center;
 }
 
-/* Overlap leaves to remove visible gaps */
+/* Connected vine look: overlap each next leaf so there are no gaps */
 .frame-edge.frame-top .frame-leaf-slot:not(:first-child) {
   margin-left: -44px;
 }
