@@ -55,9 +55,8 @@ body.lesson-active {
 
 .frame-edge.frame-top {
   top: 0;
-  /* inset so the first top leaf starts where the left side vine ends */
-  left: 140px;
-  right: 140px;
+  left: 0;
+  right: 0;
   height: 140px;
   flex-direction: row;
   align-items: flex-start;
@@ -89,6 +88,15 @@ body.lesson-active {
   display: flex;
   justify-content: center;
   align-items: flex-start; /* keep as close to the edge as possible */
+}
+
+/* Pull side vines toward inner border so corners meet top vine */
+.frame-edge.frame-left .frame-leaf-slot {
+  justify-content: flex-end;
+}
+
+.frame-edge.frame-right .frame-leaf-slot {
+  justify-content: flex-start;
 }
 
 .frame-leaf-img {

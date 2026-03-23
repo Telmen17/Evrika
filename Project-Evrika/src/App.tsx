@@ -10,7 +10,6 @@ import BuoyancyBathScene from './components/BuoyancyBathScene'
 import CrownDensityScene from './components/CrownDensityScene'
 import RecapScreen from './components/RecapScreen'
 
-const FRAME_THICKNESS_PX = 140
 const LEAF_LENGTH_PX = 140
 const LEAF_OVERLAP_PX = 44
 const LEAF_STEP_PX = LEAF_LENGTH_PX - LEAF_OVERLAP_PX
@@ -89,9 +88,7 @@ function App() {
     Math.max(2, Math.ceil((length - LEAF_LENGTH_PX) / LEAF_STEP_PX) + 1)
 
   const sideLeafCount = leafCountForLength(viewport.height)
-  const topLeafCount = leafCountForLength(
-    Math.max(0, viewport.width - FRAME_THICKNESS_PX * 2),
-  )
+  const topLeafCount = leafCountForLength(viewport.width)
 
   return (
     <>
