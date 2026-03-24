@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SceneId } from './LandingPage'
 import crownSvg from '../assets/crown.svg'
 import matterScriptUrl from '../../matter.min.js?url'
+import { useAudioPlayer } from '../hooks/useAudioPlayer'
 
 type PanSide = 'left' | 'right'
 export type ScaleItemId =
@@ -81,8 +82,14 @@ const STAGE_GEOMETRY: StageGeometry = {
 
 const DRAG_TYPE = 'application/x-evrika-scale-item'
 const BASE_PAN_PHYSICS_MASS = 5
-const BALANCE_RESTORE_STIFFNESS = 0.0018
-const BALANCE_RESTORE_DAMPING = 0.032
+const BALANCE_RESTORE_STIFFNESS = 0
+const BALANCE_RESTORE_DAMPING = 0.06
+const BALANCE_LOAD_TORQUE_SCALE = 0.0092
+const BEAM_CENTER_OFFSET_Y = 10
+const BEAM_FRICTION_AIR = 0.008
+const PAN_FRICTION_AIR = 0.02
+const PIVOT_STIFFNESS = 0.68
+const ROPE_STIFFNESS = 0.56
 const BASE_WIDTH_PX = 176
 const BASE_HEIGHT_PX = 20
 const BASE_BOTTOM_PX = 10
@@ -191,6 +198,36 @@ interface CrownWeighSceneProps {
   onNavigate: (scene: SceneId) => void
 }
 
+type NarrationClipId = 'lesson' | 'limit' | 'next'
+
+const WEIGHING_CONCLUSION_INTERACTION_THRESHOLD = 4
+
+const NARRATION_CLIPS: Array<{
+  id: NarrationClipId
+  label: string
+  description: string
+  src: string
+}> = [
+  {
+    id: 'lesson',
+    label: 'What you learned',
+    description: 'A short recap of what the scale reveals.',
+    src: '/audio/scale_conclusion.mp3',
+  },
+  {
+    id: 'limit',
+    label: 'Why weighing is not enough',
+    description: 'Why equal weight still leaves the mystery unsolved.',
+    src: '/audio/scale_conclusion-2.mp3',
+  },
+  {
+    id: 'next',
+    label: 'Next lesson',
+    description: "A guide toward Archimedes' next idea.",
+    src: '/audio/scale_conclusion-3.mp3',
+  },
+]
+
 function rotatePoint(
   centerX: number,
   centerY: number,
@@ -233,7 +270,7 @@ function createPanBody(Matter: any, x: number, y: number, group: number) {
 
   const pan = Body.create({
     parts: [base, leftWall, rightWall],
-    frictionAir: 0.14,
+    frictionAir: PAN_FRICTION_AIR,
     restitution: 0.05,
     collisionFilter: { group },
     label: 'scale-pan',
@@ -295,6 +332,9 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [dragOverPan, setDragOverPan] = useState<PanSide | null>(null)
   const [matterReady, setMatterReady] = useState(false)
+  const [interactionCount, setInteractionCount] = useState(0)
+  const [activeNarrationId, setActiveNarrationId] =
+    useState<NarrationClipId | null>(null)
   const [physicsSnapshot, setPhysicsSnapshot] = useState<PhysicsSnapshot>({
     beamAngle: 0,
     leftPan: {
@@ -327,6 +367,26 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     [placedItems],
   )
   const canContinue = placedItems.length > 0
+  const hasComparedBothSides =
+    placedItems.some((item) => item.pan === 'left') &&
+    placedItems.some((item) => item.pan === 'right')
+  const showConclusionCard =
+    interactionCount >= WEIGHING_CONCLUSION_INTERACTION_THRESHOLD ||
+    (hasComparedBothSides && placedItems.length >= 2)
+  const activeNarrationSrc = useMemo(
+    () =>
+      NARRATION_CLIPS.find((clip) => clip.id === activeNarrationId)?.src ?? null,
+    [activeNarrationId],
+  )
+  const activeNarrationIndex = activeNarrationId
+    ? NARRATION_CLIPS.findIndex((clip) => clip.id === activeNarrationId)
+    : -1
+  const narrationAudio = useAudioPlayer(activeNarrationSrc)
+
+  useEffect(() => {
+    if (!activeNarrationSrc) return
+    narrationAudio.play()
+  }, [activeNarrationSrc, narrationAudio.play])
 
   useEffect(() => {
     let cancelled = false
@@ -408,35 +468,35 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
 
     const beam = Bodies.rectangle(
       STAGE_GEOMETRY.pivotX,
-      STAGE_GEOMETRY.pivotY,
+      STAGE_GEOMETRY.pivotY + BEAM_CENTER_OFFSET_Y,
       STAGE_GEOMETRY.beamWidth,
       14,
       {
-        frictionAir: 0.085,
+        frictionAir: BEAM_FRICTION_AIR,
         collisionFilter: { group: scaleGroup },
         render: { visible: false },
       },
     )
-    Body.setMass(beam, 7)
+    Body.setMass(beam, 3.9)
 
     const leftPan = createPanBody(
       Matter,
       STAGE_GEOMETRY.pivotX - STAGE_GEOMETRY.beamWidth / 2 + 8,
-      STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+      STAGE_GEOMETRY.pivotY + BEAM_CENTER_OFFSET_Y + STAGE_GEOMETRY.ropeLength,
       scaleGroup,
     )
     const rightPan = createPanBody(
       Matter,
       STAGE_GEOMETRY.pivotX + STAGE_GEOMETRY.beamWidth / 2 - 8,
-      STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+      STAGE_GEOMETRY.pivotY + BEAM_CENTER_OFFSET_Y + STAGE_GEOMETRY.ropeLength,
       scaleGroup,
     )
 
     const pivotConstraint = Constraint.create({
       pointA: { x: STAGE_GEOMETRY.pivotX, y: STAGE_GEOMETRY.pivotY },
       bodyB: beam,
-      pointB: { x: 0, y: 0 },
-      stiffness: 1,
+      pointB: { x: 0, y: -BEAM_CENTER_OFFSET_Y },
+      stiffness: PIVOT_STIFFNESS,
       length: 0,
       render: { visible: false },
     })
@@ -446,7 +506,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       pointA: { x: -STAGE_GEOMETRY.beamWidth / 2 + 8, y: 0 },
       bodyB: leftPan,
       pointB: { x: -40, y: -16 },
-      stiffness: 0.95,
+      stiffness: ROPE_STIFFNESS,
       length: STAGE_GEOMETRY.ropeLength,
       render: { visible: false },
     })
@@ -455,7 +515,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       pointA: { x: -STAGE_GEOMETRY.beamWidth / 2 + 8, y: 0 },
       bodyB: leftPan,
       pointB: { x: 40, y: -16 },
-      stiffness: 0.95,
+      stiffness: ROPE_STIFFNESS,
       length: STAGE_GEOMETRY.ropeLength,
       render: { visible: false },
     })
@@ -464,7 +524,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       pointA: { x: STAGE_GEOMETRY.beamWidth / 2 - 8, y: 0 },
       bodyB: rightPan,
       pointB: { x: -40, y: -16 },
-      stiffness: 0.95,
+      stiffness: ROPE_STIFFNESS,
       length: STAGE_GEOMETRY.ropeLength,
       render: { visible: false },
     })
@@ -473,7 +533,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       pointA: { x: STAGE_GEOMETRY.beamWidth / 2 - 8, y: 0 },
       bodyB: rightPan,
       pointB: { x: 40, y: -16 },
-      stiffness: 0.95,
+      stiffness: ROPE_STIFFNESS,
       length: STAGE_GEOMETRY.ropeLength,
       render: { visible: false },
     })
@@ -504,10 +564,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       world,
       items: new Map(),
       geometry: STAGE_GEOMETRY,
-      applyPanMasses: () => {
-        Body.setMass(runtime.leftPan, sumPanPhysicsMass(runtime.items, 'left'))
-        Body.setMass(runtime.rightPan, sumPanPhysicsMass(runtime.items, 'right'))
-      },
+      applyPanMasses: () => {},
       syncView: () => {
         const leftBeamAnchor = rotatePoint(
           beam.position.x,
@@ -607,11 +664,18 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     runtimeRef.current = runtime
 
     const handleBeforeUpdate = () => {
+      const leftPanMass = sumPanPhysicsMass(runtime.items, 'left')
+      const rightPanMass = sumPanPhysicsMass(runtime.items, 'right')
+      const loadTorque =
+        (rightPanMass - leftPanMass) *
+        BALANCE_LOAD_TORQUE_SCALE *
+        Math.cos(beam.angle)
       const restoringTorque =
-        -beam.angle * BALANCE_RESTORE_STIFFNESS -
+        -Math.sin(beam.angle) * BALANCE_RESTORE_STIFFNESS -
         beam.angularVelocity * BALANCE_RESTORE_DAMPING
+      const totalTorque = loadTorque + restoringTorque
 
-      beam.torque += restoringTorque
+      beam.torque += totalTorque
     }
     const handleAfterUpdate = () => runtime.syncView()
     Events.on(engine, 'beforeUpdate', handleBeforeUpdate)
@@ -644,6 +708,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       type,
       pan,
     })
+    setInteractionCount((count) => count + 1)
     runtime.applyPanMasses()
     runtime.syncView()
   }, [placedItems])
@@ -655,6 +720,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     if (!item) return
 
     runtime.items.delete(instanceId)
+    setInteractionCount((count) => count + 1)
     runtime.applyPanMasses()
     runtime.syncView()
   }, [])
@@ -662,6 +728,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
   const clearPans = useCallback(() => {
     const runtime = runtimeRef.current
     if (!runtime) return
+    if (runtime.items.size > 0) setInteractionCount((count) => count + 1)
 
     runtime.items.clear()
     runtime.applyPanMasses()
@@ -671,11 +738,11 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     runtime.Matter.Body.setVelocity(runtime.beam, { x: 0, y: 0 })
     runtime.Matter.Body.setPosition(runtime.leftPan, {
       x: STAGE_GEOMETRY.pivotX - STAGE_GEOMETRY.beamWidth / 2 + 8,
-      y: STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+      y: STAGE_GEOMETRY.pivotY + BEAM_CENTER_OFFSET_Y + STAGE_GEOMETRY.ropeLength,
     })
     runtime.Matter.Body.setPosition(runtime.rightPan, {
       x: STAGE_GEOMETRY.pivotX + STAGE_GEOMETRY.beamWidth / 2 - 8,
-      y: STAGE_GEOMETRY.pivotY + STAGE_GEOMETRY.ropeLength,
+      y: STAGE_GEOMETRY.pivotY + BEAM_CENTER_OFFSET_Y + STAGE_GEOMETRY.ropeLength,
     })
     runtime.Matter.Body.setAngle(runtime.leftPan, 0)
     runtime.Matter.Body.setAngle(runtime.rightPan, 0)
@@ -737,8 +804,63 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       ))
   }
 
+  const toolboxItems = (
+    <div className="scale-toolset">
+      <div className="weigh-toolbox-header">
+        <div>
+          <p className="weigh-panel-kicker">Toolbox</p>
+          <h4>Available objects</h4>
+        </div>
+      </div>
+      <p className="helper-text scale-toolset-hint">
+        Drag any item into a bowl. Click an item inside a bowl to remove it.
+      </p>
+      <div className="scale-toolset-items">
+        {(
+          [
+            'crown',
+            'goldBar',
+            'silverBar',
+            'mass100',
+            'mass200',
+            'mass300',
+          ] as ScaleItemId[]
+        ).map((id) => {
+          const def = ITEM_DEFS[id]
+          const disabled = Boolean(def.singleInstance && !crownInPool)
+          return (
+            <div
+              key={id}
+              draggable={!disabled}
+              onDragStart={(e) => handleDragStart(e, id)}
+              onDragEnd={() => setDragOverPan(null)}
+              className={`scale-tool-draggable ${disabled ? 'scale-tool-draggable-disabled' : ''}`}
+              title={`${def.label} – drag to a bowl`}
+            >
+              <img
+                src={def.iconSrc}
+                alt={ITEM_LABELS[id]}
+                className="scale-tool-img"
+              />
+              <span>{def.label}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="scale-toolset-actions">
+        <button
+          type="button"
+          className="link-button"
+          onClick={clearPans}
+        >
+          Clear pans
+        </button>
+      </div>
+    </div>
+  )
+
   return (
-    <div className="scene">
+    <div className="scene crown-weigh-scene">
       <header className="scene-header">
         <button
           className="link-button"
@@ -751,192 +873,204 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       </header>
 
       <section className="scene-body experiment-layout">
-        <div className="experiment-controls">
-          <h3>Archimedes&apos; first idea</h3>
-          <p className="scene-text">
-            Drag the crown, metal bars, and dead masses onto either bowl. A
-            Matter-powered balance beam reacts to every object you place, and
-            the bowl walls keep the loads contained as the scale tilts.
-          </p>
+        <div className="experiment-controls weigh-reading-panel">
+          {toolboxItems}
 
-          <div className="scale-toolset">
-            <p className="helper-text scale-toolset-hint">
-              Drag items onto a bowl. Remove an object only by clicking its icon
-              inside the bowl.
+          <section className="weigh-info-card weigh-info-card-intro">
+            <p className="weigh-panel-kicker">Archimedes&apos; first idea</p>
+            <h3>Use a balance to compare the crown with trusted masses</h3>
+            <p className="scene-text">
+              Try to balance the crown against trusted weights and bars.
             </p>
-            <div className="scale-toolset-items">
-              {(
-                [
-                  'crown',
-                  'goldBar',
-                  'silverBar',
-                  'mass100',
-                  'mass200',
-                  'mass300',
-                ] as ScaleItemId[]
-              ).map((id) => {
-                const def = ITEM_DEFS[id]
-                const disabled = Boolean(def.singleInstance && !crownInPool)
-                return (
-                  <div
-                    key={id}
-                    draggable={!disabled}
-                    onDragStart={(e) => handleDragStart(e, id)}
-                    onDragEnd={() => setDragOverPan(null)}
-                    className={`scale-tool-draggable ${disabled ? 'scale-tool-draggable-disabled' : ''}`}
-                    title={`${def.label} – drag to a bowl`}
-                  >
-                    <img
-                      src={def.iconSrc}
-                      alt={ITEM_LABELS[id]}
-                      className="scale-tool-img"
-                    />
-                    <span>{def.label}</span>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="scale-toolset-actions">
-              <button
-                type="button"
-                className="link-button"
-                onClick={clearPans}
-              >
-                Clear pans
-              </button>
-            </div>
-          </div>
+          </section>
 
-          <div className="helper-text">
-            When both bowls hold the same total mass, the beam settles level.
-            That is why equal weight alone cannot reveal whether the crown is
-            pure gold or alloyed with silver.
+          <section className="weigh-info-card">
+            <h4>How to use the scale</h4>
+            <div className="weigh-guidance-list">
+              <div className="weigh-guidance-item">
+                <span className="weigh-guidance-step">1</span>
+                <p>Drag the crown or any weight from the toolbox into either bowl.</p>
+              </div>
+              <div className="weigh-guidance-item">
+                <span className="weigh-guidance-step">2</span>
+                <p>Mix items until the beam levels out. Click any bowl item to remove it.</p>
+              </div>
+            </div>
+          </section>
+
+          <div className="weigh-reading-panel-footer">
+            {showConclusionCard ? (
+              <section className="weigh-conclusion-card" aria-live="polite">
+                <div className="weigh-conclusion-copy">
+                  <p className="weigh-conclusion-kicker">Lesson reflection</p>
+                  <h4>Weight gives a clue, but not the whole answer.</h4>
+                  <p className="scene-text weigh-conclusion-text">
+                    You have tested the crown against known masses and watched
+                    the beam react. That helps Archimedes compare weight, but it
+                    still does not prove whether the crown matches pure gold in
+                    volume as well as mass.
+                  </p>
+                  <p className="helper-text weigh-conclusion-hint">
+                    Continue to the next lesson to explore the better idea:
+                    compare equal masses in a way that also reveals how much
+                    space each material takes up.
+                  </p>
+                </div>
+              </section>
+            ) : null}
+            <button
+              type="button"
+              className="weigh-audio-cycle-button weigh-audio-cycle-button-highlight"
+              onClick={() => {
+                const nextIndex =
+                  activeNarrationIndex >= 0
+                    ? (activeNarrationIndex + 1) % NARRATION_CLIPS.length
+                    : 0
+                setActiveNarrationId(NARRATION_CLIPS[nextIndex].id)
+              }}
+              title="Play the next narration clip"
+              aria-label="Play the next narration clip"
+            >
+              <span className="weigh-audio-cycle-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M5 14h3l4 4V6L8 10H5z" />
+                  <path d="M15 9a4 4 0 010 6" />
+                  <path d="M17.5 6.5a7.5 7.5 0 010 11" />
+                </svg>
+              </span>
+              <span className="weigh-audio-cycle-copy">
+                <span className="weigh-audio-cycle-label">Optional narration</span>
+                <span className="weigh-audio-cycle-text">
+                  {activeNarrationIndex >= 0
+                    ? `Play clip ${(activeNarrationIndex % NARRATION_CLIPS.length) + 1} of 3`
+                    : 'Play clip 1 of 3'}
+                </span>
+              </span>
+            </button>
           </div>
         </div>
 
-        <div className="experiment-canvas crown-weigh-canvas">
-          <div className="crown-scale-shell">
-            <div
-              className="crown-scale-stage"
-              style={{
-                width: `${STAGE_GEOMETRY.width}px`,
-                height: `${STAGE_GEOMETRY.height}px`,
-              }}
-            >
-              <div
-                className="crown-scale-base"
-                style={{
-                  left: `${STAGE_GEOMETRY.pivotX}px`,
-                  width: `${BASE_WIDTH_PX}px`,
-                  height: `${BASE_HEIGHT_PX}px`,
-                  bottom: `${BASE_BOTTOM_PX}px`,
-                }}
-                aria-hidden
-              />
-              <div
-                className="crown-scale-post"
-                style={{
-                  left: `${STAGE_GEOMETRY.pivotX}px`,
-                  top: `${POST_TOP_PX}px`,
-                  width: `${POST_WIDTH_PX}px`,
-                  height: `${POST_HEIGHT_PX}px`,
-                }}
-                aria-hidden
-              />
-              <div
-                className="crown-scale-pivot"
-                style={{
-                  left: `${STAGE_GEOMETRY.pivotX}px`,
-                  top: `${STAGE_GEOMETRY.pivotY}px`,
-                }}
-                aria-hidden
-              />
-
-              <div
-                className="crown-scale-beam"
-                style={{
-                  left: `${STAGE_GEOMETRY.pivotX}px`,
-                  top: `${STAGE_GEOMETRY.pivotY}px`,
-                  width: `${STAGE_GEOMETRY.beamWidth}px`,
-                  transform: `translate(-50%, -50%) rotate(${physicsSnapshot.beamAngle}rad)`,
-                }}
-                role="img"
-                aria-label="Matter.js balance scale"
-              >
-                <div className="crown-scale-rod">
-                  <div className="crown-scale-rod-cap" aria-hidden />
-                </div>
-              </div>
-
-              {physicsSnapshot.leftRopes.map((rope, index) => (
+        <div className="experiment-canvas crown-weigh-panel">
+          <div
+            className="crown-scale-stage"
+            style={{
+              width: `${STAGE_GEOMETRY.width}px`,
+              height: `${STAGE_GEOMETRY.height}px`,
+            }}
+          >
                 <div
-                  key={`left-rope-${index}`}
-                  className="crown-scale-rope"
-                  style={lineStyle(rope.x1, rope.y1, rope.x2, rope.y2)}
+                  className="crown-scale-base"
+                  style={{
+                    left: `${STAGE_GEOMETRY.pivotX}px`,
+                    width: `${BASE_WIDTH_PX}px`,
+                    height: `${BASE_HEIGHT_PX}px`,
+                    bottom: `${BASE_BOTTOM_PX}px`,
+                  }}
                   aria-hidden
                 />
-              ))}
-              {physicsSnapshot.rightRopes.map((rope, index) => (
                 <div
-                  key={`right-rope-${index}`}
-                  className="crown-scale-rope"
-                  style={lineStyle(rope.x1, rope.y1, rope.x2, rope.y2)}
+                  className="crown-scale-post"
+                  style={{
+                    left: `${STAGE_GEOMETRY.pivotX}px`,
+                    top: `${POST_TOP_PX}px`,
+                    width: `${POST_WIDTH_PX}px`,
+                    height: `${POST_HEIGHT_PX}px`,
+                  }}
                   aria-hidden
                 />
-              ))}
+                <div
+                  className="crown-scale-pivot"
+                  style={{
+                    left: `${STAGE_GEOMETRY.pivotX}px`,
+                    top: `${STAGE_GEOMETRY.pivotY}px`,
+                  }}
+                  aria-hidden
+                />
 
-              <div
-                className={`crown-scale-pan crown-scale-pan-left ${dragOverPan === 'left' ? 'crown-scale-pan-drag-over' : ''}`}
-                style={{
-                  left: `${physicsSnapshot.leftPan.x}px`,
-                  top: `${physicsSnapshot.leftPan.y}px`,
-                  transform: `translate(-50%, -50%) rotate(${physicsSnapshot.leftPan.angle}rad)`,
-                }}
-                onDragOver={(e) => {
-                  handleDragOver(e)
-                  setDragOverPan('left')
-                }}
-                onDrop={(e) => handleDropToPan(e, 'left')}
-                onDragLeave={handleDragLeave}
-                role="button"
-                tabIndex={0}
-                aria-label="Left bowl – drop items here"
-              >
-                <div className="crown-scale-pan-total">
-                  {(leftMass * 1000).toFixed(0)} g
+                <div
+                  className="crown-scale-beam"
+                  style={{
+                    left: `${STAGE_GEOMETRY.pivotX}px`,
+                    top: `${STAGE_GEOMETRY.pivotY}px`,
+                    width: `${STAGE_GEOMETRY.beamWidth}px`,
+                    transform: `translate(-50%, -50%) rotate(${physicsSnapshot.beamAngle}rad)`,
+                  }}
+                  role="img"
+                  aria-label="Matter.js balance scale"
+                >
+                  <div className="crown-scale-rod">
+                    <div className="crown-scale-rod-cap" aria-hidden />
+                  </div>
                 </div>
-                <div className="crown-scale-pan-remove-hint">Drop or remove</div>
-                <div className="crown-scale-pan-items">
-                  {renderPanItems('left')}
-                </div>
-              </div>
 
-              <div
-                className={`crown-scale-pan crown-scale-pan-right ${dragOverPan === 'right' ? 'crown-scale-pan-drag-over' : ''}`}
-                style={{
-                  left: `${physicsSnapshot.rightPan.x}px`,
-                  top: `${physicsSnapshot.rightPan.y}px`,
-                  transform: `translate(-50%, -50%) rotate(${physicsSnapshot.rightPan.angle}rad)`,
-                }}
-                onDragOver={(e) => {
-                  handleDragOver(e)
-                  setDragOverPan('right')
-                }}
-                onDrop={(e) => handleDropToPan(e, 'right')}
-                onDragLeave={handleDragLeave}
-                role="button"
-                tabIndex={0}
-                aria-label="Right bowl – drop items here"
-              >
-                <div className="crown-scale-pan-total">
-                  {(rightMass * 1000).toFixed(0)} g
+                {physicsSnapshot.leftRopes.map((rope, index) => (
+                  <div
+                    key={`left-rope-${index}`}
+                    className="crown-scale-rope"
+                    style={lineStyle(rope.x1, rope.y1, rope.x2, rope.y2)}
+                    aria-hidden
+                  />
+                ))}
+                {physicsSnapshot.rightRopes.map((rope, index) => (
+                  <div
+                    key={`right-rope-${index}`}
+                    className="crown-scale-rope"
+                    style={lineStyle(rope.x1, rope.y1, rope.x2, rope.y2)}
+                    aria-hidden
+                  />
+                ))}
+
+                <div
+                  className={`crown-scale-pan crown-scale-pan-left ${dragOverPan === 'left' ? 'crown-scale-pan-drag-over' : ''}`}
+                  style={{
+                    left: `${physicsSnapshot.leftPan.x}px`,
+                    top: `${physicsSnapshot.leftPan.y}px`,
+                    transform: `translate(-50%, -50%) rotate(${physicsSnapshot.leftPan.angle}rad)`,
+                  }}
+                  onDragOver={(e) => {
+                    handleDragOver(e)
+                    setDragOverPan('left')
+                  }}
+                  onDrop={(e) => handleDropToPan(e, 'left')}
+                  onDragLeave={handleDragLeave}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Left bowl – drop items here"
+                >
+                  <div className="crown-scale-pan-total">
+                    {(leftMass * 1000).toFixed(0)} g
+                  </div>
+                  <div className="crown-scale-pan-remove-hint">Drop or remove</div>
+                  <div className="crown-scale-pan-items">
+                    {renderPanItems('left')}
+                  </div>
                 </div>
-                <div className="crown-scale-pan-remove-hint">Drop or remove</div>
-                <div className="crown-scale-pan-items">
-                  {renderPanItems('right')}
+
+                <div
+                  className={`crown-scale-pan crown-scale-pan-right ${dragOverPan === 'right' ? 'crown-scale-pan-drag-over' : ''}`}
+                  style={{
+                    left: `${physicsSnapshot.rightPan.x}px`,
+                    top: `${physicsSnapshot.rightPan.y}px`,
+                    transform: `translate(-50%, -50%) rotate(${physicsSnapshot.rightPan.angle}rad)`,
+                  }}
+                  onDragOver={(e) => {
+                    handleDragOver(e)
+                    setDragOverPan('right')
+                  }}
+                  onDrop={(e) => handleDropToPan(e, 'right')}
+                  onDragLeave={handleDragLeave}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Right bowl – drop items here"
+                >
+                  <div className="crown-scale-pan-total">
+                    {(rightMass * 1000).toFixed(0)} g
+                  </div>
+                  <div className="crown-scale-pan-remove-hint">Drop or remove</div>
+                  <div className="crown-scale-pan-items">
+                    {renderPanItems('right')}
+                  </div>
                 </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>

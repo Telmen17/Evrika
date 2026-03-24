@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export interface AudioPlayerState {
   isPlaying: boolean
@@ -21,10 +21,24 @@ export const useAudioPlayer = (src: string | null): AudioPlayerControls => {
   })
 
   useEffect(() => {
-    if (!src) return
+    if (!src) {
+      audioRef.current?.pause()
+      audioRef.current = null
+      setState({
+        isPlaying: false,
+        currentTime: 0,
+        duration: 0,
+      })
+      return
+    }
 
     const audio = new Audio(src)
     audioRef.current = audio
+    setState({
+      isPlaying: false,
+      currentTime: 0,
+      duration: 0,
+    })
 
     const handleLoadedMetadata = () => {
       setState((prev) => ({ ...prev, duration: audio.duration }))
@@ -58,25 +72,31 @@ export const useAudioPlayer = (src: string | null): AudioPlayerControls => {
     }
   }, [src])
 
-  const play = () => {
+  const play = useCallback(() => {
     if (!audioRef.current) return
+    if (
+      audioRef.current.duration &&
+      audioRef.current.currentTime >= audioRef.current.duration - 0.05
+    ) {
+      audioRef.current.currentTime = 0
+    }
     void audioRef.current.play()
     setState((prev) => ({ ...prev, isPlaying: true }))
-  }
+  }, [])
 
-  const pause = () => {
+  const pause = useCallback(() => {
     if (!audioRef.current) return
     audioRef.current.pause()
     setState((prev) => ({ ...prev, isPlaying: false }))
-  }
+  }, [])
 
-  const toggle = () => {
+  const toggle = useCallback(() => {
     if (state.isPlaying) {
       pause()
     } else {
       play()
     }
-  }
+  }, [pause, play, state.isPlaying])
 
   return {
     ...state,

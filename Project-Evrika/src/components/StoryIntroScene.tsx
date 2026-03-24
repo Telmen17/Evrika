@@ -15,7 +15,7 @@ const beats = [
     id: 'king',
     title: 'A puzzle for Archimedes',
     text:
-      "King Hiero of Syracuse suspects that his new crown isn't pure gold. He turns to Archimedes for an answer—without damaging the crown.",
+      "Syracuse. A crown of glory, forged for King Hiero. Yet whispers arise... Is it truly gold? Or has silver crept into its shine? The king calls upon the one mind that might solve it — Archimedes.",
   },
 ]
 

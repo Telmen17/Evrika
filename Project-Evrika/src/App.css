@@ -481,6 +481,7 @@ body.lesson-active {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-height: 0;
 }
 
 .experiment-controls h3 {
@@ -500,34 +501,223 @@ body.lesson-active {
 }
 
 /* Crown weighing scene – physics-driven scale with stand, rod, strings, pans */
-.crown-weigh-canvas {
+
+.crown-weigh-scene {
+  height: min(900px, calc(100vh - 4rem));
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.crown-weigh-scene .scene-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.crown-weigh-scene .scene-footer {
+  margin-top: 1.25rem;
+}
+
+.crown-weigh-scene .scene-footer .primary-button,
+.crown-weigh-scene .scene-footer .secondary-button {
+  padding: 0.4rem 0.95rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+}
+
+.weigh-reading-panel {
+  overflow-y: auto;
+  padding-right: 0.4rem;
+}
+
+.weigh-reading-panel-footer {
+  padding-bottom: 0.1rem;
+}
+
+.weigh-info-card {
+  padding: 1rem 1.05rem;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 248, 232, 0.95)),
+    rgba(255, 249, 237, 0.9);
+  border: 1px solid rgba(146, 92, 28, 0.22);
+  box-shadow: 0 10px 24px rgba(82, 50, 14, 0.1);
+}
+
+.weigh-info-card h3,
+.weigh-info-card h4,
+.scale-toolset h4 {
+  margin: 0 0 0.55rem;
+  color: #3a230d;
+}
+
+.weigh-info-card .scene-text,
+.weigh-info-card .helper-text {
+  margin: 0;
+}
+
+.weigh-info-card-intro {
+  background:
+    radial-gradient(circle at top right, rgba(255, 247, 213, 0.9), transparent 40%),
+    linear-gradient(135deg, rgba(255, 251, 240, 0.96), rgba(247, 231, 193, 0.95));
+}
+
+.weigh-panel-kicker {
+  margin: 0 0 0.4rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9a7320;
+}
+
+.weigh-guidance-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.weigh-guidance-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.weigh-guidance-item p {
+  margin: 0;
+  color: #4a2c16;
+  line-height: 1.5;
+}
+
+.weigh-guidance-step {
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  min-height: 380px;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f6c24c, #d58d16);
+  color: #2b1b1b;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(142, 100, 35, 0.18);
+}
+
+.crown-weigh-panel {
+  display: grid;
+  place-items: center;
   padding: 1rem;
   background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.7), transparent 70%),
     linear-gradient(to bottom, #fdf4da, #e2c795);
 }
 
 .scale-toolset {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
+  padding: 0.85rem 0.9rem;
   background: rgba(255, 249, 237, 0.8);
   border-radius: 12px;
   border: 1px solid rgba(146, 92, 28, 0.25);
 }
 
+.weigh-toolbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.weigh-audio-cycle-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(146, 92, 28, 0.28);
+  background: rgba(255, 255, 255, 0.86);
+  color: #6d4b1a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.weigh-audio-cycle-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(82, 50, 14, 0.12);
+  background: #fffaf0;
+}
+
+.weigh-audio-cycle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  background: rgba(154, 115, 32, 0.12);
+  color: inherit;
+}
+
+.weigh-audio-cycle-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.weigh-audio-cycle-text {
+  white-space: nowrap;
+}
+
+.weigh-audio-cycle-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.weigh-audio-cycle-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9a7320;
+}
+
+.weigh-audio-cycle-button-highlight {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 0.7rem;
+  margin-top: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid rgba(214, 145, 35, 0.45);
+  background: linear-gradient(135deg, rgba(255, 241, 203, 0.95), rgba(247, 210, 133, 0.88));
+  box-shadow: 0 10px 24px rgba(168, 111, 25, 0.16);
+}
+
+.weigh-audio-cycle-button-highlight .weigh-audio-cycle-icon {
+  width: 1.9rem;
+  height: 1.9rem;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.weigh-audio-cycle-button-highlight .weigh-audio-cycle-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
 .scale-toolset-hint {
-  margin-bottom: 0.5rem;
+  margin: 0;
+  max-width: none;
 }
 
 .scale-toolset-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 0.65rem;
 }
 
 .scale-tool-draggable {
@@ -535,7 +725,8 @@ body.lesson-active {
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.4rem 0.6rem;
+  min-height: 84px;
+  padding: 0.5rem 0.45rem;
   border-radius: 10px;
   border: 2px solid rgba(146, 92, 28, 0.35);
   background: rgba(255, 249, 237, 0.95);
@@ -575,11 +766,102 @@ body.lesson-active {
   align-items: center;
 }
 
-.crown-scale-shell {
+.weigh-conclusion-card {
+  padding: 1rem 1rem 1.1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(146, 92, 28, 0.28);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.5), transparent 38%),
+    linear-gradient(135deg, rgba(255, 249, 237, 0.98), rgba(247, 235, 206, 0.96));
+  box-shadow: 0 10px 24px rgba(82, 50, 14, 0.12);
+}
+
+.weigh-conclusion-copy h4 {
+  margin: 0.2rem 0 0.5rem;
+  color: #3a230d;
+  font-size: 1.05rem;
+}
+
+.weigh-conclusion-kicker {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9a7320;
+}
+
+.weigh-conclusion-text {
+  margin: 0;
+}
+
+.weigh-conclusion-hint {
+  display: block;
+  margin-top: 0.65rem;
+}
+
+.weigh-conclusion-audio {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.weigh-conclusion-audio-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
   width: 100%;
-  display: flex;
+  min-height: 46px;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(146, 92, 28, 0.28);
+  background: rgba(255, 255, 255, 0.78);
+  color: #3a230d;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.weigh-conclusion-audio-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(82, 50, 14, 0.12);
+}
+
+.weigh-conclusion-audio-button-active {
+  border-color: rgba(185, 120, 36, 0.7);
+  background: linear-gradient(135deg, rgba(255, 236, 189, 0.95), rgba(245, 201, 119, 0.85));
+}
+
+.weigh-conclusion-audio-icon {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  margin-top: 1rem;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: rgba(154, 115, 32, 0.12);
+  color: #7b5427;
+}
+
+.weigh-conclusion-audio-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.weigh-conclusion-audio-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
 }
 
 .crown-scale-stage {
@@ -925,12 +1207,9 @@ body.lesson-active {
 .journey-scene .scene-text p {
   margin: 0;
   font-size: 0.95rem;
-  line-height: 1.45;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.55;
+  display: block;
+  overflow: visible;
 }
 
 .journey-scene .story-step-indicator {
@@ -952,6 +1231,8 @@ body.lesson-active {
 
 .journey-scene .narration-container {
   width: min(88%, 720px);
+  max-height: none;
+  align-items: flex-start;
 }
 
 .scene-visual-placeholder {
@@ -1008,16 +1289,14 @@ body.lesson-active {
 
   .journey-scene .narration-container {
     width: min(90%, 600px);
+    max-height: none;
   }
 
   .narration-container {
-    max-height: 5rem;
     padding: 0.5rem 1rem;
   }
 
   .journey-scene .scene-text p {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
     font-size: 0.9rem;
   }
 
@@ -1045,6 +1324,24 @@ body.lesson-active {
     grid-template-columns: 1fr;
   }
 
+  .crown-weigh-scene {
+    height: auto;
+    overflow: visible;
+  }
+
+  .weigh-reading-panel {
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .crown-weigh-workspace {
+    overflow: visible;
+  }
+
+  .weigh-conclusion-audio {
+    grid-template-columns: 1fr;
+  }
+
   .title {
     font-size: 2rem;
   }
@@ -1052,6 +1349,15 @@ body.lesson-active {
   .journey-scene {
     padding: 4rem 1.5rem 4rem 1.5rem;
     gap: 1rem;
+  }
+
+  .weigh-toolbox-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .scale-toolset-hint {
+    max-width: none;
   }
 
   .scene-image-container {
