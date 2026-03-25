@@ -1014,8 +1014,17 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
         type="button"
         className={`weigh-narrator-button ${isNarrationBubbleOpen ? 'weigh-narrator-button-open' : ''}`}
         onClick={() => {
-          if (!isNarrationBubbleOpen && !activeNarrationId) {
-            setActiveNarrationId(NARRATION_CLIPS[0].id)
+          if (!isNarrationBubbleOpen) {
+            const clipFinished =
+              narrationAudio.duration > 0 &&
+              narrationAudio.currentTime >= narrationAudio.duration - 0.05 &&
+              !narrationAudio.isPlaying
+
+            if (!activeNarrationId) {
+              setActiveNarrationId(NARRATION_CLIPS[0].id)
+            } else if (clipFinished && activeNarrationIndex < NARRATION_CLIPS.length - 1) {
+              setActiveNarrationId(NARRATION_CLIPS[activeNarrationIndex + 1].id)
+            }
           }
           setIsNarrationBubbleOpen((open) => !open)
         }}
