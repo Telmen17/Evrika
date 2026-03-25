@@ -39,7 +39,106 @@ body.lesson-active {
   padding: 2rem;
 }
 
+.cloud-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.cloud-transition-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.22) 36%, transparent 72%),
+    linear-gradient(180deg, rgba(254, 249, 236, 0.42), rgba(255, 255, 255, 0.14));
+  opacity: 0;
+  will-change: opacity;
+}
+
+.cloud-transition-side {
+  position: absolute;
+  top: -8%;
+  bottom: -8%;
+  width: 58vw;
+  background:
+    radial-gradient(ellipse at 12% 20%, rgba(255, 255, 255, 1) 0 17%, transparent 18%),
+    radial-gradient(ellipse at 18% 54%, rgba(244, 248, 255, 0.96) 0 16%, transparent 17%),
+    radial-gradient(ellipse at 32% 14%, rgba(255, 255, 255, 0.99) 0 22%, transparent 23%),
+    radial-gradient(ellipse at 38% 50%, rgba(245, 249, 255, 0.95) 0 20%, transparent 21%),
+    radial-gradient(ellipse at 56% 22%, rgba(255, 255, 255, 0.98) 0 24%, transparent 25%),
+    radial-gradient(ellipse at 60% 62%, rgba(236, 243, 252, 0.93) 0 22%, transparent 23%),
+    radial-gradient(ellipse at 82% 38%, rgba(250, 252, 255, 0.96) 0 18%, transparent 19%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(245, 248, 255, 0.94) 48%, rgba(219, 229, 244, 0.9) 100%);
+  filter: drop-shadow(0 8px 18px rgba(203, 215, 236, 0.25));
+  box-shadow:
+    inset -18px 0 28px rgba(255, 255, 255, 0.32),
+    inset -42px 0 52px rgba(213, 225, 243, 0.18);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.cloud-transition-side-left {
+  left: -6vw;
+  border-top-right-radius: 45% 18%;
+  border-bottom-right-radius: 45% 18%;
+  transform: translate3d(-112%, 0, 0);
+}
+
+.cloud-transition-side-right {
+  right: -6vw;
+  border-top-left-radius: 45% 18%;
+  border-bottom-left-radius: 45% 18%;
+  transform: translate3d(112%, 0, 0) scaleX(-1);
+}
+
+.cloud-transition-covering .cloud-transition-glow {
+  animation: cloudGlowIn 850ms ease-in forwards;
+}
+
+.cloud-transition-covering .cloud-transition-side-left,
+.cloud-transition-revealing .cloud-transition-side-left {
+  animation-duration: 900ms;
+  animation-timing-function: cubic-bezier(0.22, 0.7, 0.18, 1);
+  animation-fill-mode: forwards;
+}
+
+.cloud-transition-covering .cloud-transition-side-right,
+.cloud-transition-revealing .cloud-transition-side-right {
+  animation-duration: 900ms;
+  animation-timing-function: cubic-bezier(0.22, 0.7, 0.18, 1);
+  animation-fill-mode: forwards;
+}
+
+.cloud-transition-covering .cloud-transition-side-left {
+  animation-name: cloudSlideLeftIn;
+}
+
+.cloud-transition-covering .cloud-transition-side-right {
+  animation-name: cloudSlideRightIn;
+}
+
+.cloud-transition-revealing .cloud-transition-glow {
+  opacity: 1;
+  animation: cloudGlowOut 900ms ease-out forwards;
+}
+
+.cloud-transition-revealing .cloud-transition-side-left,
+.cloud-transition-revealing .cloud-transition-side-right {
+  animation-name: cloudSlideLeftOut;
+}
+
+.cloud-transition-revealing .cloud-transition-side-right {
+  animation-name: cloudSlideRightOut;
+}
+
 /* Decorative leaf frame – continuous vine on left, top, and right */
+:root {
+  --frame-top-gap: -15px;
+  --frame-side-offset: -30px;
+}
+
 .frame-decoration {
   position: fixed;
   inset: 0;
@@ -55,18 +154,18 @@ body.lesson-active {
 }
 
 .frame-edge.frame-top {
-  top: 0;
-  left: 70px;
-  right: 0;
-  height: 140px;
+  top: var(--frame-top-gap);
+  left: calc(120px + var(--frame-side-offset));
+  right: var(--frame-side-offset);
+  overflow: visible;
   flex-direction: row;
   align-items: flex-start;
   justify-content: flex-start;
 }
 
 .frame-edge.frame-left {
-  top: 0;
-  left: 0;
+  top: var(--frame-top-gap);
+  left: var(--frame-side-offset);
   bottom: 0;
   width: 140px;
   flex-direction: column;
@@ -75,8 +174,8 @@ body.lesson-active {
 }
 
 .frame-edge.frame-right {
-  top: 0;
-  right: 0;
+  top: var(--frame-top-gap);
+  right: var(--frame-side-offset);
   bottom: 0;
   width: 140px;
   flex-direction: column;
@@ -109,7 +208,7 @@ body.lesson-active {
 
 /* Top: rotate while keeping the same rendered leaf size */
 .frame-leaf-img-top {
-  transform: rotate(90deg);
+  transform: translateY(30px) rotate(90deg);
   transform-origin: top center;
 }
 
@@ -151,6 +250,37 @@ body.lesson-active {
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+.confetti-lab-scene {
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #0b1020;
+}
+
+.confetti-lab-card {
+  width: min(520px, 100%);
+  padding: 2rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.32);
+  text-align: center;
+  color: #f6f7fb;
+  backdrop-filter: blur(12px);
+}
+
+.confetti-lab-card h1 {
+  margin: 0 0 0.75rem;
+}
+
+.confetti-lab-card p {
+  margin: 0 0 1.5rem;
+  color: rgba(246, 247, 251, 0.82);
 }
 
 .landing-hero::before {
@@ -347,17 +477,17 @@ body.lesson-active {
   height: 100vh;
   min-height: 100vh;
   border-radius: 0;
-  padding: 5rem 2rem 5rem 2rem;
+  padding: 4.15rem 2rem 0.8rem 2rem;
   margin: 0;
   background: radial-gradient(circle at 20% 10%, #f8e9c5 0%, #f0d8a1 28%, #d7b77c 60%, #2b1b1b 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
   box-shadow: none;
   border: none;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .scene-header {
@@ -369,8 +499,8 @@ body.lesson-active {
 
 .menu-button {
   position: absolute;
-  top: 1.5rem;
-  left: 1.5rem;
+  top: 3rem;
+  left: 4.50rem;
   z-index: 10;
   background: rgba(255, 255, 255, 0.9);
   padding: 0.5rem 1rem;
@@ -390,9 +520,8 @@ body.lesson-active {
 .scene-image-container {
   position: relative;
   flex-shrink: 0;
-  /* Preserve 16:9; larger: cap height at 60vh so image + gap + narration fit */
-  width: min(88%, calc(60vh * 16 / 9));
-  max-width: min(1100px, calc(60vh * 16 / 9));
+  width: min(96%, calc(59vh * 16 / 9));
+  max-width: min(1180px, calc(59vh * 16 / 9));
   aspect-ratio: 16 / 9;
   border: 4px solid rgba(146, 92, 28, 0.6);
   border-radius: 16px;
@@ -410,6 +539,16 @@ body.lesson-active {
   border-radius: inherit;
 }
 
+.story-scene-wash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 236, 178, 0.28), transparent 34%),
+    linear-gradient(to top, rgba(32, 18, 6, 0.14), transparent 55%);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .scene-image-container img.scene-image {
   object-fit: cover;
 }
@@ -424,12 +563,12 @@ body.lesson-active {
 /* Archimedes on the stage floor – positioned to sit on the grassy stage */
 .scene-archimedes {
   position: absolute;
-  bottom: 12%;
-  left: 68%;
+  bottom: 10%;
+  left: 77%;
   transform: translateX(-50%);
   height: 38%;
   width: auto;
-  max-width: 28%;
+  max-width: 27%;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;
@@ -439,12 +578,12 @@ body.lesson-active {
 /* Guards standing to the king's left */
 .scene-guards {
   position: absolute;
-  bottom: 15%;
-  left: 32%;
+  bottom: 16%;
+  left: 20%;
   transform: translateX(-50%);
   height: 30%;
   width: auto;
-  max-width: 22%;
+  max-width: 20%;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;
@@ -455,15 +594,72 @@ body.lesson-active {
 .scene-king {
   position: absolute;
   bottom: 15%;
-  left: 50%;
+  left: 52%;
   transform: translateX(-50%);
-  height: 32%;
+  height: 34%;
   width: auto;
   max-width: 22%;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;
   z-index: 2;
+}
+
+.story-actor {
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease,
+    filter 0.45s ease;
+}
+
+.story-actor-hidden {
+  opacity: 0;
+  transform: translateY(18px) scale(0.96);
+  filter: blur(2px);
+}
+
+.story-actor-visible {
+  opacity: 0.88;
+}
+
+.story-actor-focus {
+  opacity: 1;
+  filter: drop-shadow(0 10px 24px rgba(255, 218, 128, 0.35));
+}
+
+.story-blacksmith,
+.story-crown {
+  position: absolute;
+  z-index: 3;
+}
+
+.story-blacksmith {
+  bottom: 11%;
+  left: 28%;
+  width: clamp(112px, 16.5%, 174px);
+  transform-origin: bottom center;
+}
+
+.story-blacksmith-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.22));
+}
+
+.story-crown {
+  left: 37.5%;
+  bottom: 21%;
+  width: clamp(48px, 7.2%, 72px);
+  transform-origin: center center;
+}
+
+.story-crown-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 12px 26px rgba(245, 182, 10, 0.42));
 }
 
 .scene-body {
@@ -503,10 +699,12 @@ body.lesson-active {
 /* Crown weighing scene – physics-driven scale with stand, rod, strings, pans */
 
 .crown-weigh-scene {
-  height: min(900px, calc(100vh - 4rem));
+  position: relative;
+  height: min(960px, calc(100vh - 2rem));
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+  isolation: isolate;
 }
 
 .crown-weigh-scene .scene-body {
@@ -515,7 +713,12 @@ body.lesson-active {
 }
 
 .crown-weigh-scene .scene-footer {
-  margin-top: 1.25rem;
+  position: relative;
+  z-index: 18;
+  margin-top: 0.12rem;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: flex-end;
 }
 
 .crown-weigh-scene .scene-footer .primary-button,
@@ -525,6 +728,20 @@ body.lesson-active {
   letter-spacing: 0.03em;
 }
 
+.crown-weigh-scene .scene-footer-right {
+  position: relative;
+  z-index: 20;
+  justify-self: end;
+}
+
+.crown-weigh-scene .scene-footer-left {
+  justify-self: start;
+}
+
+.crown-weigh-scene .scene-footer-center {
+  justify-self: center;
+}
+
 .weigh-reading-panel {
   overflow-y: auto;
   padding-right: 0.4rem;
@@ -532,6 +749,43 @@ body.lesson-active {
 
 .weigh-reading-panel-footer {
   padding-bottom: 0.1rem;
+}
+
+.weigh-answer-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.weigh-answer-row {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.weigh-answer-input {
+  flex: 1;
+  min-width: 0;
+  height: 2.65rem;
+  padding: 0 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(146, 92, 28, 0.28);
+  background: rgba(255, 255, 255, 0.9);
+  color: #3a230d;
+  font: inherit;
+  box-shadow: inset 0 1px 2px rgba(59, 35, 8, 0.06);
+}
+
+.weigh-answer-input:focus {
+  outline: 2px solid rgba(214, 145, 35, 0.28);
+  border-color: rgba(185, 120, 36, 0.55);
+}
+
+.weigh-answer-check {
+  flex-shrink: 0;
+}
+
+.weigh-answer-feedback {
+  margin: 0;
 }
 
 .weigh-info-card {
@@ -560,6 +814,14 @@ body.lesson-active {
   background:
     radial-gradient(circle at top right, rgba(255, 247, 213, 0.9), transparent 40%),
     linear-gradient(135deg, rgba(255, 251, 240, 0.96), rgba(247, 231, 193, 0.95));
+}
+
+.weigh-mission-card {
+  border: 1px solid rgba(214, 145, 35, 0.45);
+  background:
+    radial-gradient(circle at top right, rgba(255, 252, 225, 0.9), transparent 42%),
+    linear-gradient(135deg, rgba(255, 247, 220, 0.98), rgba(247, 220, 153, 0.92));
+  box-shadow: 0 12px 28px rgba(168, 111, 25, 0.14);
 }
 
 .weigh-panel-kicker {
@@ -615,6 +877,87 @@ body.lesson-active {
   background: rgba(255, 249, 237, 0.8);
   border-radius: 12px;
   border: 1px solid rgba(146, 92, 28, 0.25);
+}
+
+.weigh-crown-showcase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0.75rem 0.75rem;
+  margin-bottom: 0.85rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 232, 170, 0.5), rgba(255, 215, 120, 0.35));
+  border: 2px dashed rgba(184, 134, 11, 0.45);
+  position: relative;
+}
+
+.weigh-crown-showcase-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 248, 220, 0.95), rgba(255, 228, 150, 0.7));
+  border: 2.5px solid rgba(184, 134, 11, 0.5);
+  box-shadow:
+    0 0 0 5px rgba(255, 215, 0, 0.12),
+    0 4px 16px rgba(168, 111, 25, 0.18);
+  animation: crownShowcasePulse 2.5s ease-in-out infinite;
+}
+
+.weigh-crown-draggable {
+  border: none !important;
+  background: transparent !important;
+  min-height: unset !important;
+  padding: 0.25rem !important;
+  gap: 0 !important;
+}
+
+.weigh-crown-draggable.scale-tool-draggable-disabled {
+  opacity: 0.35;
+}
+
+.weigh-crown-img {
+  width: 44px !important;
+  height: 44px !important;
+  animation: crownShake 2.8s ease-in-out infinite;
+}
+
+.scale-tool-draggable-disabled .weigh-crown-img {
+  animation: none;
+}
+
+@keyframes crownShake {
+  0%, 100% { transform: rotate(0deg); }
+  8%       { transform: rotate(-6deg); }
+  16%      { transform: rotate(5deg); }
+  24%      { transform: rotate(-4deg); }
+  30%      { transform: rotate(2deg); }
+  34%      { transform: rotate(0deg); }
+}
+
+.weigh-crown-showcase-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b6914;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+@keyframes crownShowcasePulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 5px rgba(255, 215, 0, 0.12),
+      0 4px 16px rgba(168, 111, 25, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px rgba(255, 215, 0, 0.2),
+      0 6px 24px rgba(168, 111, 25, 0.26);
+  }
 }
 
 .weigh-toolbox-header {
@@ -708,6 +1051,142 @@ body.lesson-active {
   height: 16px;
 }
 
+.weigh-narrator-widget {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  z-index: 20;
+}
+
+.weigh-narrator-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  filter: drop-shadow(0 10px 18px rgba(97, 57, 9, 0.22));
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.weigh-narrator-button:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: drop-shadow(0 14px 24px rgba(97, 57, 9, 0.28));
+}
+
+.weigh-narrator-button-open {
+  transform: translateY(-1px);
+}
+
+.weigh-narrator-button-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(250, 223, 151, 0.98), rgba(233, 174, 59, 0.96));
+  box-shadow:
+    0 0 0 4px rgba(245, 208, 116, 0.12),
+    inset 0 2px 6px rgba(255, 255, 255, 0.45);
+  animation: narratorGlowPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes narratorGlowPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 4px rgba(245, 208, 116, 0.12),
+      0 0 0 8px rgba(233, 174, 59, 0),
+      inset 0 2px 6px rgba(255, 255, 255, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(245, 208, 116, 0.3),
+      0 0 0 12px rgba(233, 174, 59, 0.12),
+      inset 0 2px 6px rgba(255, 255, 255, 0.45);
+  }
+}
+
+.weigh-narrator-button-img {
+  position: relative;
+  z-index: 1;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 999px;
+}
+
+.weigh-narrator-bubble {
+  position: absolute;
+  right: calc(100% + 0.7rem);
+  bottom: 0.1rem;
+  width: min(360px, calc(100vw - 10rem));
+  padding: 1rem 1rem 0.9rem;
+  border-radius: 18px;
+  border: 1px solid rgba(146, 92, 28, 0.28);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.82), transparent 38%),
+    linear-gradient(180deg, rgba(255, 252, 244, 0.98), rgba(247, 234, 203, 0.97));
+  box-shadow: 0 14px 28px rgba(71, 42, 12, 0.18);
+  z-index: 40;
+}
+
+.weigh-narrator-bubble::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  bottom: 1.05rem;
+  width: 18px;
+  height: 18px;
+  transform: rotate(45deg);
+  background: rgba(247, 234, 203, 0.97);
+  border-top: 1px solid rgba(146, 92, 28, 0.22);
+  border-right: 1px solid rgba(146, 92, 28, 0.22);
+}
+
+.weigh-narrator-kicker {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9a7320;
+}
+
+.weigh-narrator-kicker-count {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(154, 115, 32, 0.55);
+  letter-spacing: 0.04em;
+}
+
+.weigh-narrator-text {
+  margin: 0;
+  line-height: 1.55;
+  min-height: 4rem;
+}
+
+.weigh-narrator-next {
+  display: inline-block;
+  margin-top: 0.6rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #9a7320;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.weigh-narrator-next:hover {
+  color: #6d4b1a;
+}
+
 .scale-toolset-hint {
   margin: 0;
   max-width: none;
@@ -775,6 +1254,34 @@ body.lesson-active {
     linear-gradient(135deg, rgba(255, 249, 237, 0.98), rgba(247, 235, 206, 0.96));
   box-shadow: 0 10px 24px rgba(82, 50, 14, 0.12);
 }
+
+.weigh-conclusion-card-success {
+  border-color: rgba(102, 150, 47, 0.32);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.56), transparent 38%),
+    linear-gradient(135deg, rgba(247, 255, 236, 0.98), rgba(224, 243, 196, 0.95));
+}
+
+.mission-continue-button {
+  min-width: 220px;
+  justify-content: center;
+}
+
+.mission-continue-button-locked,
+.mission-continue-button:disabled {
+  background: linear-gradient(135deg, rgba(165, 153, 138, 0.9), rgba(132, 120, 106, 0.92));
+  color: rgba(255, 249, 237, 0.82);
+  box-shadow: none;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.mission-continue-button-ready {
+  background: linear-gradient(135deg, #f8be3f, #f57c00);
+  box-shadow: 0 14px 26px rgba(245, 124, 0, 0.25);
+  animation: missionButtonPulse 1.5s ease-in-out infinite;
+}
+
 
 .weigh-conclusion-copy h4 {
   margin: 0.2rem 0 0.5rem;
@@ -932,6 +1439,24 @@ body.lesson-active {
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 0 0 1px rgba(40, 25, 5, 0.6);
 }
 
+.crown-scale-level-guide {
+  position: absolute;
+  height: 0;
+  border-top: 3px dashed rgba(146, 92, 28, 0.45);
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+.crown-scale-level-guide-unbalanced {
+  border-top-color: rgba(188, 63, 49, 0.82);
+}
+
+.crown-scale-level-guide-balanced {
+  border-top-color: rgba(91, 148, 54, 0.88);
+}
+
 .crown-scale-rope {
   position: absolute;
   height: 3px;
@@ -963,6 +1488,22 @@ body.lesson-active {
   padding-top: 10px;
   transition: box-shadow 0.15s ease, background 0.15s ease;
   z-index: 5;
+}
+
+.crown-scale-pan-unbalanced {
+  border-color: rgba(188, 63, 49, 0.86);
+  box-shadow:
+    inset 0 5px 10px rgba(255, 255, 255, 0.24),
+    0 10px 18px rgba(0, 0, 0, 0.18),
+    0 0 0 3px rgba(188, 63, 49, 0.26);
+}
+
+.crown-scale-pan-balanced {
+  border-color: rgba(91, 148, 54, 0.92);
+  box-shadow:
+    inset 0 5px 10px rgba(255, 255, 255, 0.26),
+    0 10px 18px rgba(0, 0, 0, 0.18),
+    0 0 0 4px rgba(91, 148, 54, 0.28);
 }
 
 .crown-scale-pan::before,
@@ -1001,12 +1542,6 @@ body.lesson-active {
   pointer-events: none;
 }
 
-.crown-scale-pan-remove-hint {
-  font-size: 0.63rem;
-  color: rgba(58, 35, 13, 0.78);
-  margin-top: 2px;
-  pointer-events: none;
-}
 
 .crown-scale-pan-items {
   position: absolute;
@@ -1040,6 +1575,22 @@ body.lesson-active {
   object-fit: contain;
   pointer-events: none;
   user-select: none;
+}
+
+.crown-scale-counter-total {
+  position: absolute;
+  transform: translate(-50%, 0);
+  min-width: 72px;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 249, 237, 0.96);
+  border: 1px solid rgba(146, 92, 28, 0.28);
+  color: #3a230d;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 6px 14px rgba(82, 50, 14, 0.12);
+  pointer-events: none;
 }
 
 /* Crown melting scene */
@@ -1184,7 +1735,7 @@ body.lesson-active {
   position: relative;
   flex-shrink: 0;
   width: 100%;
-  max-width: 720px;
+  max-width: 860px;
   min-height: auto;
   max-height: 5.25rem;
   display: flex;
@@ -1198,10 +1749,29 @@ body.lesson-active {
   z-index: 10;
 }
 
+.journey-story-box {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+}
+
+.journey-story-box-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .journey-scene .scene-text {
   flex: 1;
   margin: 0;
   min-width: 0;
+}
+
+.journey-story-text {
+  width: 100%;
 }
 
 .journey-scene .scene-text p {
@@ -1213,13 +1783,46 @@ body.lesson-active {
 }
 
 .journey-scene .story-step-indicator {
-  margin-top: 0.25rem;
+  margin-top: 0;
   font-size: 0.8rem;
+}
+
+.journey-beat-title {
+  margin: 0.2rem 0 0;
+  font-size: 1.25rem;
+  color: #3a230d;
 }
 
 .narration-button {
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.narration-icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  align-self: flex-start;
+}
+
+.narration-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.narration-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .next-button-container {
@@ -1230,9 +1833,19 @@ body.lesson-active {
 }
 
 .journey-scene .narration-container {
-  width: min(88%, 720px);
+  width: min(96%, 1040px);
   max-height: none;
   align-items: flex-start;
+}
+
+.journey-controls {
+  width: min(96%, 1040px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: auto;
+  padding-top: 0.35rem;
 }
 
 .scene-visual-placeholder {
@@ -1275,25 +1888,98 @@ body.lesson-active {
   color: #5b3a1f;
 }
 
+@keyframes cloudSlideLeftIn {
+  from {
+    transform: translate3d(-112%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes cloudSlideRightIn {
+  from {
+    transform: translate3d(112%, 0, 0) scaleX(-1);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0) scaleX(-1);
+  }
+}
+
+@keyframes cloudSlideLeftOut {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-112%, 0, 0);
+  }
+}
+
+@keyframes cloudSlideRightOut {
+  from {
+    transform: translate3d(0, 0, 0) scaleX(-1);
+  }
+
+  to {
+    transform: translate3d(112%, 0, 0) scaleX(-1);
+  }
+}
+
+@keyframes cloudGlowIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cloudGlowOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes missionButtonPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 14px 26px rgba(245, 124, 0, 0.25);
+  }
+
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 16px 30px rgba(245, 124, 0, 0.36);
+  }
+}
+
 /* Small desktop – preserve 16:9, image + narration in flow */
 @media (max-width: 1024px) {
   .journey-scene {
-    padding: 4.5rem 1.5rem 4.5rem 1.5rem;
-    gap: 1rem;
+    padding: 4rem 1.5rem 0.9rem 1.5rem;
+    gap: 0.8rem;
   }
 
   .scene-image-container {
-    width: min(90%, calc(55vh * 16 / 9));
-    max-width: min(100%, calc(55vh * 16 / 9));
+    width: min(96%, calc(56vh * 16 / 9));
+    max-width: min(100%, calc(56vh * 16 / 9));
   }
 
   .journey-scene .narration-container {
-    width: min(90%, 600px);
+    width: min(96%, 940px);
     max-height: none;
   }
 
   .narration-container {
-    padding: 0.5rem 1rem;
+    padding: 0.65rem 1rem;
   }
 
   .journey-scene .scene-text p {
@@ -1303,6 +1989,10 @@ body.lesson-active {
   .next-button-container {
     bottom: 1.25rem;
     right: 1.25rem;
+  }
+
+  .journey-controls {
+    width: min(96%, 940px);
   }
 }
 
@@ -1347,8 +2037,12 @@ body.lesson-active {
   }
 
   .journey-scene {
-    padding: 4rem 1.5rem 4rem 1.5rem;
-    gap: 1rem;
+    min-height: 100svh;
+    height: auto;
+    padding: 3.5rem 1.25rem 1.25rem 1.25rem;
+    gap: 0.85rem;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .weigh-toolbox-header {
@@ -1361,16 +2055,36 @@ body.lesson-active {
   }
 
   .scene-image-container {
-    width: min(92%, calc(50vh * 16 / 9));
-    max-width: min(100%, calc(50vh * 16 / 9));
+    width: min(100%, calc(52vh * 16 / 9));
+    max-width: min(100%, calc(52vh * 16 / 9));
+  }
+
+  .story-blacksmith {
+    left: 30%;
+    width: clamp(78px, 14%, 118px);
+  }
+
+  .story-crown {
+    left: 42%;
+    bottom: 21%;
   }
 
   .journey-scene .narration-container {
-    width: min(92%, 100%);
+    width: min(100%, 860px);
   }
 
   .narration-container {
-    max-height: 4.75rem;
+    max-height: none;
+  }
+
+  .journey-controls {
+    width: min(100%, 860px);
+    margin-top: 0.35rem;
+    padding-top: 0;
+  }
+
+  .weigh-narrator-bubble {
+    width: min(320px, calc(100vw - 8rem));
   }
 }
 
@@ -1418,39 +2132,56 @@ body.lesson-active {
 
   /* Journey Scene - Mobile */
   .journey-scene {
+    min-height: 100svh;
+    height: auto;
+    padding: 0.85rem 0.85rem 1.4rem;
+    align-items: stretch;
+    gap: 0.75rem;
     overflow-y: auto;
     overflow-x: hidden;
   }
 
   .menu-button {
-    top: 1rem;
-    left: 1rem;
+    position: sticky;
+    top: 0.6rem;
+    left: auto;
+    align-self: flex-start;
+    margin-left: 0.15rem;
     padding: 0.4rem 0.8rem;
     font-size: 0.85rem;
   }
 
   .scene-image-container {
-    position: relative;
-    top: auto;
-    left: auto;
-    transform: none;
-    width: calc(100% - 2rem);
+    width: 100%;
     max-width: none;
-    margin: 5rem 1rem 1rem;
+    margin: 0;
     aspect-ratio: 16 / 9;
   }
 
+  .journey-scene .narration-container,
+  .journey-controls {
+    width: 100%;
+  }
+
   .narration-container {
-    position: relative;
-    bottom: auto;
-    left: auto;
-    width: calc(100% - 2rem);
+    width: 100%;
     max-width: none;
-    margin: 1rem;
+    margin: 0;
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
-    padding: 1.25rem;
+    padding: 1rem;
+  }
+
+  .journey-story-box-header,
+  .journey-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .journey-controls {
+    margin-top: 0.25rem;
+    padding-top: 0;
   }
 
   .narration-button {
@@ -1462,7 +2193,7 @@ body.lesson-active {
     position: relative;
     bottom: auto;
     right: auto;
-    margin: 0 1rem 2rem;
+    margin: 0 0 1rem;
     display: flex;
     justify-content: flex-end;
   }
@@ -1477,8 +2208,33 @@ body.lesson-active {
 
   .primary-button,
   .secondary-button {
-    padding: 0.5rem 1.2rem;
+    padding: 0.55rem 1rem;
     font-size: 0.85rem;
+  }
+
+  .cloud-transition-side-left,
+  .cloud-transition-side-right {
+    top: -4%;
+    bottom: -4%;
+  }
+
+  .weigh-narrator-bubble {
+    right: 0;
+    bottom: calc(100% + 0.7rem);
+    width: min(320px, calc(100vw - 2.5rem));
+  }
+
+  .weigh-narrator-bubble::after {
+    right: 1.15rem;
+    bottom: -10px;
+    transform: rotate(45deg);
+    border-top: none;
+    border-bottom: 1px solid rgba(146, 92, 28, 0.22);
+  }
+
+  .weigh-answer-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
@@ -1502,8 +2258,8 @@ body.lesson-active {
   }
 
   .scene-image-container {
-    margin: 4rem 0.5rem 0.75rem;
-    width: calc(100% - 1rem);
+    margin: 0;
+    width: 100%;
     max-width: none;
     aspect-ratio: 16 / 9;
     border-width: 3px;
@@ -1511,8 +2267,8 @@ body.lesson-active {
   }
 
   .narration-container {
-    margin: 0.75rem 0.5rem;
-    width: calc(100% - 1rem);
+    margin: 0;
+    width: 100%;
     padding: 1rem;
   }
 

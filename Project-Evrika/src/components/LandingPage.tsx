@@ -12,10 +12,15 @@ export type SceneId =
 
 interface LandingPageProps {
   onNavigate: (scene: SceneId) => void
+  onStartJourney: () => void
   completedScenes: SceneId[]
 }
 
-const LandingPage: FC<LandingPageProps> = ({ onNavigate, completedScenes }) => {
+const LandingPage: FC<LandingPageProps> = ({
+  onNavigate,
+  onStartJourney,
+  completedScenes,
+}) => {
   const isCompleted = (scene: SceneId) => completedScenes.includes(scene)
 
   return (
@@ -30,7 +35,7 @@ const LandingPage: FC<LandingPageProps> = ({ onNavigate, completedScenes }) => {
         <button
           className="start-button"
           type="button"
-          onClick={() => onNavigate('intro')}
+          onClick={onStartJourney}
         >
           Start the Journey
         </button>

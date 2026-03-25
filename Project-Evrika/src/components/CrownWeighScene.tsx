@@ -1,7 +1,10 @@
 import type { FC } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fireworks } from '@fireworks-js/react'
+import type { FireworksHandlers } from '@fireworks-js/react'
 import type { SceneId } from './LandingPage'
 import crownSvg from '../assets/crown.svg'
+import headImg from '../assets/head.png'
 import matterScriptUrl from '../../matter.min.js?url'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 
@@ -200,30 +203,35 @@ interface CrownWeighSceneProps {
 
 type NarrationClipId = 'lesson' | 'limit' | 'next'
 
-const WEIGHING_CONCLUSION_INTERACTION_THRESHOLD = 4
-
 const NARRATION_CLIPS: Array<{
   id: NarrationClipId
   label: string
   description: string
+  text: string
   src: string
 }> = [
   {
     id: 'lesson',
     label: 'What you learned',
     description: 'A short recap of what the scale reveals.',
+    text:
+      "Interesting. The scale reveals the crown's mass with remarkable precision. But mass alone tells an incomplete story — a lump of silver wrapped in gold would weigh exactly the same. The purity of the crown remains hidden. The answer must lie somewhere else.",
     src: '/audio/scale_conclusion.mp3',
   },
   {
     id: 'limit',
     label: 'Why weighing is not enough',
     description: 'Why equal weight still leaves the mystery unsolved.',
+    text:
+      "The crown has weight. That much is certain. But a dishonest goldsmith knows how to match a number on a scale. Mass is a clue — not a conclusion. The secret of what lies inside the crown still waits to be uncovered.",
     src: '/audio/scale_conclusion-2.mp3',
   },
   {
     id: 'next',
     label: 'Next lesson',
     description: "A guide toward Archimedes' next idea.",
+    text:
+      "A perfect measurement. And yet — the scale has limits. Two crowns of different metals could sit identically on this balance and reveal nothing of their difference. Mass is not the whole story. Something deeper about this crown remains unknown.",
     src: '/audio/scale_conclusion-3.mp3',
   },
 ]
@@ -332,9 +340,14 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [dragOverPan, setDragOverPan] = useState<PanSide | null>(null)
   const [matterReady, setMatterReady] = useState(false)
-  const [interactionCount, setInteractionCount] = useState(0)
   const [activeNarrationId, setActiveNarrationId] =
     useState<NarrationClipId | null>(null)
+  const [isNarrationBubbleOpen, setIsNarrationBubbleOpen] = useState(false)
+  const [massGuess, setMassGuess] = useState('')
+  const [massCheckFeedback, setMassCheckFeedback] = useState('')
+  const [hasUnlockedNextChapter, setHasUnlockedNextChapter] = useState(false)
+  const [showFireworks, setShowFireworks] = useState(false)
+  const fireworksRef = useRef<FireworksHandlers>(null)
   const [physicsSnapshot, setPhysicsSnapshot] = useState<PhysicsSnapshot>({
     beamAngle: 0,
     leftPan: {
@@ -366,13 +379,51 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
         .reduce((sum, item) => sum + MASS_KG[item.type], 0),
     [placedItems],
   )
-  const canContinue = placedItems.length > 0
-  const hasComparedBothSides =
-    placedItems.some((item) => item.pan === 'left') &&
-    placedItems.some((item) => item.pan === 'right')
-  const showConclusionCard =
-    interactionCount >= WEIGHING_CONCLUSION_INTERACTION_THRESHOLD ||
-    (hasComparedBothSides && placedItems.length >= 2)
+  const leftPanItems = useMemo(
+    () => placedItems.filter((item) => item.pan === 'left'),
+    [placedItems],
+  )
+  const rightPanItems = useMemo(
+    () => placedItems.filter((item) => item.pan === 'right'),
+    [placedItems],
+  )
+  const crownPan =
+    leftPanItems.some((item) => item.type === 'crown')
+      ? 'left'
+      : rightPanItems.some((item) => item.type === 'crown')
+        ? 'right'
+        : null
+  const crownPanItems = crownPan === 'left' ? leftPanItems : crownPan === 'right' ? rightPanItems : []
+  const counterPan = crownPan === 'left' ? 'right' : crownPan === 'right' ? 'left' : null
+  const counterMass = counterPan === 'left' ? leftMass : counterPan === 'right' ? rightMass : 0
+  const counterPanItems = counterPan === 'left' ? leftPanItems : counterPan === 'right' ? rightPanItems : []
+  const crownIsAlone = crownPanItems.length === 1 && crownPanItems[0]?.type === 'crown'
+  const beamIsLevel = Math.abs(physicsSnapshot.beamAngle) < 0.045
+  const measuredMassMatchesCrown = Math.abs(counterMass - MASS_KG.crown) < 0.001
+  const hasSolvedMeasurement = crownIsAlone && counterPan !== null && measuredMassMatchesCrown && beamIsLevel
+  const canRevealCounterMass =
+    crownPan !== null &&
+    crownIsAlone &&
+    counterPan !== null &&
+    counterPanItems.length > 0 &&
+    counterPanItems.every((item) => item.type !== 'crown')
+  const canContinue = hasUnlockedNextChapter
+  const scaleBalanceState = !canRevealCounterMass
+    ? 'idle'
+    : hasSolvedMeasurement
+      ? 'balanced'
+      : 'unbalanced'
+  const taskStatus = hasUnlockedNextChapter
+    ? 'Excellent work. You measured the crown and unlocked the next chapter.'
+    : crownPan === null
+      ? 'Place the crown in one bowl to begin the measurement.'
+      : !crownIsAlone
+        ? 'Keep the crown by itself on one side so you are measuring only the crown.'
+        : !canRevealCounterMass
+          ? 'Add trusted masses to the other bowl until the balance begins to settle.'
+          : hasSolvedMeasurement
+            ? 'The scale is balanced. Enter the measured mass in the answer box to unlock the next chapter.'
+            : 'Adjust the deadweights until the crown alone balances against the known masses.'
   const activeNarrationSrc = useMemo(
     () =>
       NARRATION_CLIPS.find((clip) => clip.id === activeNarrationId)?.src ?? null,
@@ -382,11 +433,68 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     ? NARRATION_CLIPS.findIndex((clip) => clip.id === activeNarrationId)
     : -1
   const narrationAudio = useAudioPlayer(activeNarrationSrc)
+  const activeNarrationClip =
+    NARRATION_CLIPS.find((clip) => clip.id === activeNarrationId) ?? null
+  const typedNarrationText = useMemo(() => {
+    if (!activeNarrationClip) return ''
+    const totalChars = activeNarrationClip.text.length
+    if (!narrationAudio.duration || narrationAudio.duration === 0) {
+      return narrationAudio.currentTime > 0 ? activeNarrationClip.text : ''
+    }
+    const progress = Math.min(1, narrationAudio.currentTime / narrationAudio.duration)
+    const charsToShow = Math.round(totalChars * progress)
+    return activeNarrationClip.text.slice(0, charsToShow)
+  }, [activeNarrationClip, narrationAudio.currentTime, narrationAudio.duration])
 
   useEffect(() => {
-    if (!activeNarrationSrc) return
+    if (!isNarrationBubbleOpen || !activeNarrationSrc) return
     narrationAudio.play()
-  }, [activeNarrationSrc, narrationAudio.play])
+  }, [activeNarrationSrc, isNarrationBubbleOpen, narrationAudio.play])
+
+  useEffect(() => {
+    if (isNarrationBubbleOpen) return
+    narrationAudio.pause()
+  }, [isNarrationBubbleOpen, narrationAudio.pause])
+
+
+  useEffect(() => {
+    if (!showFireworks) return
+
+    const stopTimer = window.setTimeout(async () => {
+      if (fireworksRef.current) {
+        await fireworksRef.current.waitStop()
+      }
+      setShowFireworks(false)
+    }, 5000)
+
+    return () => window.clearTimeout(stopTimer)
+  }, [showFireworks])
+
+  function checkMassGuess() {
+    const normalized = massGuess.trim().replace(',', '.')
+    const parsed = Number(normalized)
+
+    if (!Number.isFinite(parsed)) {
+      setMassCheckFeedback('Enter the crown mass in grams before checking your answer.')
+      return
+    }
+
+    if (!hasSolvedMeasurement) {
+      setMassCheckFeedback('First balance the crown by itself against known masses, then submit your measured mass.')
+      return
+    }
+
+    if (Math.abs(parsed - 1000) < 0.5) {
+      if (!hasUnlockedNextChapter) {
+        setShowFireworks(true)
+      }
+      setHasUnlockedNextChapter(true)
+      setMassCheckFeedback('Correct. The measured mass is right, so the next chapter is now unlocked.')
+      return
+    }
+
+    setMassCheckFeedback('That mass is not correct yet. Recheck the balance and enter the crown mass in grams.')
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -708,7 +816,6 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       type,
       pan,
     })
-    setInteractionCount((count) => count + 1)
     runtime.applyPanMasses()
     runtime.syncView()
   }, [placedItems])
@@ -720,7 +827,6 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     if (!item) return
 
     runtime.items.delete(instanceId)
-    setInteractionCount((count) => count + 1)
     runtime.applyPanMasses()
     runtime.syncView()
   }, [])
@@ -728,7 +834,6 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
   const clearPans = useCallback(() => {
     const runtime = runtimeRef.current
     if (!runtime) return
-    if (runtime.items.size > 0) setInteractionCount((count) => count + 1)
 
     runtime.items.clear()
     runtime.applyPanMasses()
@@ -804,21 +909,42 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
       ))
   }
 
+  const crownDef = ITEM_DEFS.crown
+  const crownDisabled = !crownInPool
+
   const toolboxItems = (
     <div className="scale-toolset">
+      <div className="weigh-crown-showcase">
+        <div className="weigh-crown-showcase-ring">
+          <div
+            draggable={!crownDisabled}
+            onDragStart={(e) => handleDragStart(e, 'crown')}
+            onDragEnd={() => setDragOverPan(null)}
+            className={`scale-tool-draggable weigh-crown-draggable ${crownDisabled ? 'scale-tool-draggable-disabled' : ''}`}
+            title={`${crownDef.label} – drag to a bowl`}
+          >
+            <img
+              src={crownDef.iconSrc}
+              alt={ITEM_LABELS.crown}
+              className="scale-tool-img weigh-crown-img"
+            />
+          </div>
+        </div>
+        <span className="weigh-crown-showcase-label">Weigh me!</span>
+      </div>
+
       <div className="weigh-toolbox-header">
         <div>
           <p className="weigh-panel-kicker">Toolbox</p>
-          <h4>Available objects</h4>
+          <h4>Known masses</h4>
         </div>
       </div>
       <p className="helper-text scale-toolset-hint">
-        Drag any item into a bowl. Click an item inside a bowl to remove it.
+        Drag items into a bowl. Click an item inside a bowl to remove it.
       </p>
       <div className="scale-toolset-items">
         {(
           [
-            'crown',
             'goldBar',
             'silverBar',
             'mass100',
@@ -827,14 +953,13 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
           ] as ScaleItemId[]
         ).map((id) => {
           const def = ITEM_DEFS[id]
-          const disabled = Boolean(def.singleInstance && !crownInPool)
           return (
             <div
               key={id}
-              draggable={!disabled}
+              draggable
               onDragStart={(e) => handleDragStart(e, id)}
               onDragEnd={() => setDragOverPan(null)}
-              className={`scale-tool-draggable ${disabled ? 'scale-tool-draggable-disabled' : ''}`}
+              className="scale-tool-draggable"
               title={`${def.label} – drag to a bowl`}
             >
               <img
@@ -859,8 +984,93 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     </div>
   )
 
+  const narrationWidget = (
+    <div className="weigh-narrator-widget">
+      {isNarrationBubbleOpen && activeNarrationClip ? (
+        <section className="weigh-narrator-bubble" aria-live="polite">
+          <p className="weigh-narrator-kicker">
+            {activeNarrationClip.label}
+            <span className="weigh-narrator-kicker-count">
+              {activeNarrationIndex + 1}/{NARRATION_CLIPS.length}
+            </span>
+          </p>
+          <p className="scene-text weigh-narrator-text">{typedNarrationText}</p>
+          {activeNarrationIndex < NARRATION_CLIPS.length - 1 && (
+            <button
+              type="button"
+              className="weigh-narrator-next"
+              onClick={() => {
+                setActiveNarrationId(
+                  NARRATION_CLIPS[activeNarrationIndex + 1].id,
+                )
+              }}
+            >
+              Next &rarr;
+            </button>
+          )}
+        </section>
+      ) : null}
+      <button
+        type="button"
+        className={`weigh-narrator-button ${isNarrationBubbleOpen ? 'weigh-narrator-button-open' : ''}`}
+        onClick={() => {
+          if (!isNarrationBubbleOpen && !activeNarrationId) {
+            setActiveNarrationId(NARRATION_CLIPS[0].id)
+          }
+          setIsNarrationBubbleOpen((open) => !open)
+        }}
+        title="Open optional narration"
+        aria-label="Open optional narration"
+        aria-expanded={isNarrationBubbleOpen}
+      >
+        <span className="weigh-narrator-button-glow" aria-hidden="true" />
+        <img
+          src={headImg}
+          alt=""
+          className="weigh-narrator-button-img"
+          aria-hidden="true"
+        />
+      </button>
+    </div>
+  )
+
   return (
     <div className="scene crown-weigh-scene">
+      {showFireworks && (
+        <Fireworks
+          ref={fireworksRef}
+          options={{
+            hue: { min: 0, max: 360 },
+            rocketsPoint: { min: 15, max: 85 },
+            particles: 120,
+            explosion: 8,
+            intensity: 40,
+            flickering: 30,
+            traceLength: 4,
+            traceSpeed: 8,
+            brightness: { min: 50, max: 80 },
+            decay: { min: 0.015, max: 0.03 },
+            delay: { min: 15, max: 30 },
+            lineWidth: {
+              explosion: { min: 1, max: 4 },
+              trace: { min: 0.5, max: 1.5 },
+            },
+            lineStyle: 'round',
+            gravity: 1.5,
+            friction: 0.97,
+            opacity: 0.5,
+            acceleration: 1.05,
+            autoresize: true,
+            mouse: { click: false, move: false, max: 1 },
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
       <header className="scene-header">
         <button
           className="link-button"
@@ -869,84 +1079,86 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
         >
           ← Back to story intro
         </button>
-        <h2>Test 1 – Weighing the Crown</h2>
+        <h2>Test 1 – Measure the Crown&apos;s Mass</h2>
       </header>
 
       <section className="scene-body experiment-layout">
         <div className="experiment-controls weigh-reading-panel">
-          {toolboxItems}
-
-          <section className="weigh-info-card weigh-info-card-intro">
-            <p className="weigh-panel-kicker">Archimedes&apos; first idea</p>
-            <h3>Use a balance to compare the crown with trusted masses</h3>
+          <section className="weigh-info-card weigh-mission-card">
+            <p className="weigh-panel-kicker">Mission objective</p>
+            <h3>Measure the crown&apos;s mass before moving on</h3>
             <p className="scene-text">
-              Try to balance the crown against trusted weights and bars.
+              Your goal is to use the balance to discover the crown&apos;s mass by yourself, then enter the answer in grams.
             </p>
           </section>
 
+          {toolboxItems}
+
           <section className="weigh-info-card">
-            <h4>How to use the scale</h4>
+            <h4>How to solve it</h4>
             <div className="weigh-guidance-list">
               <div className="weigh-guidance-item">
                 <span className="weigh-guidance-step">1</span>
-                <p>Drag the crown or any weight from the toolbox into either bowl.</p>
+                <p>Drag the crown into one bowl by itself.</p>
               </div>
               <div className="weigh-guidance-item">
                 <span className="weigh-guidance-step">2</span>
-                <p>Mix items until the beam levels out. Click any bowl item to remove it.</p>
+                <p>Add trusted masses to the other bowl until the beam settles level.</p>
+              </div>
+              <div className="weigh-guidance-item">
+                <span className="weigh-guidance-step">3</span>
+                <p>When the crown alone balances, you have measured its mass and can continue.</p>
               </div>
             </div>
           </section>
 
+          <section className="weigh-info-card weigh-answer-card">
+            <p className="weigh-panel-kicker">Record your measurement</p>
+            <h4>Enter the crown mass in grams</h4>
+            <div className="weigh-answer-row">
+              <input
+                type="text"
+                inputMode="numeric"
+                className="weigh-answer-input"
+                placeholder="Enter mass in grams"
+                value={massGuess}
+                onChange={(e) => setMassGuess(e.target.value)}
+                aria-label="Enter the measured mass of the crown in grams"
+              />
+              <button
+                type="button"
+                className="secondary-button weigh-answer-check"
+                onClick={checkMassGuess}
+              >
+                Check
+              </button>
+            </div>
+            <p className="helper-text weigh-answer-feedback">{massCheckFeedback || 'Balance the crown first, then type the mass you measured.'}</p>
+          </section>
+
           <div className="weigh-reading-panel-footer">
-            {showConclusionCard ? (
-              <section className="weigh-conclusion-card" aria-live="polite">
-                <div className="weigh-conclusion-copy">
-                  <p className="weigh-conclusion-kicker">Lesson reflection</p>
-                  <h4>Weight gives a clue, but not the whole answer.</h4>
-                  <p className="scene-text weigh-conclusion-text">
-                    You have tested the crown against known masses and watched
-                    the beam react. That helps Archimedes compare weight, but it
-                    still does not prove whether the crown matches pure gold in
-                    volume as well as mass.
-                  </p>
-                  <p className="helper-text weigh-conclusion-hint">
-                    Continue to the next lesson to explore the better idea:
-                    compare equal masses in a way that also reveals how much
-                    space each material takes up.
-                  </p>
-                </div>
-              </section>
-            ) : null}
-            <button
-              type="button"
-              className="weigh-audio-cycle-button weigh-audio-cycle-button-highlight"
-              onClick={() => {
-                const nextIndex =
-                  activeNarrationIndex >= 0
-                    ? (activeNarrationIndex + 1) % NARRATION_CLIPS.length
-                    : 0
-                setActiveNarrationId(NARRATION_CLIPS[nextIndex].id)
-              }}
-              title="Play the next narration clip"
-              aria-label="Play the next narration clip"
-            >
-              <span className="weigh-audio-cycle-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="M5 14h3l4 4V6L8 10H5z" />
-                  <path d="M15 9a4 4 0 010 6" />
-                  <path d="M17.5 6.5a7.5 7.5 0 010 11" />
-                </svg>
-              </span>
-              <span className="weigh-audio-cycle-copy">
-                <span className="weigh-audio-cycle-label">Optional narration</span>
-                <span className="weigh-audio-cycle-text">
-                  {activeNarrationIndex >= 0
-                    ? `Play clip ${(activeNarrationIndex % NARRATION_CLIPS.length) + 1} of 3`
-                    : 'Play clip 1 of 3'}
-                </span>
-              </span>
-            </button>
+            <section className={`weigh-conclusion-card ${hasSolvedMeasurement ? 'weigh-conclusion-card-success' : ''}`} aria-live="polite">
+              <div className="weigh-conclusion-copy">
+                <p className="weigh-conclusion-kicker">
+                  {hasUnlockedNextChapter ? 'Mission complete' : hasSolvedMeasurement ? 'Measurement complete' : 'Current task'}
+                </p>
+                <h4>
+                  {hasUnlockedNextChapter
+                    ? 'The next chapter is unlocked.'
+                    : hasSolvedMeasurement
+                    ? 'The scale is balanced.'
+                    : 'Use the balance to find the crown mass yourself.'}
+                </h4>
+                <p className="scene-text weigh-conclusion-text">
+                  {taskStatus}
+                </p>
+                <p className="helper-text weigh-conclusion-hint">
+                  {hasUnlockedNextChapter
+                    ? 'Proceed to the next chapter to test whether equal weight also means the crown is pure gold.'
+                    : 'Hint: the goal is not just to make the beam move. The goal is to make the crown alone balance against a known total mass, then enter that mass yourself.'}
+                </p>
+              </div>
+            </section>
           </div>
         </div>
 
@@ -1002,6 +1214,17 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
                     <div className="crown-scale-rod-cap" aria-hidden />
                   </div>
                 </div>
+                {canRevealCounterMass ? (
+                  <div
+                    className={`crown-scale-level-guide crown-scale-level-guide-${scaleBalanceState}`}
+                    style={{
+                      left: `${STAGE_GEOMETRY.pivotX}px`,
+                      top: `${STAGE_GEOMETRY.pivotY + BEAM_CENTER_OFFSET_Y + STAGE_GEOMETRY.ropeLength + 6}px`,
+                      width: `${STAGE_GEOMETRY.beamWidth + 110}px`,
+                    }}
+                    aria-hidden
+                  />
+                ) : null}
 
                 {physicsSnapshot.leftRopes.map((rope, index) => (
                   <div
@@ -1021,7 +1244,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
                 ))}
 
                 <div
-                  className={`crown-scale-pan crown-scale-pan-left ${dragOverPan === 'left' ? 'crown-scale-pan-drag-over' : ''}`}
+                  className={`crown-scale-pan crown-scale-pan-left ${dragOverPan === 'left' ? 'crown-scale-pan-drag-over' : ''} ${canRevealCounterMass ? `crown-scale-pan-${scaleBalanceState}` : ''}`}
                   style={{
                     left: `${physicsSnapshot.leftPan.x}px`,
                     top: `${physicsSnapshot.leftPan.y}px`,
@@ -1037,17 +1260,13 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
                   tabIndex={0}
                   aria-label="Left bowl – drop items here"
                 >
-                  <div className="crown-scale-pan-total">
-                    {(leftMass * 1000).toFixed(0)} g
-                  </div>
-                  <div className="crown-scale-pan-remove-hint">Drop or remove</div>
                   <div className="crown-scale-pan-items">
                     {renderPanItems('left')}
                   </div>
                 </div>
 
                 <div
-                  className={`crown-scale-pan crown-scale-pan-right ${dragOverPan === 'right' ? 'crown-scale-pan-drag-over' : ''}`}
+                  className={`crown-scale-pan crown-scale-pan-right ${dragOverPan === 'right' ? 'crown-scale-pan-drag-over' : ''} ${canRevealCounterMass ? `crown-scale-pan-${scaleBalanceState}` : ''}`}
                   style={{
                     left: `${physicsSnapshot.rightPan.x}px`,
                     top: `${physicsSnapshot.rightPan.y}px`,
@@ -1063,14 +1282,32 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
                   tabIndex={0}
                   aria-label="Right bowl – drop items here"
                 >
-                  <div className="crown-scale-pan-total">
-                    {(rightMass * 1000).toFixed(0)} g
-                  </div>
-                  <div className="crown-scale-pan-remove-hint">Drop or remove</div>
                   <div className="crown-scale-pan-items">
                     {renderPanItems('right')}
                   </div>
                 </div>
+                {canRevealCounterMass && counterPan === 'left' ? (
+                  <div
+                    className="crown-scale-counter-total"
+                    style={{
+                      left: `${physicsSnapshot.leftPan.x}px`,
+                      top: `${physicsSnapshot.leftPan.y + 58}px`,
+                    }}
+                  >
+                    {(leftMass * 1000).toFixed(0)} g
+                  </div>
+                ) : null}
+                {canRevealCounterMass && counterPan === 'right' ? (
+                  <div
+                    className="crown-scale-counter-total"
+                    style={{
+                      left: `${physicsSnapshot.rightPan.x}px`,
+                      top: `${physicsSnapshot.rightPan.y + 58}px`,
+                    }}
+                  >
+                    {(rightMass * 1000).toFixed(0)} g
+                  </div>
+                ) : null}
           </div>
         </div>
       </section>
@@ -1085,15 +1322,18 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
             Back to story intro
           </button>
         </div>
-        <div className="scene-footer-right">
+        <div className="scene-footer-center">
           <button
-            className="primary-button"
+            className={`primary-button mission-continue-button ${canContinue ? 'mission-continue-button-ready' : 'mission-continue-button-locked'}`}
             type="button"
             onClick={() => onNavigate('melt')}
             disabled={!canContinue}
           >
-            Try a different idea
+            Continue to the next chapter
           </button>
+        </div>
+        <div className="scene-footer-right">
+          {narrationWidget}
         </div>
       </footer>
     </div>

@@ -10,10 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fireworks-js/react": "^2.10.8",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
     "@rive-app/react-canvas": "^4.21.4",
     "@xstate/react": "^6.0.0",
+    "fireworks-js": "^2.10.8",
     "framer-motion": "^12.23.0",
     "lottie-react": "^2.4.1",
     "react": "^19.1.0",

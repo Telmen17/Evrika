@@ -14,20 +14,36 @@ const LEAF_LENGTH_PX = 140
 const LEAF_OVERLAP_PX = 44
 const LEAF_STEP_PX = LEAF_LENGTH_PX - LEAF_OVERLAP_PX
 const SIDE_VINE_WIDTH_PX = LEAF_LENGTH_PX
+type CloudTransitionPhase = 'idle' | 'covering' | 'revealing'
 
 function App() {
   const [currentScene, setCurrentScene] = useState<SceneId>('landing')
   const [completedScenes, setCompletedScenes] = useState<SceneId[]>([])
+  const [transitionPhase, setTransitionPhase] = useState<CloudTransitionPhase>('idle')
+  const [pendingScene, setPendingScene] = useState<SceneId | null>(null)
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
   }))
 
-  const navigate = (scene: SceneId) => {
+  const completeNavigation = (scene: SceneId) => {
     setCurrentScene(scene)
     setCompletedScenes((prev) =>
       prev.includes(scene) ? prev : [...prev, scene],
     )
+  }
+
+  const navigate = (scene: SceneId) => {
+    completeNavigation(scene)
+  }
+
+  const startJourney = () => {
+    if (transitionPhase !== 'idle') {
+      return
+    }
+
+    setPendingScene('intro')
+    setTransitionPhase('covering')
   }
 
   useEffect(() => {
@@ -79,6 +95,7 @@ function App() {
       content = (
         <LandingPage
           onNavigate={navigate}
+          onStartJourney={startJourney}
           completedScenes={completedScenes}
         />
       )
@@ -98,6 +115,7 @@ function App() {
 
   const sideLeafCount = leafCountForLength(viewport.height)
   const topLeafCount = topLeafCountForConnection(viewport.width)
+  const showCloudTransition = transitionPhase !== 'idle'
 
   return (
     <>
@@ -132,6 +150,27 @@ function App() {
         </div>
       </div>
       <div className="app-root">{content}</div>
+      {showCloudTransition ? (
+        <div className={`cloud-transition cloud-transition-${transitionPhase}`} aria-hidden="true">
+          <div className="cloud-transition-glow" />
+          <div className="cloud-transition-side cloud-transition-side-left" />
+          <div
+            className="cloud-transition-side cloud-transition-side-right"
+            onAnimationEnd={() => {
+              if (transitionPhase === 'covering' && pendingScene) {
+                completeNavigation(pendingScene)
+                setTransitionPhase('revealing')
+                return
+              }
+
+              if (transitionPhase === 'revealing') {
+                setPendingScene(null)
+                setTransitionPhase('idle')
+              }
+            }}
+          />
+        </div>
+      ) : null}
     </>
   )
 }
