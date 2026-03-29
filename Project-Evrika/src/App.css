@@ -1594,87 +1594,663 @@ body.lesson-active {
 }
 
 /* Crown melting scene */
+.crown-melt-scene {
+  display: flex;
+  flex-direction: column;
+  padding: 1.35rem 1.65rem 1.5rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 961px) {
+  .crown-melt-scene {
+    max-height: min(900px, calc(100vh - 2.5rem));
+  }
+}
+
+.crown-melt-scene .scene-header {
+  margin-bottom: 0.75rem;
+  flex-shrink: 0;
+}
+
+.crown-melt-scene .scene-header h2 {
+  font-size: clamp(1rem, 2.2vw, 1.2rem);
+}
+
+.crown-melt-scene .scene-body {
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.crown-melt-scene .scene-footer {
+  margin-top: 0.85rem;
+  flex-shrink: 0;
+}
+
+.crown-melt-scene .experiment-layout {
+  align-items: stretch;
+  min-height: 0;
+}
+
+.crown-melt-scene .experiment-controls {
+  min-height: 0;
+  gap: 0.5rem;
+}
+
+.crown-melt-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.crown-melt-quiz-bundle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 0;
+  flex: 1;
+  overflow: visible;
+}
+
+.crown-melt-quiz-top {
+  flex-shrink: 0;
+}
+
+.crown-melt-quiz-kicker {
+  margin-bottom: 0.15rem;
+}
+
+.crown-melt-prompt {
+  margin: 0;
+  font-size: clamp(0.88rem, 1.5vw, 0.98rem);
+  color: #3a230d;
+  line-height: 1.28;
+}
+
+.crown-melt-quiz-lead {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.crown-melt-quiz-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  flex: 0 1 auto;
+  margin: 0.15rem 0 0;
+}
+
+.crown-melt-quiz-continue {
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+.crown-melt-quiz-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  text-align: left;
+  padding: 0.42rem 0.55rem;
+  border-radius: 8px;
+  border: 2px solid rgba(146, 92, 28, 0.28);
+  background: rgba(255, 252, 245, 0.95);
+  color: #3a230d;
+  cursor: pointer;
+  transition: none;
+  min-height: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.crown-melt-quiz-option:hover:not(.crown-melt-quiz-option-selected) {
+  border-color: rgba(184, 134, 11, 0.55);
+  background: #fffaf0;
+}
+
+.crown-melt-quiz-option-selected,
+.crown-melt-quiz-option-selected:hover {
+  border-color: #b8860b;
+  background: linear-gradient(135deg, rgba(255, 241, 203, 0.95), rgba(247, 220, 160, 0.88));
+  box-shadow: 0 4px 14px rgba(168, 111, 25, 0.14);
+}
+
+.crown-melt-quiz-option-text {
+  font-size: 0.78rem;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #3a230d;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+.crown-melt-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.crown-melt-feedback-body {
+  margin: 0;
+  line-height: 1.5;
+  font-size: 0.88rem;
+}
+
+.crown-melt-nudge {
+  margin: 0;
+  font-weight: 600;
+  color: #7a5420;
+}
+
+.crown-melt-panel-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.crown-melt-panel-hint-single {
+  margin: 0;
+  line-height: 1.45;
+  font-size: 0.88rem;
+}
+
+.crown-melt-prelude-copy {
+  margin: 0 0 0.35rem;
+  line-height: 1.45;
+}
+
+.crown-melt-panel-hint-pulse .weigh-panel-kicker {
+  animation: crownMeltKickerPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes crownMeltKickerPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.crown-melt-scene .experiment-canvas.crown-melt-canvas {
+  overflow: visible;
+}
+
 .crown-melt-canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 30% 0%, rgba(255, 255, 255, 0.7), transparent 70%),
-    linear-gradient(to bottom, #fdf4da, #e2c795);
-}
-
-.crown-melt-stage {
-  width: 100%;
-  max-width: 420px;
-  padding: 1.25rem 1.5rem;
+  min-height: clamp(200px, 26vh, 240px);
+  background: radial-gradient(circle at 40% 0%, rgba(255, 255, 255, 0.75), transparent 65%),
+    linear-gradient(to bottom, #2a1810, #4a2818 45%, #1a0f0c);
   border-radius: 14px;
-  background: rgba(255, 249, 237, 0.9);
   border: 1px solid rgba(146, 92, 28, 0.35);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-}
-
-.crown-melt-stage-after {
-  background: rgba(255, 249, 237, 1);
-}
-
-.crown-melt-furnace {
-  width: 80px;
-  height: 52px;
-  border-radius: 999px 999px 0 0;
-  background: radial-gradient(circle at 50% 0%, #ffe3b3, #c05a1a);
-  margin: 0 auto 1rem;
   position: relative;
-  overflow: hidden;
+  z-index: 0;
 }
 
-.crown-melt-flame {
+.crown-melt-workshop {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  min-height: 260px;
+  padding: 1rem 1rem 1.25rem;
+  overflow: visible;
+  z-index: 1;
+}
+
+.crown-melt-archimedes {
   position: absolute;
-  bottom: -10%;
-  left: 50%;
-  width: 50px;
-  height: 70px;
-  transform: translateX(-50%);
-  background: radial-gradient(circle at 50% 0%, #fff7d1, #ff9800 55%, rgba(255, 152, 0, 0));
-  opacity: 0.9;
-}
-
-.crown-melt-row {
+  left: 38%;
+  right: auto;
+  bottom: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  justify-content: flex-end;
+  width: auto;
+  max-width: 42%;
+  z-index: 8;
+  pointer-events: none;
+  transform: translateX(-50%);
 }
 
-.crown-melt-crown,
-.crown-melt-block {
-  flex: 1;
+.crown-melt-archimedes-glow {
+  position: absolute;
+  inset: 10% -12% 5% -12%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 200, 120, 0.2), transparent 72%);
+  z-index: 0;
+}
+
+.crown-melt-archimedes-img {
+  position: relative;
+  z-index: 1;
+  width: auto;
+  height: clamp(150px, 24vh, 210px);
+  max-width: min(140px, 36vw);
+  object-fit: contain;
+  object-position: bottom center;
+  display: block;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.5));
+}
+
+.crown-melt-furnace-wrap {
+  position: absolute;
+  right: 6%;
+  bottom: 12%;
+  width: 140px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
+  z-index: 15;
 }
 
-.crown-melt-icon {
-  width: 64px;
+.crown-melt-furnace-wrap-active {
+  outline: 2px dashed rgba(255, 200, 120, 0.35);
+  outline-offset: 8px;
+  border-radius: 12px;
+}
+
+.crown-melt-furnace {
+  position: relative;
+  width: 118px;
+  height: 100px;
+}
+
+.crown-melt-furnace-body {
+  position: absolute;
+  inset: 18px 4px 0;
+  border-radius: 10px 10px 6px 6px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #5c3d2e 0px,
+      #5c3d2e 8px,
+      #4a3226 8px,
+      #4a3226 16px
+    ),
+    linear-gradient(to bottom, #6b4838, #3d261c);
+  box-shadow:
+    inset 0 -6px 0 rgba(0, 0, 0, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+.crown-melt-furnace-mouth {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  width: 72px;
+  height: 36px;
+  border-radius: 50% 50% 40% 40%;
+  background: radial-gradient(ellipse at 50% 100%, #1a0a06, #0d0504 70%);
+  box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.85);
+  z-index: 2;
+}
+
+.crown-melt-flames {
+  position: absolute;
+  left: 50%;
+  bottom: 52px;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 72px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.crown-melt-flame {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  opacity: 0.88;
+  mix-blend-mode: screen;
+  filter: blur(0.6px);
+  transform-origin: 50% 100%;
+}
+
+.crown-melt-flame-a {
+  width: 46px;
+  height: 58px;
+  margin-left: -10px;
+  background: radial-gradient(ellipse at 50% 100%, #fff8dc 0%, #ffcc33 35%, #ff6600 65%, transparent 88%);
+  animation: crownMeltFlameA 0.55s ease-in-out infinite alternate;
+}
+
+.crown-melt-flame-b {
+  width: 56px;
+  height: 68px;
+  margin-left: 6px;
+  background: radial-gradient(ellipse at 50% 100%, #fff2a8 0%, #ff9500 40%, #cc3300 72%, transparent 90%);
+  animation: crownMeltFlameB 0.62s ease-in-out infinite alternate;
+  animation-delay: -0.2s;
+}
+
+.crown-melt-flame-c {
+  width: 38px;
+  height: 48px;
+  margin-left: -18px;
+  background: radial-gradient(ellipse at 50% 100%, #ffffff 0%, #ffe066 45%, #ff4400 70%, transparent 88%);
+  animation: crownMeltFlameC 0.48s ease-in-out infinite alternate;
+  animation-delay: -0.35s;
+}
+
+@keyframes crownMeltFlameA {
+  0% {
+    transform: translateX(-50%) scaleY(0.92) scaleX(1.02) skewX(-2deg);
+    opacity: 0.82;
+  }
+  100% {
+    transform: translateX(-50%) scaleY(1.08) scaleX(0.96) skewX(3deg);
+    opacity: 0.95;
+  }
+}
+
+@keyframes crownMeltFlameB {
+  0% {
+    transform: translateX(-50%) scaleY(1.05) scaleX(0.94) skewX(4deg);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateX(-50%) scaleY(0.9) scaleX(1.06) skewX(-4deg);
+    opacity: 0.9;
+  }
+}
+
+@keyframes crownMeltFlameC {
+  0% {
+    transform: translateX(-50%) scaleY(0.88) translateY(2px);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateX(-50%) scaleY(1.12) translateY(-2px);
+    opacity: 0.92;
+  }
+}
+
+.crown-melt-forge-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 220, 180, 0.55);
+}
+
+.crown-melt-crown-in-forge {
+  position: absolute;
+  left: 50%;
+  top: 22px;
+  transform: translateX(-50%);
+  z-index: 12;
+  width: 40px;
   height: 40px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #f8da5b, #f5b40a);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: crownMeltDropIn 0.35s ease-out;
 }
 
-.crown-melt-icon-block {
-  border-radius: 8px;
-  height: 32px;
+.crown-melt-crown-in-forge-draggable {
+  cursor: grab;
+  z-index: 25;
 }
 
-.crown-melt-label {
-  font-size: 0.8rem;
-  color: #4a2c16;
+.crown-melt-crown-in-forge-draggable:active {
+  cursor: grabbing;
+}
+
+@keyframes crownMeltDropIn {
+  from {
+    transform: translateX(-50%) translateY(-16px) scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.crown-melt-crown-pool {
+  position: absolute;
+  left: 10%;
+  bottom: 18%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 108px;
+  min-width: 100px;
+  padding: 0.65rem 0.85rem;
+  border-radius: 14px;
+  background: rgba(255, 248, 230, 0.12);
+  border: 1px solid rgba(255, 215, 150, 0.25);
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.2s ease;
+  z-index: 7;
+}
+
+.crown-melt-crown-pool-drop-target {
+  border-color: rgba(255, 200, 120, 0.65);
+  background: rgba(255, 230, 180, 0.14);
+  box-shadow: 0 0 0 2px rgba(255, 180, 80, 0.25);
+  animation: crownMeltPedestalPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes crownMeltPedestalPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(255, 180, 80, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(255, 200, 120, 0.35);
+  }
+}
+
+.crown-melt-crown-pool:active {
+  cursor: grabbing;
+}
+
+.crown-melt-crown-pool[draggable='false'] {
+  cursor: default;
+}
+
+.crown-melt-crown-pool:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.crown-melt-crown-img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+  pointer-events: none;
+}
+
+.crown-melt-crown-in-forge .crown-melt-crown-img {
+  width: 36px;
+  height: 36px;
+}
+
+.crown-melt-crown-caption {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 235, 200, 0.85);
   text-align: center;
+  max-width: 120px;
+  line-height: 1.25;
 }
 
-.crown-melt-arrow {
-  font-size: 1.5rem;
-  color: #7b5427;
+.crown-melt-guard {
+  position: absolute;
+  left: 0;
+  right: auto;
+  bottom: 4%;
+  width: min(130px, 34vw);
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  transform: translateX(-130%);
+  opacity: 0;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.crown-melt-guard-stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  max-width: min(240px, 88vw);
+  z-index: 85;
+  padding-left: 0.15rem;
+}
+
+.crown-melt-guard-visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.crown-melt-guard-svg {
+  width: 120px;
+  height: 160px;
+  overflow: visible;
+  flex-shrink: 0;
+  z-index: 82;
+}
+
+.crown-melt-guard-arm {
+  transition: transform 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+.crown-melt-guard-pose-0 .crown-melt-guard-arm {
+  transform: rotate(22deg);
+}
+
+.crown-melt-guard-pose-1 .crown-melt-guard-arm {
+  transform: rotate(-18deg);
+}
+
+.crown-melt-guard-pose-2 .crown-melt-guard-arm {
+  transform: rotate(-98deg);
+}
+
+.crown-melt-guard-pose-1.crown-melt-guard-visible {
+  transform: translateX(0) translateY(2px);
+}
+
+.crown-melt-guard-pose-2.crown-melt-guard-visible {
+  transform: translateX(4px) translateY(0);
+}
+
+.crown-melt-guard-speech {
+  position: relative;
+  order: -1;
+  width: 100%;
+  max-width: min(228px, calc(100vw - 4rem));
+  margin: 0 0 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(255, 252, 245, 0.98);
+  border: 1px solid rgba(146, 92, 28, 0.4);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  font-size: 0.76rem;
+  line-height: 1.42;
+  color: #3a230d;
+  z-index: 100;
+  animation: crownMeltSpeechPop 0.35s ease-out;
+  pointer-events: none;
+}
+
+.crown-melt-guard-speech strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: #8b2500;
+}
+
+@keyframes crownMeltSpeechPop {
+  from {
+    transform: translateY(8px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .crown-melt-scene .scene-body {
+    overflow: visible;
+  }
+
+  .crown-melt-quiz-bundle {
+    max-height: min(56vh, 420px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 0.3rem;
+    margin-right: -0.1rem;
+    scrollbar-gutter: stable;
+  }
+
+  .crown-melt-quiz-grid {
+    grid-template-columns: 1fr;
+    gap: 0.42rem;
+  }
+
+  .crown-melt-quiz-option-text {
+    font-size: 0.8rem;
+  }
+
+  .crown-melt-workshop {
+    min-height: 300px;
+  }
+
+  .crown-melt-furnace-wrap {
+    right: 4%;
+    bottom: 8%;
+  }
+
+  .crown-melt-crown-pool {
+    left: 6%;
+    bottom: 10%;
+  }
+
+  .crown-melt-guard-speech {
+    max-width: min(220px, calc(100vw - 2.5rem));
+    font-size: 0.72rem;
+  }
+
+  .crown-melt-archimedes {
+    left: 34%;
+    transform: translateX(-50%);
+    max-width: 52%;
+  }
+
+  .crown-melt-archimedes-img {
+    height: clamp(120px, 28vh, 170px);
+    max-width: 110px;
+  }
+
+  .crown-melt-guard {
+    width: min(118px, 38vw);
+  }
 }
 
 .pill-group {
@@ -1998,6 +2574,11 @@ body.lesson-active {
 
 /* Tablet screens */
 @media (max-width: 960px) {
+  .crown-melt-scene {
+    max-height: none;
+    overflow: visible;
+  }
+
   .app-root {
     padding: 1.5rem;
   }

@@ -1163,7 +1163,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
                 </p>
                 <p className="helper-text weigh-conclusion-hint">
                   {hasUnlockedNextChapter
-                    ? 'Proceed to the next chapter to test whether equal weight also means the crown is pure gold.'
+                    ? 'Proceed to the next chapter to search the answer of the mystery.'
                     : 'Hint: the goal is not just to make the beam move. The goal is to make the crown alone balance against a known total mass, then enter that mass yourself.'}
                 </p>
               </div>
