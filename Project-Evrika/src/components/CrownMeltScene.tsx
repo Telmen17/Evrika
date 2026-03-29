@@ -2,6 +2,8 @@ import type { FC } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import archimedesPng from '../assets/archimedes.png'
 import crownSvg from '../assets/crown.svg'
+import furnacePng from '../assets/furnace.png'
+import guardPng from '../assets/guard.png'
 import type { SceneId } from './LandingPage'
 
 interface CrownMeltSceneProps {
@@ -57,7 +59,9 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
   const [crownAtForge, setCrownAtForge] = useState(false)
   const [guardPose, setGuardPose] = useState(0)
   const [guardSpeech, setGuardSpeech] = useState(false)
+  const [guardVoicePlaying, setGuardVoicePlaying] = useState(false)
   const guardTimersRef = useRef<number[]>([])
+  const guardAudioRef = useRef<HTMLAudioElement | null>(null)
 
   const clearGuardTimers = useCallback(() => {
     guardTimersRef.current.forEach((id) => window.clearTimeout(id))
@@ -138,6 +142,33 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
   const guardOrAfter =
     phase === 'guard' || phase === 'returnCrown' || phase === 'done'
 
+  const showCrownPool =
+    (phase === 'forge' && !crownAtForge) ||
+    phase === 'returnCrown' ||
+    phase === 'done'
+
+  const toggleGuardVoice = useCallback(() => {
+    const el = guardAudioRef.current
+    if (!el) return
+    if (el.paused) {
+      el.play().catch(() => {})
+    } else {
+      el.pause()
+      el.currentTime = 0
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!guardSpeech) {
+      const a = guardAudioRef.current
+      if (a) {
+        a.pause()
+        a.currentTime = 0
+      }
+      setGuardVoicePlaying(false)
+    }
+  }, [guardSpeech])
+
   return (
     <div className="scene crown-melt-scene">
       <header className="scene-header">
@@ -203,7 +234,7 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
             <>
               <p className="weigh-panel-kicker">Workshop</p>
               <p className="scene-text crown-melt-prelude-copy">
-                Drag the crown into the furnace on the right.
+                Drag the crown into the furnace in the center.
               </p>
               <button
                 type="button"
@@ -242,7 +273,7 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
           {phase === 'done' && (
             <div className="crown-melt-panel-hint">
               <p className="scene-text crown-melt-panel-hint-single">
-                So much for the furnace — next, we’ll need another approach.
+                So much for the furnace — we have found out that we cannot use the furnace, we’ll need another approach.
               </p>
             </div>
           )}
@@ -251,105 +282,131 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
         <div className="experiment-canvas crown-melt-canvas">
           <div className="crown-melt-workshop">
             {phase !== 'quiz' && phase !== 'quizFeedback' ? (
-              <div className="crown-melt-archimedes">
-                <div className="crown-melt-archimedes-glow" />
-                <img
-                  src={archimedesPng}
-                  alt=""
-                  className="crown-melt-archimedes-img"
-                />
-              </div>
-            ) : null}
-
-            <div
-              className={`crown-melt-furnace-wrap ${phase === 'forge' && !crownAtForge ? 'crown-melt-furnace-wrap-active' : ''}`}
-              onDragOver={handleDragOverForge}
-              onDrop={handleDropOnForge}
-            >
-              <div className="crown-melt-furnace" aria-hidden="true">
-                <div className="crown-melt-furnace-body" />
-                <div className="crown-melt-furnace-mouth" />
-                <div className="crown-melt-flames" aria-hidden="true">
-                  <span className="crown-melt-flame crown-melt-flame-a" />
-                  <span className="crown-melt-flame crown-melt-flame-b" />
-                  <span className="crown-melt-flame crown-melt-flame-c" />
-                </div>
-              </div>
-              {crownAtForge && (
-                <div
-                  className={`crown-melt-crown-in-forge ${phase === 'returnCrown' ? 'crown-melt-crown-in-forge-draggable' : ''}`}
-                  draggable={phase === 'returnCrown'}
-                  onDragStart={handleDragFromForge}
-                >
-                  <img src={crownSvg} alt="" className="crown-melt-crown-img" />
-                </div>
-              )}
-              <span className="crown-melt-forge-label">Furnace</span>
-            </div>
-
-            {(phase === 'forge' && !crownAtForge) ||
-            phase === 'returnCrown' ||
-            phase === 'done' ? (
-              <div
-                className={`crown-melt-crown-pool ${phase === 'returnCrown' && crownAtForge ? 'crown-melt-crown-pool-drop-target' : ''}`}
-                draggable={phase === 'forge' && !crownAtForge}
-                onDragStart={handleDragFromPool}
-                onDragOver={handleDragOverPool}
-                onDrop={handleDropOnPool}
-              >
-                {phase === 'returnCrown' && crownAtForge ? null : (
-                  <img src={crownSvg} alt="Royal crown" className="crown-melt-crown-img" />
-                )}
-                <span className="crown-melt-crown-caption">
-                  {phase === 'done'
-                    ? 'Back on the pedestal'
-                    : phase === 'returnCrown' && crownAtForge
-                      ? 'Drop the crown here'
-                      : 'Drag me to the furnace'}
-                </span>
-              </div>
-            ) : null}
-
-            {guardOrAfter && (
-              <div
-                className={`crown-melt-guard ${guardPose >= 1 ? 'crown-melt-guard-visible' : ''} crown-melt-guard-pose-${guardPose}`}
-                role="img"
-                aria-label="Royal guard halting the attempt"
-              >
-                <div className="crown-melt-guard-stack">
-                  {guardSpeech && (
-                    <div className="crown-melt-guard-speech">
-                      <strong>Halt!</strong> The crown is sacred — you may not melt or destroy it.
-                      Hiero&apos;s order stands.
-                    </div>
-                  )}
-                  <svg
-                    className="crown-melt-guard-svg"
-                    viewBox="0 0 120 160"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <ellipse cx="60" cy="148" rx="38" ry="8" fill="rgba(0,0,0,0.12)" />
-                    <rect x="44" y="72" width="32" height="52" rx="6" fill="#3d4a5c" />
-                    <rect x="40" y="88" width="12" height="36" rx="4" fill="#2f3847" />
-                    <rect x="68" y="88" width="12" height="36" rx="4" fill="#2f3847" />
-                    <circle cx="60" cy="48" r="22" fill="#e8c4a0" />
-                    <path
-                      d="M38 44 L82 44 L78 28 L42 28 Z"
-                      fill="#5c4033"
-                    />
-                    <rect x="34" y="40" width="52" height="10" rx="2" fill="#6d4c3d" />
-                    <g
-                      className="crown-melt-guard-arm"
-                      style={{ transformOrigin: '76px 78px' }}
+              <div className="crown-melt-stage-row">
+                <div className="crown-melt-slot crown-melt-slot--guard">
+                  {guardOrAfter ? (
+                    <div
+                      className={`crown-melt-guard ${guardPose >= 1 ? 'crown-melt-guard-visible' : ''} crown-melt-guard-pose-${guardPose}`}
+                      role="img"
+                      aria-label="Royal guard halting the attempt"
                     >
-                      <rect x="72" y="74" width="36" height="10" rx="4" fill="#e8c4a0" />
-                      <rect x="100" y="68" width="14" height="22" rx="3" fill="#c49a6c" />
-                    </g>
-                  </svg>
+                      <div className="crown-melt-guard-stack">
+                        {guardSpeech && (
+                          <div className="crown-melt-guard-speech">
+                            <button
+                              type="button"
+                              className={`crown-melt-guard-speech-audio ${guardVoicePlaying ? 'crown-melt-guard-speech-audio--on' : ''}`}
+                              aria-label={guardVoicePlaying ? 'Stop guard voice' : 'Play guard voice'}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleGuardVoice()
+                              }}
+                            >
+                              <span className="crown-melt-guard-speech-audio-icon" aria-hidden="true">
+                                {guardVoicePlaying ? '◼' : '▶'}
+                              </span>
+                            </button>
+                            <p className="crown-melt-guard-speech-text">
+                              <strong>Halt!</strong> The crown is sacred — you may not melt or destroy it.
+                              Hiero&apos;s order stands.
+                            </p>
+                            <audio
+                              ref={guardAudioRef}
+                              src="/audio/guard-voice.mp3"
+                              preload="metadata"
+                              onEnded={() => setGuardVoicePlaying(false)}
+                              onPlay={() => setGuardVoicePlaying(true)}
+                              onPause={() => setGuardVoicePlaying(false)}
+                            />
+                          </div>
+                        )}
+                        <img
+                          src={guardPng}
+                          alt=""
+                          className="crown-melt-guard-img"
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="crown-melt-slot-placeholder crown-melt-slot-placeholder--guard" aria-hidden />
+                  )}
+                </div>
+
+                <div className="crown-melt-slot crown-melt-slot--furnace">
+                  <div
+                    className={`crown-melt-furnace-wrap ${phase === 'forge' && !crownAtForge ? 'crown-melt-furnace-wrap-active' : ''}`}
+                    onDragOver={handleDragOverForge}
+                    onDrop={handleDropOnForge}
+                  >
+                    <div className="crown-melt-furnace-media">
+                      <img
+                        src={furnacePng}
+                        alt=""
+                        className="crown-melt-furnace-img"
+                      />
+                      <div className="crown-melt-firebox-fx" aria-hidden="true">
+                        <div className="crown-melt-firebox-glow" />
+                        <div className="crown-melt-flames crown-melt-flames--on-image">
+                          <span className="crown-melt-flame crown-melt-flame-a" />
+                          <span className="crown-melt-flame crown-melt-flame-b" />
+                          <span className="crown-melt-flame crown-melt-flame-c" />
+                          <span className="crown-melt-ember crown-melt-ember-1" />
+                          <span className="crown-melt-ember crown-melt-ember-2" />
+                          <span className="crown-melt-ember crown-melt-ember-3" />
+                        </div>
+                      </div>
+                      {crownAtForge && (
+                        <div
+                          className={`crown-melt-crown-in-forge ${phase === 'returnCrown' ? 'crown-melt-crown-in-forge-draggable' : ''}`}
+                          draggable={phase === 'returnCrown'}
+                          onDragStart={handleDragFromForge}
+                        >
+                          <img src={crownSvg} alt="" className="crown-melt-crown-img" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="crown-melt-forge-label">Furnace</span>
+                  </div>
+                </div>
+
+                <div className="crown-melt-slot crown-melt-slot--crown">
+                  {showCrownPool ? (
+                    <div
+                      className={`crown-melt-crown-pool ${phase === 'returnCrown' && crownAtForge ? 'crown-melt-crown-pool-drop-target' : ''}`}
+                      draggable={phase === 'forge' && !crownAtForge}
+                      onDragStart={handleDragFromPool}
+                      onDragOver={handleDragOverPool}
+                      onDrop={handleDropOnPool}
+                    >
+                      {phase === 'returnCrown' && crownAtForge ? null : (
+                        <img src={crownSvg} alt="Royal crown" className="crown-melt-crown-img" />
+                      )}
+                      <span className="crown-melt-crown-caption">
+                        {phase === 'done'
+                          ? 'Back on the pedestal'
+                          : phase === 'returnCrown' && crownAtForge
+                            ? 'Drop the crown here'
+                            : 'Drag me to the furnace'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="crown-melt-crown-slot-spacer" aria-hidden />
+                  )}
+                </div>
+
+                <div className="crown-melt-slot crown-melt-slot--archimedes">
+                  <div className="crown-melt-archimedes">
+                    <div className="crown-melt-archimedes-glow" />
+                    <img
+                      src={archimedesPng}
+                      alt=""
+                      className="crown-melt-archimedes-img"
+                    />
+                  </div>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </section>

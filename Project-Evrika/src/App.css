@@ -1784,9 +1784,11 @@ body.lesson-active {
 
 .crown-melt-canvas {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  min-height: clamp(200px, 26vh, 240px);
+  padding: 0 0.35rem 0.65rem;
+  /* Stable height so guard speech does not resize the canvas (see debug H1/H4: 260→344px). */
+  min-height: 360px;
   background: radial-gradient(circle at 40% 0%, rgba(255, 255, 255, 0.75), transparent 65%),
     linear-gradient(to bottom, #2a1810, #4a2818 45%, #1a0f0c);
   border-radius: 14px;
@@ -1798,27 +1800,75 @@ body.lesson-active {
 .crown-melt-workshop {
   position: relative;
   width: 100%;
-  max-width: 440px;
-  min-height: 260px;
-  padding: 1rem 1rem 1.25rem;
+  max-width: 720px;
+  /* Match canvas min-height so guard speech does not change layout height (pre-fix: 260→344). */
+  min-height: 360px;
+  padding: 0.75rem 0.5rem 0.5rem;
   overflow: visible;
   z-index: 1;
 }
 
-.crown-melt-archimedes {
-  position: absolute;
-  left: 38%;
-  right: auto;
-  bottom: 0;
+.crown-melt-stage-row {
+  display: grid;
+  grid-template-columns: 104px 168px 120px 120px;
+  column-gap: 0.55rem;
+  align-items: end;
+  justify-content: center;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 268px;
+}
+
+.crown-melt-slot {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  width: auto;
-  max-width: 42%;
-  z-index: 8;
+  min-width: 0;
+  width: 100%;
+}
+
+.crown-melt-slot--guard {
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.crown-melt-slot--furnace {
+  align-items: center;
+}
+
+.crown-melt-slot--crown {
+  align-items: center;
+}
+
+.crown-melt-slot--archimedes {
+  align-items: flex-end;
+}
+
+.crown-melt-slot-placeholder--guard {
+  width: 100%;
+  min-height: 120px;
+}
+
+.crown-melt-crown-slot-spacer {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 96px;
+  max-width: 120px;
+  min-height: 108px;
+  visibility: hidden;
   pointer-events: none;
-  transform: translateX(-50%);
+  flex-shrink: 0;
+}
+
+.crown-melt-archimedes {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
 }
 
 .crown-melt-archimedes-glow {
@@ -1833,8 +1883,8 @@ body.lesson-active {
   position: relative;
   z-index: 1;
   width: auto;
-  height: clamp(150px, 24vh, 210px);
-  max-width: min(140px, 36vw);
+  height: 168px;
+  max-width: 110px;
   object-fit: contain;
   object-position: bottom center;
   display: block;
@@ -1842,10 +1892,7 @@ body.lesson-active {
 }
 
 .crown-melt-furnace-wrap {
-  position: absolute;
-  right: 6%;
-  bottom: 12%;
-  width: 140px;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1854,57 +1901,77 @@ body.lesson-active {
 }
 
 .crown-melt-furnace-wrap-active {
-  outline: 2px dashed rgba(255, 200, 120, 0.35);
-  outline-offset: 8px;
-  border-radius: 12px;
+  outline: 2px dashed rgba(255, 200, 120, 0.5);
+  outline-offset: 6px;
+  border-radius: 14px;
 }
 
-.crown-melt-furnace {
+.crown-melt-furnace-media {
   position: relative;
-  width: 118px;
-  height: 100px;
+  display: inline-block;
+  width: 100%;
+  max-width: 168px;
+  line-height: 0;
 }
 
-.crown-melt-furnace-body {
-  position: absolute;
-  inset: 18px 4px 0;
-  border-radius: 10px 10px 6px 6px;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      #5c3d2e 0px,
-      #5c3d2e 8px,
-      #4a3226 8px,
-      #4a3226 16px
-    ),
-    linear-gradient(to bottom, #6b4838, #3d261c);
-  box-shadow:
-    inset 0 -6px 0 rgba(0, 0, 0, 0.25),
-    0 8px 20px rgba(0, 0, 0, 0.45);
+.crown-melt-furnace-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: contain;
+  object-position: bottom center;
+  /* White backdrop in asset blends into dark workshop */
+  mix-blend-mode: multiply;
+  filter: contrast(1.05) brightness(1.02);
 }
 
-.crown-melt-furnace-mouth {
+.crown-melt-firebox-fx {
   position: absolute;
   left: 50%;
-  top: 8px;
+  bottom: 11%;
+  width: 42%;
+  height: 38%;
   transform: translateX(-50%);
-  width: 72px;
-  height: 36px;
-  border-radius: 50% 50% 40% 40%;
-  background: radial-gradient(ellipse at 50% 100%, #1a0a06, #0d0504 70%);
-  box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.85);
   z-index: 2;
+  pointer-events: none;
+}
+
+.crown-melt-firebox-glow {
+  position: absolute;
+  inset: -8% -12% -5% -12%;
+  border-radius: 45% 45% 40% 40%;
+  background: radial-gradient(
+    ellipse 85% 75% at 50% 100%,
+    rgba(255, 215, 0, 0.55) 0%,
+    rgba(255, 140, 0, 0.35) 35%,
+    rgba(255, 0, 0, 0.2) 55%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
+  animation: crownMeltFireboxGlow 1.15s ease-in-out infinite alternate;
+}
+
+@keyframes crownMeltFireboxGlow {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.96, 0.94);
+  }
+  100% {
+    opacity: 0.92;
+    transform: scale(1.04, 1.06);
+  }
 }
 
 .crown-melt-flames {
   position: absolute;
-  left: 50%;
-  bottom: 52px;
-  transform: translateX(-50%);
-  width: 90px;
-  height: 72px;
-  z-index: 1;
+  inset: 0;
+  z-index: 3;
   pointer-events: none;
+}
+
+.crown-melt-flames--on-image .crown-melt-flame {
+  filter: blur(0.8px);
 }
 
 .crown-melt-flame {
@@ -1913,36 +1980,98 @@ body.lesson-active {
   bottom: 0;
   transform: translateX(-50%);
   border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  opacity: 0.88;
   mix-blend-mode: screen;
-  filter: blur(0.6px);
   transform-origin: 50% 100%;
 }
 
 .crown-melt-flame-a {
-  width: 46px;
-  height: 58px;
-  margin-left: -10px;
-  background: radial-gradient(ellipse at 50% 100%, #fff8dc 0%, #ffcc33 35%, #ff6600 65%, transparent 88%);
-  animation: crownMeltFlameA 0.55s ease-in-out infinite alternate;
+  width: 42%;
+  height: 78%;
+  margin-left: -14%;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    #ffffff 0%,
+    #ffd700 22%,
+    #ff8c00 48%,
+    #ff0000 72%,
+    transparent 90%
+  );
+  opacity: 0.72;
+  animation: crownMeltFlameA 0.52s ease-in-out infinite alternate;
 }
 
 .crown-melt-flame-b {
-  width: 56px;
-  height: 68px;
-  margin-left: 6px;
-  background: radial-gradient(ellipse at 50% 100%, #fff2a8 0%, #ff9500 40%, #cc3300 72%, transparent 90%);
-  animation: crownMeltFlameB 0.62s ease-in-out infinite alternate;
-  animation-delay: -0.2s;
+  width: 48%;
+  height: 88%;
+  margin-left: 4%;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    #fffef5 0%,
+    #ffd700 28%,
+    #ff6600 52%,
+    #cc0000 78%,
+    transparent 92%
+  );
+  opacity: 0.68;
+  animation: crownMeltFlameB 0.58s ease-in-out infinite alternate;
+  animation-delay: -0.18s;
 }
 
 .crown-melt-flame-c {
-  width: 38px;
-  height: 48px;
-  margin-left: -18px;
-  background: radial-gradient(ellipse at 50% 100%, #ffffff 0%, #ffe066 45%, #ff4400 70%, transparent 88%);
-  animation: crownMeltFlameC 0.48s ease-in-out infinite alternate;
-  animation-delay: -0.35s;
+  width: 34%;
+  height: 62%;
+  margin-left: -22%;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    #ffffff 0%,
+    #ffe066 35%,
+    #ff4500 65%,
+    transparent 88%
+  );
+  opacity: 0.62;
+  animation: crownMeltFlameC 0.45s ease-in-out infinite alternate;
+  animation-delay: -0.32s;
+}
+
+.crown-melt-ember {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffd700, #ff6600 60%, transparent 70%);
+  mix-blend-mode: screen;
+  box-shadow: 0 0 6px rgba(255, 140, 0, 0.9);
+  animation: crownMeltEmber 1.4s ease-in-out infinite;
+}
+
+.crown-melt-ember-1 {
+  left: 22%;
+  top: 8%;
+  animation-delay: 0s;
+}
+
+.crown-melt-ember-2 {
+  left: 58%;
+  top: 4%;
+  animation-delay: -0.45s;
+}
+
+.crown-melt-ember-3 {
+  left: 78%;
+  top: 18%;
+  animation-delay: -0.9s;
+}
+
+@keyframes crownMeltEmber {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0) scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.15);
+  }
 }
 
 @keyframes crownMeltFlameA {
@@ -1989,8 +2118,8 @@ body.lesson-active {
 .crown-melt-crown-in-forge {
   position: absolute;
   left: 50%;
-  top: 22px;
-  transform: translateX(-50%);
+  top: 34%;
+  transform: translate(-50%, -50%);
   z-index: 12;
   width: 40px;
   height: 40px;
@@ -2011,27 +2140,26 @@ body.lesson-active {
 
 @keyframes crownMeltDropIn {
   from {
-    transform: translateX(-50%) translateY(-16px) scale(0.85);
+    transform: translate(-50%, -50%) translateY(-16px) scale(0.85);
     opacity: 0;
   }
   to {
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translate(-50%, -50%) translateY(0) scale(1);
     opacity: 1;
   }
 }
 
 .crown-melt-crown-pool {
-  position: absolute;
-  left: 10%;
-  bottom: 18%;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
   min-height: 108px;
-  min-width: 100px;
-  padding: 0.65rem 0.85rem;
+  min-width: 96px;
+  max-width: 120px;
+  padding: 0.65rem 0.75rem;
   border-radius: 14px;
   background: rgba(255, 248, 230, 0.12);
   border: 1px solid rgba(255, 215, 150, 0.25);
@@ -2093,17 +2221,13 @@ body.lesson-active {
 }
 
 .crown-melt-guard {
-  position: absolute;
-  left: 0;
-  right: auto;
-  bottom: 4%;
-  width: min(130px, 34vw);
-  min-height: 200px;
+  position: relative;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-end;
-  transform: translateX(-130%);
+  transform: translateX(-108%);
   opacity: 0;
   transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
   z-index: 40;
@@ -2126,28 +2250,16 @@ body.lesson-active {
   opacity: 1;
 }
 
-.crown-melt-guard-svg {
+.crown-melt-guard-img {
   width: 120px;
-  height: 160px;
-  overflow: visible;
+  height: auto;
+  max-height: 160px;
+  object-fit: contain;
+  object-position: bottom center;
+  display: block;
   flex-shrink: 0;
   z-index: 82;
-}
-
-.crown-melt-guard-arm {
-  transition: transform 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
-}
-
-.crown-melt-guard-pose-0 .crown-melt-guard-arm {
-  transform: rotate(22deg);
-}
-
-.crown-melt-guard-pose-1 .crown-melt-guard-arm {
-  transform: rotate(-18deg);
-}
-
-.crown-melt-guard-pose-2 .crown-melt-guard-arm {
-  transform: rotate(-98deg);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
 }
 
 .crown-melt-guard-pose-1.crown-melt-guard-visible {
@@ -2158,28 +2270,70 @@ body.lesson-active {
   transform: translateX(4px) translateY(0);
 }
 
+/* Wider than the 104px guard column: absolute so text isn’t squeezed into a tall narrow strip. */
 .crown-melt-guard-speech {
-  position: relative;
-  order: -1;
-  width: 100%;
-  max-width: min(228px, calc(100vw - 4rem));
+  position: absolute;
+  left: 0;
+  bottom: 100%;
   margin: 0 0 0.4rem;
-  padding: 0.5rem 0.6rem;
+  width: min(320px, calc(100vw - 2rem));
+  max-width: none;
+  padding: 0.48rem 2.35rem 0.48rem 0.55rem;
   border-radius: 12px;
   background: rgba(255, 252, 245, 0.98);
   border: 1px solid rgba(146, 92, 28, 0.4);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   font-size: 0.76rem;
-  line-height: 1.42;
+  line-height: 1.38;
   color: #3a230d;
   z-index: 100;
   animation: crownMeltSpeechPop 0.35s ease-out;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
-.crown-melt-guard-speech strong {
-  display: block;
-  margin-bottom: 0.2rem;
+.crown-melt-guard-speech-text {
+  margin: 0;
+  max-width: 100%;
+}
+
+.crown-melt-guard-speech-audio {
+  position: absolute;
+  top: 0.42rem;
+  right: 0.42rem;
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: rgba(184, 124, 52, 0.2);
+  color: #5c3d1e;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.crown-melt-guard-speech-audio:hover {
+  background: rgba(184, 124, 52, 0.35);
+  color: #3a230d;
+}
+
+.crown-melt-guard-speech-audio--on {
+  background: rgba(139, 37, 0, 0.2);
+  color: #8b2500;
+}
+
+.crown-melt-guard-speech-audio-icon {
+  font-size: 0.55rem;
+  line-height: 1;
+  margin-left: 1px;
+}
+
+.crown-melt-guard-speech-text strong {
+  display: inline;
+  margin-right: 0.25em;
   color: #8b2500;
 }
 
@@ -2218,38 +2372,61 @@ body.lesson-active {
     font-size: 0.8rem;
   }
 
+  .crown-melt-canvas {
+    min-height: 320px;
+  }
+
   .crown-melt-workshop {
-    min-height: 300px;
+    min-height: 260px;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
   }
 
-  .crown-melt-furnace-wrap {
-    right: 4%;
-    bottom: 8%;
+  .crown-melt-stage-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 0;
+    max-width: 100%;
   }
 
-  .crown-melt-crown-pool {
-    left: 6%;
-    bottom: 10%;
+  .crown-melt-slot-placeholder--guard {
+    display: none;
+  }
+
+  .crown-melt-crown-slot-spacer {
+    min-height: 0;
+    height: 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .crown-melt-slot--guard,
+  .crown-melt-slot--furnace,
+  .crown-melt-slot--crown,
+  .crown-melt-slot--archimedes {
+    max-width: 220px;
+  }
+
+  .crown-melt-furnace-media {
+    max-width: min(160px, 55vw);
   }
 
   .crown-melt-guard-speech {
-    max-width: min(220px, calc(100vw - 2.5rem));
+    width: min(300px, calc(100vw - 1.5rem));
     font-size: 0.72rem;
   }
 
-  .crown-melt-archimedes {
-    left: 34%;
-    transform: translateX(-50%);
-    max-width: 52%;
-  }
-
   .crown-melt-archimedes-img {
-    height: clamp(120px, 28vh, 170px);
-    max-width: 110px;
+    height: clamp(110px, 26vh, 160px);
+    max-width: 96px;
   }
 
-  .crown-melt-guard {
-    width: min(118px, 38vw);
+  .crown-melt-guard-img {
+    width: 88px;
+    max-height: 140px;
   }
 }
 
