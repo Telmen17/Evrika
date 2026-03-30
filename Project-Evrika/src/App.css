@@ -3190,36 +3190,81 @@ body.lesson-active {
   transition-duration: 1.35s;
 }
 
-/* In-tub pose; bottom + translateY balance tub alignment without clipping feet (stage overflow:hidden). */
-.story-bath-archimedes {
+/* Wrapper: per-frame placement; grid stacks two imgs so the box keeps height (absolute children alone collapse). */
+.story-bath-archimedes-wrap {
   position: absolute;
-  bottom: 5%;
   left: auto;
-  right: 2%;
-  width: min(46%, 190px);
+  display: grid;
+  place-items: end center;
+  align-content: end;
+  z-index: 5;
+  transform-origin: bottom center;
+  transition:
+    bottom 0.5s cubic-bezier(0.33, 1, 0.68, 1),
+    right 0.5s cubic-bezier(0.33, 1, 0.68, 1),
+    width 0.5s cubic-bezier(0.33, 1, 0.68, 1),
+    max-height 0.5s cubic-bezier(0.33, 1, 0.68, 1),
+    transform 0.5s cubic-bezier(0.33, 1, 0.68, 1);
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.32));
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.story-bath-archimedes-layer {
+  grid-area: 1 / 1;
+  display: block;
+  width: auto;
   height: auto;
-  max-height: 68%;
+  max-width: 100%;
+  max-height: inherit;
   object-fit: contain;
   object-position: bottom center;
-  z-index: 5;
-  transform: translate(-30%, 14%) scale(0.88);
-  transform-origin: bottom center;
-  transition: transform 0.88s cubic-bezier(0.33, 1, 0.68, 1);
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.32));
+  transition: opacity 0.2s ease-in-out;
   pointer-events: none;
 }
 
-/* Brief lift before settling back into the idle/in-tub pose as water reacts. */
-.story-bath-stage--step-in .story-bath-archimedes {
-  transform: translate(-26%, 6%) scale(0.92);
+/* Step 1 (idle) */
+.story-bath-archimedes--f0 {
+  bottom: 5%;
+  right: 2%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-22%, 10%) scale(0.88);
 }
 
-.story-bath-stage--submerged .story-bath-archimedes {
-  transform: translate(-30%, 14%) scale(0.88);
+/* Step 2 — closer to tub rim / edge */
+.story-bath-archimedes--f1 {
+  bottom: 5%;
+  right: 11%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-38%, 8%) scale(0.88);
 }
 
-.story-bath-stage--overflow .story-bath-archimedes {
-  transform: translate(-30%, 16%) scale(0.86);
+/* Steps 3–4 — feet near / above rim (stepping over) */
+.story-bath-archimedes--f2 {
+  bottom: 24%;
+  right: 9%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-34%, 2%) scale(0.88);
+}
+
+.story-bath-archimedes--f3 {
+  bottom: 28%;
+  right: 7%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-36%, -1%) scale(0.88);
+}
+
+/* Step 5 — scaled down; centered over tub (left: 48%) with torso above water */
+.story-bath-archimedes--f4 {
+  bottom: 26%;
+  right: 24%;
+  width: min(38%, 152px);
+  max-height: 56%;
+  transform: translate(-54%, 5%) scale(0.76);
 }
 
 .story-bath-overflow {
@@ -3342,17 +3387,16 @@ body.lesson-active {
   animation: none;
 }
 
-.story-bath-stage--eureka .story-bath-archimedes {
-  transform: translate(-28%, 12%) scale(0.9) rotate(-5deg);
-  animation: storyBathEureka 0.85s ease-in-out infinite alternate;
+.story-bath-stage--eureka .story-bath-archimedes--f4 {
+  animation: storyBathEurekaInTub 0.85s ease-in-out infinite alternate;
 }
 
-@keyframes storyBathEureka {
+@keyframes storyBathEurekaInTub {
   0% {
-    transform: translate(-28%, 12%) scale(0.9) rotate(-5deg);
+    transform: translate(-54%, 5%) scale(0.76) rotate(-4deg);
   }
   100% {
-    transform: translate(-28%, 8%) scale(0.94) rotate(4deg);
+    transform: translate(-54%, 2%) scale(0.79) rotate(3deg);
   }
 }
 
@@ -3391,28 +3435,57 @@ body.lesson-active {
     height: 11%;
   }
 
-  .story-bath-archimedes {
+  .story-bath-archimedes--f0 {
+    bottom: 4%;
+    right: 0;
     width: min(44%, 168px);
     max-height: 62%;
-    right: 0;
+    transform: translate(-20%, 9%) scale(0.88);
+  }
+
+  .story-bath-archimedes--f1 {
     bottom: 4%;
-    transform: translate(-28%, 14%) scale(0.88);
+    right: 8%;
+    width: min(44%, 168px);
+    max-height: 62%;
+    transform: translate(-34%, 7%) scale(0.88);
   }
 
-  .story-bath-stage--step-in .story-bath-archimedes {
-    transform: translate(-24%, 6%) scale(0.92);
+  .story-bath-archimedes--f2 {
+    bottom: 22%;
+    right: 6%;
+    width: min(44%, 168px);
+    max-height: 62%;
+    transform: translate(-30%, 1%) scale(0.88);
   }
 
-  .story-bath-stage--submerged .story-bath-archimedes {
-    transform: translate(-28%, 14%) scale(0.88);
+  .story-bath-archimedes--f3 {
+    bottom: 26%;
+    right: 5%;
+    width: min(44%, 168px);
+    max-height: 62%;
+    transform: translate(-32%, -1%) scale(0.88);
   }
 
-  .story-bath-stage--overflow .story-bath-archimedes {
-    transform: translate(-28%, 16%) scale(0.86);
+  .story-bath-archimedes--f4 {
+    bottom: 44%;
+    right: 36%;
+    width: min(36%, 138px);
+    max-height: 52%;
+    transform: translate(-78%, 4%) scale(0.74);
   }
 
-  .story-bath-stage--eureka .story-bath-archimedes {
-    animation: storyBathEureka 0.85s ease-in-out infinite alternate;
+  .story-bath-stage--eureka .story-bath-archimedes--f4 {
+    animation: storyBathEurekaInTubMobile 0.85s ease-in-out infinite alternate;
+  }
+
+  @keyframes storyBathEurekaInTubMobile {
+    0% {
+      transform: translate(-78%, 4%) scale(0.74) rotate(-4deg);
+    }
+    100% {
+      transform: translate(-78%, 1%) scale(0.77) rotate(3deg);
+    }
   }
 
   .story-bath-spill--left {
