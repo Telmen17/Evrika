@@ -3199,12 +3199,13 @@ body.lesson-active {
   align-content: end;
   z-index: 5;
   transform-origin: bottom center;
+  /* Same duration as sprite crossfade (see StoryBathScene ARCH_BATH_CROSSFADE_MS) — avoids layout drifting after opacity finishes. */
   transition:
-    bottom 0.5s cubic-bezier(0.33, 1, 0.68, 1),
-    right 0.5s cubic-bezier(0.33, 1, 0.68, 1),
-    width 0.5s cubic-bezier(0.33, 1, 0.68, 1),
-    max-height 0.5s cubic-bezier(0.33, 1, 0.68, 1),
-    transform 0.5s cubic-bezier(0.33, 1, 0.68, 1);
+    bottom 0.2s ease-in-out,
+    right 0.2s ease-in-out,
+    width 0.2s ease-in-out,
+    max-height 0.2s ease-in-out,
+    transform 0.2s ease-in-out;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.32));
   pointer-events: none;
   isolation: isolate;
@@ -3221,6 +3222,8 @@ body.lesson-active {
   object-position: bottom center;
   transition: opacity 0.2s ease-in-out;
   pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Step 1 (idle) */
@@ -3258,13 +3261,13 @@ body.lesson-active {
   transform: translate(-36%, -1%) scale(0.88);
 }
 
-/* Step 5 — scaled down; centered over tub (left: 48%) with torso above water */
+/* Step 5 — same torso/head scale as other frames; position over tub with torso above water */
 .story-bath-archimedes--f4 {
-  bottom: 26%;
-  right: 24%;
-  width: min(38%, 152px);
-  max-height: 56%;
-  transform: translate(-54%, 5%) scale(0.76);
+  bottom: 27%;
+  right: 18%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-54%, 5%) scale(0.88);
 }
 
 .story-bath-overflow {
@@ -3393,10 +3396,10 @@ body.lesson-active {
 
 @keyframes storyBathEurekaInTub {
   0% {
-    transform: translate(-54%, 5%) scale(0.76) rotate(-4deg);
+    transform: translate(-54%, 5%) scale(0.88) rotate(-4deg);
   }
   100% {
-    transform: translate(-54%, 2%) scale(0.79) rotate(3deg);
+    transform: translate(-54%, 2%) scale(0.91) rotate(3deg);
   }
 }
 
@@ -3470,9 +3473,9 @@ body.lesson-active {
   .story-bath-archimedes--f4 {
     bottom: 44%;
     right: 36%;
-    width: min(36%, 138px);
-    max-height: 52%;
-    transform: translate(-78%, 4%) scale(0.74);
+    width: min(44%, 168px);
+    max-height: 62%;
+    transform: translate(-78%, 4%) scale(0.88);
   }
 
   .story-bath-stage--eureka .story-bath-archimedes--f4 {
@@ -3481,10 +3484,10 @@ body.lesson-active {
 
   @keyframes storyBathEurekaInTubMobile {
     0% {
-      transform: translate(-78%, 4%) scale(0.74) rotate(-4deg);
+      transform: translate(-78%, 4%) scale(0.88) rotate(-4deg);
     }
     100% {
-      transform: translate(-78%, 1%) scale(0.77) rotate(3deg);
+      transform: translate(-78%, 1%) scale(0.91) rotate(3deg);
     }
   }
 
