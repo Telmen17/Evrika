@@ -7,7 +7,6 @@ import archimedesStep4 from '../assets/archimedes-step4.png'
 import archimedesStep5 from '../assets/archimedes-step5.png'
 import bathPng from '../assets/bath.png'
 import bathhouseJpg from '../assets/bathhouse.jpg'
-import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import type { SceneId } from './LandingPage'
 
 /** Step 1 = idle; steps 2–5 = sequential “into the bath” frames. */
@@ -64,7 +63,6 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
   const archFramePrevRef = useRef<number | null>(null)
   const bathTimersRef = useRef<number[]>([])
   const beat = bathBeats[index]
-  const { isPlaying, toggle } = useAudioPlayer('/audio/intro_part1.mp3')
 
   const clearBathTimers = useCallback(() => {
     bathTimersRef.current.forEach((id) => window.clearTimeout(id))
@@ -167,10 +165,6 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
           <div className="story-bath-copy">
             <p className="scene-text story-bath-text">{beat.text}</p>
 
-            <div className="story-step-indicator">
-              Step {index + 2} of {bathBeats.length + 1}
-            </div>
-
             {index === 0 ? (
               <div className="story-bath-actions">
                 <button
@@ -187,19 +181,8 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
                         ? 'Water rising…'
                         : 'Water overflows…'}
                 </button>
-                <p className="story-bath-actions-hint">
-                  Watch the water level as Archimedes enters—then displacement pushes it over the rim.
-                </p>
               </div>
             ) : null}
-
-            <button
-              className="secondary-button story-bath-narration-btn"
-              type="button"
-              onClick={toggle}
-            >
-              {isPlaying ? 'Pause narration' : 'Play narration'}
-            </button>
           </div>
 
           <div
@@ -258,21 +241,19 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
           </button>
         </div>
         <div className="scene-footer-right">
-          {index < bathBeats.length - 1 ? (
-            <button
-              className="primary-button"
-              type="button"
-              onClick={goNext}
-            >
-              Next
-            </button>
+          {index === 0 ? (
+            bathPhase === 'overflow' ? (
+              <button className="primary-button" type="button" onClick={goNext}>
+                Next
+              </button>
+            ) : null
           ) : (
             <button
               className="primary-button"
               type="button"
-              onClick={() => onNavigate('bath')}
+              onClick={() => onNavigate('displacement')}
             >
-              Continue to Buoyancy Bath
+              Continue to the displacement test
             </button>
           )}
         </div>

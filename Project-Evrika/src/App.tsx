@@ -9,6 +9,9 @@ import CrownMeltScene from './components/CrownMeltScene.tsx'
 import BuoyancyBathScene from './components/BuoyancyBathScene'
 import CrownDensityScene from './components/CrownDensityScene'
 import RecapScreen from './components/RecapScreen'
+import DisplacementLabScene from './components/DisplacementLabScene'
+import StoryFinaleScene from './components/StoryFinaleScene'
+import PracticeProblemsScreen from './components/PracticeProblemsScreen'
 
 const LEAF_LENGTH_PX = 140
 const LEAF_OVERLAP_PX = 44
@@ -80,6 +83,15 @@ function App() {
       break
     case 'melt':
       content = <CrownMeltScene onNavigate={navigate} />
+      break
+    case 'displacement':
+      content = <DisplacementLabScene onNavigate={navigate} />
+      break
+    case 'finale':
+      content = <StoryFinaleScene onNavigate={navigate} />
+      break
+    case 'practice':
+      content = <PracticeProblemsScreen onNavigate={navigate} />
       break
     case 'bath':
       content = <BuoyancyBathScene onNavigate={navigate} />

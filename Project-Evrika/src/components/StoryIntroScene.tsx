@@ -110,69 +110,71 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
         ← Menu
       </button>
 
-      <div className="scene-image-container">
-        <div className="scene-stage-wrap">
-          <img
-            src="/digital-art-style-theatre-stage.jpg"
-            alt="Ancient Greek throne room"
-            className="scene-image"
-          />
-          <div className="story-scene-wash" aria-hidden />
-          <img
-            src={archimedesImg}
-            alt="Archimedes" 
-            className={actorClass('archimedes', 'scene-archimedes')}
-          />
-          <img
-            src={guardsImg}
-            alt="Palace guards" 
-            className={actorClass('guards', 'scene-guards')}
-          />
-          <img
-            src={kingSitImg}
-            alt="King Hiero" 
-            className={actorClass('king', 'scene-king')}
-          />
-          <div className={actorClass('blacksmith', 'story-blacksmith')}>
+      <div className="journey-scene-body">
+        <div className="scene-image-container">
+          <div className="scene-stage-wrap">
             <img
-              src={blacksmithImg}
-              alt="The royal blacksmith"
-              className="story-blacksmith-img"
+              src="/digital-art-style-theatre-stage.jpg"
+              alt="Ancient Greek throne room"
+              className="scene-image"
             />
-          </div>
-          <div className={actorClass('crown', 'story-crown')}>
-            <img src={crownImg} alt="The golden crown" className="story-crown-img" />
-          </div>
-        </div>
-      </div>
-
-      <div className="narration-container journey-story-box">
-        <div className="journey-story-box-header">
-          <div>
-            <div className="story-step-indicator">
-              Scene {index + 1} of {beats.length}
+            <div className="story-scene-wash" aria-hidden />
+            <img
+              src={archimedesImg}
+              alt="Archimedes"
+              className={actorClass('archimedes', 'scene-archimedes')}
+            />
+            <img
+              src={guardsImg}
+              alt="Palace guards"
+              className={actorClass('guards', 'scene-guards')}
+            />
+            <img
+              src={kingSitImg}
+              alt="King Hiero"
+              className={actorClass('king', 'scene-king')}
+            />
+            <div className={actorClass('blacksmith', 'story-blacksmith')}>
+              <img
+                src={blacksmithImg}
+                alt="The royal blacksmith"
+                className="story-blacksmith-img"
+              />
             </div>
-            <h2 className="journey-beat-title">{beat.title}</h2>
+            <div className={actorClass('crown', 'story-crown')}>
+              <img src={crownImg} alt="The golden crown" className="story-crown-img" />
+            </div>
           </div>
-          <button
-            className="secondary-button narration-button narration-icon-button"
-            type="button"
-            onClick={toggle}
-          >
-            <span className="narration-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" focusable="false">
-                <path d="M5 14h3l4 4V6L8 10H5z" />
-                <path d="M15 9a4 4 0 010 6" />
-                <path d="M17.5 6.5a7.5 7.5 0 010 11" />
-              </svg>
-            </span>
-            <span>
-              {isPlaying ? 'Pause voice' : 'Play voice'}
-            </span>
-          </button>
         </div>
-        <div className="scene-text journey-story-text">
-          <p>{beat.text}</p>
+
+        <div className="narration-container journey-story-box">
+          <div className="journey-story-box-header">
+            <div>
+              <div className="story-step-indicator">
+                Scene {index + 1} of {beats.length}
+              </div>
+              <h2 className="journey-beat-title">{beat.title}</h2>
+            </div>
+            <button
+              className="secondary-button narration-button narration-icon-button"
+              type="button"
+              onClick={toggle}
+            >
+              <span className="narration-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M5 14h3l4 4V6L8 10H5z" />
+                  <path d="M15 9a4 4 0 010 6" />
+                  <path d="M17.5 6.5a7.5 7.5 0 010 11" />
+                </svg>
+              </span>
+              <span>
+                {isPlaying ? 'Pause voice' : 'Play voice'}
+              </span>
+            </button>
+          </div>
+          <div className="scene-text journey-story-text">
+            <p>{beat.text}</p>
+          </div>
         </div>
       </div>
 

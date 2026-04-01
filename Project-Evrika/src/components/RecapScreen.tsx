@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+import { useState, type FC } from 'react'
 import type { SceneId } from './LandingPage'
 
 interface RecapScreenProps {
@@ -31,10 +31,8 @@ const RecapScreen: FC<RecapScreenProps> = ({ onNavigate }) => {
   })
 
   const handleAnswer = (id: string, index: number) => {
-    setAnswers((prev) => ({ ...prev, [id]: index }))
+    setAnswers((prev: Record<string, number | null>) => ({ ...prev, [id]: index }))
   }
-
-  const allAnswered = questions.every((q) => answers[q.id] !== null)
 
   return (
     <div className="scene">

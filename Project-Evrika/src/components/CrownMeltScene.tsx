@@ -15,7 +15,6 @@ const DRAG_TYPE = 'application/x-evrika-melt-crown'
 type MeltPhase =
   | 'quiz'
   | 'quizFeedback'
-  | 'prelude'
   | 'forge'
   | 'guard'
   | 'returnCrown'
@@ -90,7 +89,6 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
     if (
       phase === 'quiz' ||
       phase === 'quizFeedback' ||
-      phase === 'prelude' ||
       phase === 'forge'
     ) {
       clearGuardTimers()
@@ -232,16 +230,10 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
               </div>
             )}
 
-            {phase === 'prelude' && (
-              <p className="scene-text crown-melt-prelude-copy">
-                Drag the crown into the furnace in the center.
-              </p>
-            )}
-
             {phase === 'forge' && !crownAtForge && (
               <div className="crown-melt-panel-hint">
                 <p className="scene-text crown-melt-panel-hint-single">
-                  Drag the crown into the furnace.
+                  Drag the crown into the furnace in the center.
                 </p>
               </div>
             )}
@@ -271,7 +263,7 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
             )}
           </div>
 
-          {(phase === 'quiz' || phase === 'quizFeedback' || phase === 'prelude') && (
+          {(phase === 'quiz' || phase === 'quizFeedback') && (
             <div className="crown-melt-panel-actions">
               {phase === 'quiz' && (
                 <button
@@ -284,15 +276,6 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
                 </button>
               )}
               {phase === 'quizFeedback' && (
-                <button
-                  type="button"
-                  className="primary-button crown-melt-panel-continue"
-                  onClick={() => setPhase('prelude')}
-                >
-                  Continue
-                </button>
-              )}
-              {phase === 'prelude' && (
                 <button
                   type="button"
                   className="primary-button crown-melt-panel-continue"

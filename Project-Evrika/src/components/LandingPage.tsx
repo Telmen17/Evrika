@@ -6,6 +6,9 @@ export type SceneId =
   | 'bathStory'
   | 'weigh'
   | 'melt'
+  | 'displacement'
+  | 'finale'
+  | 'practice'
   | 'bath'
   | 'crown'
   | 'recap'
@@ -76,6 +79,13 @@ const LandingPage: FC<LandingPageProps> = ({
             >
               Crown &amp; Gold Test
             </button>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => onNavigate('practice')}
+            >
+              Practice problems
+            </button>
           </div>
         </section>
 
@@ -85,8 +95,17 @@ const LandingPage: FC<LandingPageProps> = ({
             <li className={isCompleted('intro') ? 'done' : ''}>Story intro</li>
             <li className={isCompleted('bath') ? 'done' : ''}>Buoyancy bath</li>
             <li className={isCompleted('crown') ? 'done' : ''}>Crown comparison</li>
+            <li className={isCompleted('displacement') ? 'done' : ''}>Displacement test</li>
+            <li className={isCompleted('finale') ? 'done' : ''}>Royal hall finale</li>
             <li className={isCompleted('recap') ? 'done' : ''}>Recap &amp; knowledge check</li>
           </ul>
+          <button
+            className="secondary-button wide-button menu-progress-practice"
+            type="button"
+            onClick={() => onNavigate('practice')}
+          >
+            Practice problems
+          </button>
         </section>
       </main>
     </div>

@@ -5,7 +5,7 @@ import type { FireworksHandlers } from '@fireworks-js/react'
 import type { SceneId } from './LandingPage'
 import crownSvg from '../assets/crown.svg'
 import headImg from '../assets/head.png'
-import matterScriptUrl from '../../matter.min.js?url'
+import { ensureMatterLoaded } from '../lib/ensureMatter'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 
 type PanSide = 'left' | 'right'
@@ -297,41 +297,6 @@ function sumPanPhysicsMass(
     if (item.pan === pan) total += ITEM_DEFS[item.type].physicsMass
   })
   return total
-}
-
-async function ensureMatterLoaded() {
-  const win = window as MatterWindow
-  if (win.Matter) return win.Matter
-
-  await new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector(
-      'script[data-evrika-matter="true"]',
-    ) as HTMLScriptElement | null
-
-    if (existing) {
-      existing.addEventListener('load', () => resolve(), { once: true })
-      existing.addEventListener(
-        'error',
-        () => reject(new Error('Failed to load Matter.js')),
-        { once: true },
-      )
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = matterScriptUrl
-    script.async = true
-    script.dataset.evrikaMatter = 'true'
-    script.addEventListener('load', () => resolve(), { once: true })
-    script.addEventListener(
-      'error',
-      () => reject(new Error('Failed to load Matter.js')),
-      { once: true },
-    )
-    document.head.appendChild(script)
-  })
-
-  return (window as MatterWindow).Matter
 }
 
 const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
@@ -1036,7 +1001,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
         <img
           src={headImg}
           alt=""
-          className="weigh-narrator-button-img"
+          className="weigh-narrator-button-img weigh-narrator-button-img--attention"
           aria-hidden="true"
         />
       </button>
@@ -1342,7 +1307,11 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
           </button>
         </div>
         <div className="scene-footer-right">
-          {narrationWidget}
+          {hasUnlockedNextChapter ? (
+            narrationWidget
+          ) : (
+            <div className="weigh-narrator-footer-spacer" aria-hidden="true" />
+          )}
         </div>
       </footer>
     </div>

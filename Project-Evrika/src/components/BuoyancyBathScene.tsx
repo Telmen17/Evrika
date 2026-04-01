@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+import { useState, type FC } from 'react'
 import type { SceneId } from './LandingPage'
 import BathSceneCanvas from './Three/BathSceneCanvas'
 
