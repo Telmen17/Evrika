@@ -6,6 +6,7 @@ export type SceneId =
   | 'bathStory'
   | 'weigh'
   | 'melt'
+  | 'waterDiscovery'
   | 'displacement'
   | 'finale'
   | 'practice'

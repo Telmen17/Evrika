@@ -1,5 +1,5 @@
-import type { FC } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, FC } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Fireworks } from '@fireworks-js/react'
 import type { FireworksHandlers } from '@fireworks-js/react'
 import type { SceneId } from './LandingPage'
@@ -203,6 +203,19 @@ interface CrownWeighSceneProps {
 
 type NarrationClipId = 'lesson' | 'limit' | 'next'
 
+/** Delay after unlock before the head appears */
+const NARRATOR_INTRO_APPEAR_DELAY_MS = 2800
+/** Icon starts this scale in the center, then grows to NARRATOR_HERO_PEAK_SCALE */
+const NARRATOR_HERO_START_SCALE = 0.22
+const NARRATOR_HERO_PEAK_SCALE = 2.12
+/** Time to scale from small → hero size in the center */
+const NARRATOR_HERO_GROW_DURATION_MS = 900
+/** How long the full-size icon rests in the center before flying to the footer (short beat, not a long hold) */
+const NARRATOR_HERO_CENTER_DWELL_MS = 1600
+const NARRATOR_FLOAT_SIZE_PX = 62
+/** Move + shrink to corner */
+const NARRATOR_FLY_DURATION_MS = 1100
+
 const NARRATION_CLIPS: Array<{
   id: NarrationClipId
   label: string
@@ -312,7 +325,25 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
   const [massCheckFeedback, setMassCheckFeedback] = useState('')
   const [hasUnlockedNextChapter, setHasUnlockedNextChapter] = useState(false)
   const [showFireworks, setShowFireworks] = useState(false)
+  /** Set true after the celebration fireworks sequence ends (Continue stays locked until this and the narrator intro finish). */
+  const [fireworksCelebrationComplete, setFireworksCelebrationComplete] =
+    useState(false)
   const fireworksRef = useRef<FireworksHandlers>(null)
+  /** Hero → footer-slot entrance for Archimedes narrator (after mission unlock) */
+  const [narratorIntroPhase, setNarratorIntroPhase] = useState<
+    'off' | 'waiting' | 'hero' | 'toCorner' | 'finished'
+  >('off')
+  const narratorIntroWidgetRef = useRef<HTMLDivElement>(null)
+  const crownWeighSceneRef = useRef<HTMLDivElement>(null)
+  const narratorTargetSlotRef = useRef<HTMLDivElement>(null)
+  const narratorIntroFlyDoneRef = useRef(false)
+  const [introFloat, setIntroFloat] = useState<{
+    left: number
+    top: number
+    scale: number
+  } | null>(null)
+  const [introGrowTransition, setIntroGrowTransition] = useState(false)
+  const [introFlyTransition, setIntroFlyTransition] = useState(false)
   const [physicsSnapshot, setPhysicsSnapshot] = useState<PhysicsSnapshot>({
     beamAngle: 0,
     leftPan: {
@@ -372,7 +403,10 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     counterPan !== null &&
     counterPanItems.length > 0 &&
     counterPanItems.every((item) => item.type !== 'crown')
-  const canContinue = hasUnlockedNextChapter
+  const canContinue =
+    hasUnlockedNextChapter &&
+    narratorIntroPhase === 'finished' &&
+    fireworksCelebrationComplete
   const scaleBalanceState = !canRevealCounterMass
     ? 'idle'
     : hasSolvedMeasurement
@@ -422,6 +456,125 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
   }, [isNarrationBubbleOpen, narrationAudio.pause])
 
 
+  useLayoutEffect(() => {
+    if (!hasUnlockedNextChapter) {
+      setNarratorIntroPhase('off')
+      setIntroFloat(null)
+      setIntroGrowTransition(false)
+      setIntroFlyTransition(false)
+      setFireworksCelebrationComplete(false)
+      return
+    }
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setNarratorIntroPhase('finished')
+      setIntroFloat(null)
+      return
+    }
+    setNarratorIntroPhase('waiting')
+  }, [hasUnlockedNextChapter])
+
+  useEffect(() => {
+    if (narratorIntroPhase !== 'waiting') return
+    const t = window.setTimeout(
+      () => setNarratorIntroPhase('hero'),
+      NARRATOR_INTRO_APPEAR_DELAY_MS,
+    )
+    return () => window.clearTimeout(t)
+  }, [narratorIntroPhase])
+
+  useLayoutEffect(() => {
+    if (narratorIntroPhase !== 'hero') return
+    const scene = crownWeighSceneRef.current
+    if (!scene) return
+    const sr = scene.getBoundingClientRect()
+    const half = NARRATOR_FLOAT_SIZE_PX / 2
+    setIntroFlyTransition(false)
+    setIntroGrowTransition(false)
+    setIntroFloat({
+      left: sr.left + sr.width / 2 - half,
+      top: sr.top + sr.height * 0.42 - half,
+      scale: NARRATOR_HERO_START_SCALE,
+    })
+  }, [narratorIntroPhase])
+
+  useEffect(() => {
+    if (narratorIntroPhase !== 'hero') return
+    let cancelled = false
+    let toCornerTimer: number | undefined
+    let innerRaf = 0
+    const outerRaf = requestAnimationFrame(() => {
+      innerRaf = requestAnimationFrame(() => {
+        if (cancelled) return
+        setIntroGrowTransition(true)
+        setIntroFloat((prev) =>
+          prev
+            ? { ...prev, scale: NARRATOR_HERO_PEAK_SCALE }
+            : prev,
+        )
+        toCornerTimer = window.setTimeout(
+          () => {
+            if (!cancelled) setNarratorIntroPhase('toCorner')
+          },
+          NARRATOR_HERO_GROW_DURATION_MS + NARRATOR_HERO_CENTER_DWELL_MS,
+        )
+      })
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(outerRaf)
+      if (innerRaf) cancelAnimationFrame(innerRaf)
+      if (toCornerTimer !== undefined) window.clearTimeout(toCornerTimer)
+    }
+  }, [narratorIntroPhase])
+
+  useLayoutEffect(() => {
+    if (narratorIntroPhase !== 'toCorner') return
+    const slot = narratorTargetSlotRef.current
+    if (!slot) return
+    const r = slot.getBoundingClientRect()
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIntroGrowTransition(false)
+        setIntroFlyTransition(true)
+        setIntroFloat({
+          left: r.left,
+          top: r.top,
+          scale: 1,
+        })
+      })
+    })
+  }, [narratorIntroPhase])
+
+  useEffect(() => {
+    if (narratorIntroPhase !== 'toCorner') {
+      narratorIntroFlyDoneRef.current = false
+      return
+    }
+    narratorIntroFlyDoneRef.current = false
+    const el = narratorIntroWidgetRef.current
+    const done = () => {
+      if (narratorIntroFlyDoneRef.current) return
+      narratorIntroFlyDoneRef.current = true
+      setNarratorIntroPhase('finished')
+      setIntroFloat(null)
+      setIntroGrowTransition(false)
+      setIntroFlyTransition(false)
+    }
+    const fallback = window.setTimeout(done, NARRATOR_FLY_DURATION_MS + 900)
+    if (!el) {
+      return () => window.clearTimeout(fallback)
+    }
+    const onEnd = (e: TransitionEvent) => {
+      if (!['left', 'top', 'transform'].includes(e.propertyName)) return
+      done()
+    }
+    el.addEventListener('transitionend', onEnd)
+    return () => {
+      window.clearTimeout(fallback)
+      el.removeEventListener('transitionend', onEnd)
+    }
+  }, [narratorIntroPhase])
+
   useEffect(() => {
     if (!showFireworks) return
 
@@ -430,6 +583,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
         await fireworksRef.current.waitStop()
       }
       setShowFireworks(false)
+      setFireworksCelebrationComplete(true)
     }, 5000)
 
     return () => window.clearTimeout(stopTimer)
@@ -949,8 +1103,39 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     </div>
   )
 
-  const narrationWidget = (
-    <div className="weigh-narrator-widget">
+  const flyEasing = 'cubic-bezier(0.22, 1, 0.36, 1)'
+  const introFloatStyle: CSSProperties | undefined =
+    (narratorIntroPhase === 'hero' || narratorIntroPhase === 'toCorner') && introFloat
+      ? {
+          position: 'fixed',
+          left: introFloat.left,
+          top: introFloat.top,
+          width: NARRATOR_FLOAT_SIZE_PX,
+          height: NARRATOR_FLOAT_SIZE_PX,
+          zIndex: 50,
+          transform: `scale(${introFloat.scale})`,
+          transformOrigin: 'center center',
+          transition: introFlyTransition
+            ? `left ${NARRATOR_FLY_DURATION_MS}ms ${flyEasing}, top ${NARRATOR_FLY_DURATION_MS}ms ${flyEasing}, transform ${NARRATOR_FLY_DURATION_MS}ms ${flyEasing}`
+            : introGrowTransition
+              ? `transform ${NARRATOR_HERO_GROW_DURATION_MS}ms ${flyEasing}`
+              : 'none',
+        }
+      : undefined
+
+  const narratorIntroBackdrop =
+    hasUnlockedNextChapter &&
+    (narratorIntroPhase === 'hero' || narratorIntroPhase === 'toCorner') ? (
+      <div
+        className={`weigh-narrator-intro-backdrop ${
+          narratorIntroPhase === 'toCorner' ? 'weigh-narrator-intro-backdrop--fade' : ''
+        }`}
+        aria-hidden
+      />
+    ) : null
+
+  const narrationWidgetInner = (
+    <>
       {isNarrationBubbleOpen && activeNarrationClip ? (
         <section className="weigh-narrator-bubble" aria-live="polite">
           <p className="weigh-narrator-kicker">
@@ -1001,15 +1186,33 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
         <img
           src={headImg}
           alt=""
-          className="weigh-narrator-button-img weigh-narrator-button-img--attention"
+          className={`weigh-narrator-button-img ${
+            narratorIntroPhase === 'finished' ? 'weigh-narrator-button-img--attention' : ''
+          }`}
           aria-hidden="true"
         />
       </button>
-    </div>
+    </>
   )
 
+  const narrationWidgetFooter = (
+    <div className="weigh-narrator-widget">{narrationWidgetInner}</div>
+  )
+
+  const narrationWidgetFloating =
+    (narratorIntroPhase === 'hero' || narratorIntroPhase === 'toCorner') && introFloat ? (
+      <div
+        ref={narratorIntroWidgetRef}
+        className="weigh-narrator-widget weigh-narrator-widget--intro-float"
+        style={introFloatStyle}
+      >
+        {narrationWidgetInner}
+      </div>
+    ) : null
+
   return (
-    <div className="scene crown-weigh-scene">
+    <div ref={crownWeighSceneRef} className="scene crown-weigh-scene">
+      {narratorIntroBackdrop}
       {showFireworks && (
         <Fireworks
           ref={fireworksRef}
@@ -1308,7 +1511,18 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
         </div>
         <div className="scene-footer-right">
           {hasUnlockedNextChapter ? (
-            narrationWidget
+            narratorIntroPhase === 'finished' ? (
+              narrationWidgetFooter
+            ) : (
+              <>
+                <div
+                  ref={narratorTargetSlotRef}
+                  className="weigh-narrator-target-slot"
+                  aria-hidden="true"
+                />
+                {narrationWidgetFloating}
+              </>
+            )
           ) : (
             <div className="weigh-narrator-footer-spacer" aria-hidden="true" />
           )}

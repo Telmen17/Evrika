@@ -153,9 +153,9 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
         <button
           className="link-button"
           type="button"
-          onClick={() => onNavigate('melt')}
+          onClick={() => onNavigate('waterDiscovery')}
         >
-          ← Back to earlier tests
+          ← Back to water playground
         </button>
         <h2>{beat.title}</h2>
       </header>

@@ -423,7 +423,7 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
             <button
               className="primary-button"
               type="button"
-              onClick={() => onNavigate('bathStory')}
+              onClick={() => onNavigate('waterDiscovery')}
             >
               Continue to the next chapter
             </button>

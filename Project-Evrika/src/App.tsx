@@ -6,6 +6,7 @@ import StoryIntroScene from './components/StoryIntroScene'
 import StoryBathScene from './components/StoryBathScene'
 import CrownWeighScene from './components/CrownWeighScene.tsx'
 import CrownMeltScene from './components/CrownMeltScene.tsx'
+import WaterDiscoveryScene from './components/WaterDiscoveryScene'
 import BuoyancyBathScene from './components/BuoyancyBathScene'
 import CrownDensityScene from './components/CrownDensityScene'
 import RecapScreen from './components/RecapScreen'
@@ -83,6 +84,9 @@ function App() {
       break
     case 'melt':
       content = <CrownMeltScene onNavigate={navigate} />
+      break
+    case 'waterDiscovery':
+      content = <WaterDiscoveryScene onNavigate={navigate} />
       break
     case 'displacement':
       content = <DisplacementLabScene onNavigate={navigate} />
