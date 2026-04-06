@@ -241,21 +241,11 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
           </button>
         </div>
         <div className="scene-footer-right">
-          {index === 0 ? (
-            bathPhase === 'overflow' ? (
-              <button className="primary-button" type="button" onClick={goNext}>
-                Next
-              </button>
-            ) : null
-          ) : (
-            <button
-              className="primary-button"
-              type="button"
-              onClick={() => onNavigate('displacement')}
-            >
-              Continue to the displacement test
+          {index === 0 && bathPhase === 'overflow' ? (
+            <button className="primary-button" type="button" onClick={goNext}>
+              Next
             </button>
-          )}
+          ) : null}
         </div>
       </footer>
     </div>

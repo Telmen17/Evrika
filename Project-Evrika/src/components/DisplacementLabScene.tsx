@@ -711,16 +711,6 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate }) => 
             Back
           </button>
         </div>
-        <div className="scene-footer-right">
-          <button
-            type="button"
-            className="primary-button"
-            disabled={!hasCompared}
-            onClick={() => onNavigate('finale')}
-          >
-            Continue to the royal hall
-          </button>
-        </div>
       </footer>
     </div>
   )

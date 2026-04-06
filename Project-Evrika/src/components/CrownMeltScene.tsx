@@ -418,17 +418,6 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
             Back to weighing test
           </button>
         </div>
-        {phase === 'done' ? (
-          <div className="scene-footer-right">
-            <button
-              className="primary-button"
-              type="button"
-              onClick={() => onNavigate('waterDiscovery')}
-            >
-              Continue to the next chapter
-            </button>
-          </div>
-        ) : null}
       </footer>
     </div>
   )

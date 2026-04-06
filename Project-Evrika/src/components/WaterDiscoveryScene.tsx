@@ -205,7 +205,6 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
   const [waterPct, setWaterPct] = useState(BASE_WATER01 * 100)
   const [closeupOpen, setCloseupOpen] = useState(false)
   const [closeupReplay, setCloseupReplay] = useState(false)
-  const [celebrationDone, setCelebrationDone] = useState(false)
   const [sparkleKey, setSparkleKey] = useState(0)
   const [modalWaterPct, setModalWaterPct] = useState(BASE_WATER01 * 100)
   const [modalDropT, setModalDropT] = useState(0)
@@ -252,7 +251,6 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
     setReplayItemId(null)
     setCloseupOpen(false)
     setCloseupReplay(false)
-    setCelebrationDone(false)
     setModalWaterPct(BASE_WATER01 * 100)
     setModalDropT(0)
     setWaterPct(BASE_WATER01 * 100)
@@ -308,7 +306,6 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
     closeupTimerRef.current = window.setTimeout(() => {
       setCloseupOpen(false)
       setCloseupReplay(false)
-      setCelebrationDone(true)
       if (modalRafRef.current) cancelAnimationFrame(modalRafRef.current)
     }, dismissAfter)
   }, [])
@@ -864,16 +861,6 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
             onClick={() => onNavigate('melt')}
           >
             Back to the workshop
-          </button>
-        </div>
-        <div className="scene-footer-center">
-          <button
-            className={`primary-button mission-continue-button ${celebrationDone ? 'mission-continue-button-ready' : 'mission-continue-button-locked'}`}
-            type="button"
-            disabled={!celebrationDone}
-            onClick={() => onNavigate('bathStory')}
-          >
-            Continue to Archimedes&apos; bath
           </button>
         </div>
       </footer>

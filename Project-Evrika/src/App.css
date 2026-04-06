@@ -758,6 +758,10 @@ body.lesson-active {
   justify-self: center;
 }
 
+.crown-weigh-scene-footer--hub.scene-footer {
+  grid-template-columns: 1fr auto;
+}
+
 .weigh-reading-panel {
   overflow-y: auto;
   padding-right: 0.4rem;
@@ -770,6 +774,35 @@ body.lesson-active {
 .weigh-answer-card {
   display: grid;
   gap: 0.75rem;
+}
+
+.weigh-archimedes-insight-card {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  border: 2px solid rgba(184, 134, 11, 0.45);
+  background: linear-gradient(135deg, rgba(255, 248, 230, 0.98), rgba(255, 228, 180, 0.55));
+}
+
+.weigh-archimedes-insight-head {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #c9a227;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(90, 60, 10, 0.2);
+}
+
+.weigh-archimedes-insight-text {
+  margin: 0.35rem 0 0.5rem;
+}
+
+.weigh-archimedes-audio-path {
+  font-size: 0.72rem;
+  word-break: break-all;
 }
 
 .weigh-answer-row {
@@ -893,6 +926,20 @@ body.lesson-active {
   background: rgba(255, 249, 237, 0.8);
   border-radius: 12px;
   border: 1px solid rgba(146, 92, 28, 0.25);
+}
+
+.weigh-showcase-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 0.85rem;
+}
+
+.weigh-showcase-pair .weigh-crown-showcase {
+  flex: 1 1 148px;
+  min-width: 140px;
+  margin-bottom: 0;
 }
 
 .weigh-crown-showcase {
@@ -4483,6 +4530,12 @@ body.lesson-active {
   overflow-x: hidden;
   position: relative;
   animation: hubRoomFadeIn 0.32s ease-out both;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  box-sizing: border-box;
 }
 
 @keyframes hubRoomFadeIn {
@@ -4496,11 +4549,24 @@ body.lesson-active {
   }
 }
 
-/* Override scene containers so they don't fight the hub layout */
 .hub-room-content > .scene {
   min-height: auto;
   height: auto;
+  width: 100%;
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
   padding-bottom: 1rem;
+  box-sizing: border-box;
+}
+
+.hub-room-content .scene-body,
+.hub-room-content .experiment-layout {
+  justify-items: center;
+}
+
+.hub-room-content .scene-body {
+  width: 100%;
 }
 
 /* --- Bottom Navigation Bar --- */
