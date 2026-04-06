@@ -199,9 +199,9 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
           <button
             className="primary-button"
             type="button"
-            onClick={() => onNavigate('weigh')}
+            onClick={() => onNavigate('hub')}
           >
-            Continue to the crown tests
+            Enter Archimedes' Workshop
           </button>
         )}
       </div>

@@ -13,6 +13,7 @@ import RecapScreen from './components/RecapScreen'
 import DisplacementLabScene from './components/DisplacementLabScene'
 import StoryFinaleScene from './components/StoryFinaleScene'
 import PracticeProblemsScreen from './components/PracticeProblemsScreen'
+import ExplorationHub from './components/ExplorationHub'
 
 const LEAF_LENGTH_PX = 140
 const LEAF_OVERLAP_PX = 44
@@ -75,6 +76,9 @@ function App() {
   switch (currentScene) {
     case 'intro':
       content = <StoryIntroScene onNavigate={navigate} />
+      break
+    case 'hub':
+      content = <ExplorationHub onNavigate={navigate} />
       break
     case 'bathStory':
       content = <StoryBathScene onNavigate={navigate} />

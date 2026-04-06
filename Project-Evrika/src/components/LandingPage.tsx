@@ -3,6 +3,7 @@ import type { FC } from 'react'
 export type SceneId =
   | 'landing'
   | 'intro'
+  | 'hub'
   | 'bathStory'
   | 'weigh'
   | 'melt'
