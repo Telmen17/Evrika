@@ -1,5 +1,6 @@
 import type { CSSProperties, FC } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLessonHub } from '../context/LessonHubContext'
 import crownSvg from '../assets/crown.svg'
 import goldNuggetPng from '../assets/goldNugget3.png'
 import type { SceneId } from './LandingPage'
@@ -326,7 +327,8 @@ function paintBackgroundLayer(
   drawPourStream(ctx, TANK_R, dripR, sim.rightCollected, capR, t)
 }
 
-const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate }) => {
+const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNavigate }) => {
+  const { progress, patchProgress } = useLessonHub()
   const hostRef = useRef<HTMLDivElement>(null)
   const bgCanvasRef = useRef<HTMLCanvasElement>(null)
   const crownRef = useRef<any>(null)
@@ -343,7 +345,7 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate }) => 
   const [rightCollected, setRightCollected] = useState(0)
   const [leftMainWater, setLeftMainWater] = useState(INITIAL_TANK_WATER_01)
   const [rightMainWater, setRightMainWater] = useState(INITIAL_TANK_WATER_01)
-  const [hasCompared, setHasCompared] = useState(false)
+  const [hasCompared, setHasCompared] = useState(() => progress.overflow.hasCompared)
 
   useEffect(() => {
     let cancelled = false
@@ -590,12 +592,14 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate }) => 
 
   const runComparison = useCallback(() => {
     setHasCompared(true)
-  }, [])
+    patchProgress({ overflow: { hasCompared: true } })
+  }, [patchProgress])
 
   const retryLab = useCallback(() => {
     setHasCompared(false)
+    patchProgress({ overflow: { hasCompared: false } })
     setResetKey((k) => k + 1)
-  }, [])
+  }, [patchProgress])
 
   const crownReady = leftCollected >= DISPLACEMENT_CROWN_ML * 0.82
   const goldReady = rightCollected >= DISPLACEMENT_GOLD_ML * 0.82
@@ -606,14 +610,7 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate }) => 
 
   return (
     <div className="scene displacement-lab-scene">
-      <header className="scene-header">
-        <button
-          className="link-button"
-          type="button"
-          onClick={() => onNavigate('bathStory')}
-        >
-          ← Back to bath story
-        </button>
+      <header className="scene-header hub-scene-header">
         <h2>Test 3 – Displaced water</h2>
       </header>
 
@@ -701,17 +698,6 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate }) => 
         </div>
       </section>
 
-      <footer className="scene-footer displacement-lab-footer">
-        <div className="scene-footer-left">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => onNavigate('bathStory')}
-          >
-            Back
-          </button>
-        </div>
-      </footer>
     </div>
   )
 }

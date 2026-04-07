@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import archimedesPng from '../assets/archimedes.png'
 import archimedesStep2 from '../assets/archimedes-step2.png'
 import archimedesStep3 from '../assets/archimedes-step3.png'
@@ -8,6 +8,7 @@ import archimedesStep5 from '../assets/archimedes-step5.png'
 import bathPng from '../assets/bath.png'
 import bathhouseJpg from '../assets/bathhouse.jpg'
 import type { SceneId } from './LandingPage'
+import { useLessonHub } from '../context/LessonHubContext'
 
 /** Step 1 = idle; steps 2–5 = sequential “into the bath” frames. */
 const ARCH_BATH_FRAMES = [
@@ -51,11 +52,16 @@ const bathBeats = [
 /** Visual steps for the displacement sketch (sprites + water). */
 type BathVisualPhase = 'idle' | 'stepIn' | 'submerged' | 'overflow'
 
-const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
-  const [index, setIndex] = useState(0)
-  const [bathPhase, setBathPhase] = useState<BathVisualPhase>('idle')
+const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate: _onNavigate }) => {
+  const { progress, patchProgress } = useLessonHub()
+  const [index, setIndex] = useState(() => progress.bath.storyIndex)
+  const [bathPhase, setBathPhase] = useState<BathVisualPhase>(
+    () => progress.bath.bathPhase as BathVisualPhase,
+  )
   /** 0 = `archimedes.png`; 1–4 = step2 … step5 */
-  const [archFrame, setArchFrame] = useState<0 | 1 | 2 | 3 | 4>(0)
+  const [archFrame, setArchFrame] = useState<0 | 1 | 2 | 3 | 4>(
+    () => Math.min(4, Math.max(0, progress.bath.archFrame)) as 0 | 1 | 2 | 3 | 4,
+  )
   /** Crossfade double-buffer: outgoing / incoming src while opacity animates. */
   const [archOutSrc, setArchOutSrc] = useState(ARCH_BATH_FRAMES[0])
   const [archInSrc, setArchInSrc] = useState(ARCH_BATH_FRAMES[0])
@@ -63,6 +69,15 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
   const archFramePrevRef = useRef<number | null>(null)
   const bathTimersRef = useRef<number[]>([])
   const beat = bathBeats[index]
+
+  useLayoutEffect(() => {
+    const fr = Math.min(4, Math.max(0, progress.bath.archFrame)) as 0 | 1 | 2 | 3 | 4
+    const src = ARCH_BATH_FRAMES[fr]
+    setArchOutSrc(src)
+    setArchInSrc(src)
+    setArchCrossfading(false)
+    archFramePrevRef.current = fr
+  }, [])
 
   const clearBathTimers = useCallback(() => {
     bathTimersRef.current.forEach((id) => window.clearTimeout(id))
@@ -78,11 +93,21 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
     if (index !== 0) {
       setBathPhase('idle')
       setArchFrame(4)
-    } else {
-      setBathPhase('idle')
-      setArchFrame(0)
     }
   }, [index, clearBathTimers])
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      patchProgress({
+        bath: {
+          storyIndex: index,
+          bathPhase,
+          archFrame,
+        },
+      })
+    }, 200)
+    return () => window.clearTimeout(id)
+  }, [index, bathPhase, archFrame, patchProgress])
 
   useEffect(() => () => clearBathTimers(), [clearBathTimers])
 
@@ -149,14 +174,7 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate }) => {
 
   return (
     <div className="scene story-bath-scene">
-      <header className="scene-header">
-        <button
-          className="link-button"
-          type="button"
-          onClick={() => onNavigate('waterDiscovery')}
-        >
-          ← Back to water playground
-        </button>
+      <header className="scene-header hub-scene-header">
         <h2>{beat.title}</h2>
       </header>
 

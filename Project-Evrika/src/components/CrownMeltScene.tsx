@@ -1,10 +1,11 @@
 import type { FC } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import archimedesPng from '../assets/archimedes.png'
 import crownSvg from '../assets/crown.svg'
 import furnacePng from '../assets/furnace.png'
 import guardPng from '../assets/guard.png'
 import type { SceneId } from './LandingPage'
+import { useLessonHub } from '../context/LessonHubContext'
 
 interface CrownMeltSceneProps {
   onNavigate: (scene: SceneId) => void
@@ -44,6 +45,32 @@ const QUIZ_OPTIONS: Array<{
   },
 ]
 
+function coerceQuizChoice(raw: string | null): QuizOptionId | null {
+  if (!raw) return null
+  return QUIZ_OPTIONS.some((o) => o.id === raw) ? (raw as QuizOptionId) : null
+}
+
+function initialGuardPoseForMelt(m: {
+  phase: string
+  guardPose?: number
+}): number {
+  if (m.phase === 'returnCrown' || m.phase === 'done') return 2
+  if (m.phase === 'guard') {
+    const n = Number(m.guardPose)
+    if (Number.isFinite(n)) return Math.min(2, Math.max(0, n))
+  }
+  return 0
+}
+
+function initialGuardSpeechForMelt(m: {
+  phase: string
+  guardSpeechShown?: boolean
+}): boolean {
+  if (m.phase === 'returnCrown' || m.phase === 'done') return true
+  if (m.phase === 'guard') return Boolean(m.guardSpeechShown)
+  return false
+}
+
 const QUIZ_FEEDBACK: Record<QuizOptionId, string> = {
   volume: 'Okay — let’s try it out.',
   noInfo: 'You’re right — but let’s see what happens.',
@@ -70,20 +97,65 @@ const FurnaceFireVisual: FC = () => (
   </>
 )
 
-const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
-  const [phase, setPhase] = useState<MeltPhase>('quiz')
-  const [quizChoice, setQuizChoice] = useState<QuizOptionId | null>(null)
-  const [crownAtForge, setCrownAtForge] = useState(false)
-  const [guardPose, setGuardPose] = useState(0)
-  const [guardSpeech, setGuardSpeech] = useState(false)
+const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) => {
+  const { progress, patchProgress } = useLessonHub()
+  const saved = progress.melt
+  const [phase, setPhase] = useState<MeltPhase>(() => saved.phase)
+  const [quizChoice, setQuizChoice] = useState<QuizOptionId | null>(() =>
+    coerceQuizChoice(saved.quizChoice),
+  )
+  const [crownAtForge, setCrownAtForge] = useState(() => saved.crownAtForge)
+  const [guardPose, setGuardPose] = useState(() => initialGuardPoseForMelt(saved))
+  const [guardSpeech, setGuardSpeech] = useState(() =>
+    initialGuardSpeechForMelt(saved),
+  )
   const [guardVoicePlaying, setGuardVoicePlaying] = useState(false)
   const guardTimersRef = useRef<number[]>([])
   const guardAudioRef = useRef<HTMLAudioElement | null>(null)
+  const guardPoseRef = useRef(guardPose)
+  const guardSpeechRef = useRef(guardSpeech)
+  guardPoseRef.current = guardPose
+  guardSpeechRef.current = guardSpeech
 
   const clearGuardTimers = useCallback(() => {
     guardTimersRef.current.forEach((id) => window.clearTimeout(id))
     guardTimersRef.current = []
   }, [])
+
+  useEffect(() => {
+    patchProgress({
+      melt: {
+        phase,
+        quizChoice,
+        crownAtForge,
+        guardPose:
+          phase === 'quiz' || phase === 'quizFeedback' || phase === 'forge'
+            ? 0
+            : guardPose,
+        guardSpeechShown:
+          phase === 'quiz' || phase === 'quizFeedback' || phase === 'forge'
+            ? false
+            : guardSpeech,
+      },
+    })
+  }, [
+    phase,
+    quizChoice,
+    crownAtForge,
+    guardPose,
+    guardSpeech,
+    patchProgress,
+  ])
+
+  useLayoutEffect(() => {
+    if (
+      (phase === 'returnCrown' || phase === 'done') &&
+      (guardPose < 2 || !guardSpeech)
+    ) {
+      setGuardPose(2)
+      setGuardSpeech(true)
+    }
+  }, [phase, guardPose, guardSpeech])
 
   useEffect(() => {
     if (
@@ -101,14 +173,40 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
       return
     }
 
+    clearGuardTimers()
+
     const schedule = (fn: () => void, ms: number) => {
       guardTimersRef.current.push(window.setTimeout(fn, ms))
     }
 
-    schedule(() => setGuardPose(1), 120)
-    schedule(() => setGuardPose(2), 700)
-    schedule(() => setGuardSpeech(true), 1050)
-    schedule(() => setPhase('returnCrown'), 2400)
+    const pose = guardPoseRef.current
+    const speech = guardSpeechRef.current
+
+    if (speech && pose >= 2) {
+      schedule(() => setPhase('returnCrown'), 500)
+      return clearGuardTimers
+    }
+
+    if (pose === 0) {
+      schedule(() => setGuardPose(1), 120)
+      schedule(() => setGuardPose(2), 700)
+      schedule(() => setGuardSpeech(true), 1050)
+      schedule(() => setPhase('returnCrown'), 2400)
+      return clearGuardTimers
+    }
+
+    if (pose === 1) {
+      schedule(() => setGuardPose(2), 580)
+      schedule(() => setGuardSpeech(true), 930)
+      schedule(() => setPhase('returnCrown'), 2280)
+      return clearGuardTimers
+    }
+
+    if (pose === 2 && !speech) {
+      schedule(() => setGuardSpeech(true), 350)
+      schedule(() => setPhase('returnCrown'), 1700)
+      return clearGuardTimers
+    }
 
     return clearGuardTimers
   }, [phase, clearGuardTimers])
@@ -185,14 +283,7 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
 
   return (
     <div className="scene crown-melt-scene">
-      <header className="scene-header">
-        <button
-          className="link-button"
-          type="button"
-          onClick={() => onNavigate('weigh')}
-        >
-          ← Back to weighing test
-        </button>
+      <header className="scene-header hub-scene-header">
         <h2>Test 2 – The Forbidden Furnace</h2>
       </header>
 
@@ -406,19 +497,6 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <footer
-        className={`scene-footer crown-melt-scene-footer ${phase === 'done' ? 'crown-melt-scene-footer--advance' : ''}`}
-      >
-        <div className="scene-footer-left">
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => onNavigate('weigh')}
-          >
-            Back to weighing test
-          </button>
-        </div>
-      </footer>
     </div>
   )
 }

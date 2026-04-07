@@ -1,13 +1,23 @@
 import { type FC, useState, useCallback, useRef, useEffect } from 'react'
 import type { SceneId } from './LandingPage'
+import { LessonHubProvider } from '../context/LessonHubContext'
 import CrownWeighScene from './CrownWeighScene'
 import CrownMeltScene from './CrownMeltScene'
 import WaterDiscoveryScene from './WaterDiscoveryScene'
 import StoryBathScene from './StoryBathScene'
 import DisplacementLabScene from './DisplacementLabScene'
+import ArchimedesRoomScene from './ArchimedesRoomScene'
 import StoryFinaleScene from './StoryFinaleScene'
+import { ArchimedesCompanion } from './ArchimedesCompanion'
 
-type RoomId = 'weigh' | 'furnace' | 'waterLab' | 'bath' | 'overflow' | 'throne'
+type RoomId =
+  | 'weigh'
+  | 'furnace'
+  | 'waterLab'
+  | 'bath'
+  | 'overflow'
+  | 'archimedes'
+  | 'throne'
 
 interface RoomDef {
   id: RoomId
@@ -91,6 +101,21 @@ const FlaskIcon: FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
+const ScrollIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M18 10h28c2 0 4 2 4 4v44c0 2-2 4-4 4H18c-2 0-4-2-4-4V14c0-2 2-4 4-4z"
+      fill="#faf3e0"
+      fillOpacity="0.45"
+      stroke="currentColor"
+      strokeWidth="2.8"
+      strokeLinejoin="round"
+    />
+    <path d="M26 22h20M26 30h20M26 38h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" opacity="0.85" />
+    <path d="M44 48l6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+)
+
 const CrownIcon: FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
@@ -110,6 +135,7 @@ const ROOMS: RoomDef[] = [
   { id: 'waterLab', label: 'Water Lab', icon: BeakerIcon },
   { id: 'bath', label: 'Bathhouse', icon: BathtubIcon },
   { id: 'overflow', label: 'Overflow Lab', icon: FlaskIcon },
+  { id: 'archimedes', label: "Archimedes' room", icon: ScrollIcon },
   { id: 'throne', label: 'Throne Room', icon: CrownIcon },
 ]
 
@@ -120,16 +146,19 @@ interface ExplorationHubProps {
   onNavigate: (scene: SceneId) => void
 }
 
-const ExplorationHub: FC<ExplorationHubProps> = ({ onNavigate }) => {
+function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
   const [activeRoom, setActiveRoom] = useState<RoomId>('weigh')
   const [transitionKey, setTransitionKey] = useState(0)
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const switchRoom = useCallback((room: RoomId) => {
-    if (room === activeRoom) return
-    setActiveRoom(room)
-    setTransitionKey((k) => k + 1)
-  }, [activeRoom])
+  const switchRoom = useCallback(
+    (room: RoomId) => {
+      if (room === activeRoom) return
+      setActiveRoom(room)
+      setTransitionKey((k) => k + 1)
+    },
+    [activeRoom],
+  )
 
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0 })
@@ -172,6 +201,9 @@ const ExplorationHub: FC<ExplorationHubProps> = ({ onNavigate }) => {
     case 'overflow':
       roomContent = <DisplacementLabScene onNavigate={hubNavigate} />
       break
+    case 'archimedes':
+      roomContent = <ArchimedesRoomScene onNavigate={hubNavigate} />
+      break
     case 'throne':
       roomContent = <StoryFinaleScene onNavigate={hubNavigate} />
       break
@@ -180,6 +212,13 @@ const ExplorationHub: FC<ExplorationHubProps> = ({ onNavigate }) => {
   return (
     <div className="exploration-hub">
       <div className="hub-objective-banner">
+        <button
+          className="hub-intro-button"
+          type="button"
+          onClick={() => onNavigate('intro')}
+        >
+          Story intro
+        </button>
         <span className="hub-objective-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
@@ -187,11 +226,7 @@ const ExplorationHub: FC<ExplorationHubProps> = ({ onNavigate }) => {
           </svg>
         </span>
         <p className="hub-objective-text">{OBJECTIVE_TEXT}</p>
-        <button
-          className="hub-menu-button"
-          type="button"
-          onClick={() => onNavigate('landing')}
-        >
+        <button className="hub-menu-button" type="button" onClick={() => onNavigate('landing')}>
           Menu
         </button>
       </div>
@@ -199,6 +234,8 @@ const ExplorationHub: FC<ExplorationHubProps> = ({ onNavigate }) => {
       <div className="hub-room-content" ref={contentRef} key={transitionKey}>
         {roomContent}
       </div>
+
+      <ArchimedesCompanion />
 
       <nav className="hub-nav-bar" aria-label="Room navigation">
         {ROOMS.map((room) => {
@@ -221,5 +258,11 @@ const ExplorationHub: FC<ExplorationHubProps> = ({ onNavigate }) => {
     </div>
   )
 }
+
+const ExplorationHub: FC<ExplorationHubProps> = (props) => (
+  <LessonHubProvider>
+    <ExplorationHubInner {...props} />
+  </LessonHubProvider>
+)
 
 export default ExplorationHub

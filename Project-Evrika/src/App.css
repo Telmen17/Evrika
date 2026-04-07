@@ -1786,6 +1786,30 @@ body.lesson-active {
   scrollbar-gutter: stable;
 }
 
+/* Center instruction / feedback copy; quiz stays top-aligned for long options */
+.crown-melt-panel-body:has(.crown-melt-quiz-bundle) {
+  justify-content: flex-start;
+}
+
+.crown-melt-panel-body:not(:has(.crown-melt-quiz-bundle)) {
+  justify-content: center;
+}
+
+.crown-melt-panel-hint,
+.crown-melt-feedback {
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.crown-melt-panel-hint-single,
+.crown-melt-feedback-body {
+  max-width: 26rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .crown-melt-panel-actions {
   flex-shrink: 0;
   margin-top: auto;
@@ -2740,6 +2764,89 @@ body.lesson-active {
   margin-top: auto;
   margin-bottom: 1rem;
   padding-top: 0.35rem;
+}
+
+/* Story intro: thin progress bar + minimal skip arrows */
+.journey-controls--cinematic {
+  align-items: center;
+  gap: 0.65rem;
+  padding-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.journey-progress-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.journey-progress-track {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(58, 35, 13, 0.18);
+  overflow: hidden;
+}
+
+.journey-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #b8860b, #e8c547);
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(184, 134, 11, 0.45);
+}
+
+.journey-progress-caption {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(58, 35, 13, 0.72);
+  text-align: center;
+}
+
+.journey-skip-btn {
+  flex-shrink: 0;
+  width: 2.35rem;
+  height: 2.35rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.65rem;
+  line-height: 1;
+  font-weight: 300;
+  color: #5b3a1f;
+  background: rgba(255, 252, 245, 0.88);
+  border: 1.5px solid rgba(146, 92, 28, 0.35);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.15s;
+}
+
+.journey-skip-btn:hover:not(:disabled) {
+  background: #fffdf7;
+  border-color: rgba(184, 134, 11, 0.65);
+  transform: scale(1.06);
+}
+
+.journey-skip-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.journey-skip-btn--primary {
+  background: linear-gradient(135deg, #fff4d4, #f0d090);
+  border-color: #b8860b;
+  font-weight: 500;
 }
 
 /* Spacer body fills viewport so controls stay bottom; no margin-top:auto needed */
@@ -4522,6 +4629,127 @@ body.lesson-active {
   box-shadow: 0 1px 4px rgba(120, 80, 20, 0.18);
 }
 
+.hub-intro-button {
+  flex-shrink: 0;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #5a4210;
+  background: linear-gradient(180deg, #fff8ec, #e8d4a8);
+  border: 1.5px solid #b8923a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  margin-right: 0.25rem;
+}
+
+.hub-intro-button:hover {
+  background: linear-gradient(180deg, #fffdf5, #f0ddb8);
+  box-shadow: 0 1px 4px rgba(120, 80, 20, 0.15);
+}
+
+/* --- Floating Archimedes companion (above bottom nav) --- */
+
+.archimedes-companion {
+  position: fixed;
+  z-index: 25;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: calc(4.85rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.archimedes-companion__audio {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.archimedes-companion__head-btn {
+  pointer-events: auto;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 10px rgba(40, 24, 8, 0.35));
+}
+
+.archimedes-companion__head {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, #f8e8c8 0%, transparent 45%),
+    radial-gradient(circle at 60% 70%, #c49a5c 0%, #7a5230 100%);
+  border: 3px solid #5a3a1a;
+  box-shadow:
+    inset 0 2px 6px rgba(255, 255, 255, 0.35),
+    0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.archimedes-companion__bubble {
+  pointer-events: auto;
+  max-width: min(320px, calc(100vw - 2rem));
+  padding: 0.65rem 0.75rem 0.75rem;
+  background: linear-gradient(180deg, #fffdf7 0%, #f5ebd4 100%);
+  border: 2px solid #c8a960;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(60, 40, 10, 0.22);
+}
+
+.archimedes-companion__bubble-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.archimedes-companion__bubble-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b6914;
+}
+
+.archimedes-companion__bubble-close {
+  border: none;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #7a5c2e;
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+
+.archimedes-companion__bubble-text {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #3d2814;
+}
+
+.archimedes-companion__replay {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b4f10;
+  background: #f0e0b8;
+  border: 1px solid #c8a960;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
 /* --- Room Content Area --- */
 
 .hub-room-content {
@@ -4535,6 +4763,7 @@ body.lesson-active {
   align-items: center;
   padding-left: max(0.75rem, env(safe-area-inset-left));
   padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -4556,8 +4785,122 @@ body.lesson-active {
   max-width: 1180px;
   margin-left: auto;
   margin-right: auto;
-  padding-bottom: 1rem;
+  padding-bottom: 5.5rem;
   box-sizing: border-box;
+}
+
+/* Hub room titles (no back link in chrome) */
+.hub-room-content .hub-scene-header {
+  justify-content: center;
+  text-align: center;
+}
+
+.hub-room-content .hub-scene-header h2 {
+  margin: 0;
+}
+
+/* Archimedes' study (hub room) */
+
+.archimedes-room-body {
+  width: 100%;
+  max-width: 720px;
+}
+
+.archimedes-room-lede {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.archimedes-density-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .archimedes-density-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.archimedes-density-card {
+  padding: 1rem 1.1rem;
+  background: linear-gradient(180deg, #fffdf7, #f3e6c4);
+  border: 2px solid #c8a960;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(80, 50, 10, 0.08);
+}
+
+.archimedes-density-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: #5a3e1b;
+}
+
+.archimedes-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b4f10;
+}
+
+.archimedes-field input {
+  padding: 0.45rem 0.55rem;
+  border: 1.5px solid #c8a960;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fffef8;
+}
+
+.archimedes-density-result {
+  margin: 0.75rem 0 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+  color: #4a3518;
+}
+
+.archimedes-proof-actions {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.archimedes-proof-hint {
+  margin-top: 0.65rem;
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Throne gate (before finale beats) */
+.story-finale-gate {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.story-finale-gate-card {
+  margin-top: 1rem;
+  padding: 1rem 1.15rem;
+  background: linear-gradient(180deg, #fff9ec, #ecd9a8);
+  border: 2px solid #c8a960;
+  border-radius: 12px;
+}
+
+.story-finale-gate-card--locked {
+  opacity: 0.92;
+  border-style: dashed;
+}
+
+.story-finale-gate-actions {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .hub-room-content .scene-body,

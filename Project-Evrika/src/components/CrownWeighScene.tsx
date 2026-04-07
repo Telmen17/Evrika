@@ -2,9 +2,8 @@ import type { FC } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SceneId } from './LandingPage'
 import crownSvg from '../assets/crown.svg'
-import headImg from '../assets/head.png'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
-import { useAudioPlayer } from '../hooks/useAudioPlayer'
+import { useLessonHub } from '../context/LessonHubContext'
 
 type PanSide = 'left' | 'right'
 export type ScaleItemId =
@@ -235,8 +234,6 @@ interface CrownWeighSceneProps {
 
 type WeighMissionPhase = 'crown' | 'lump' | 'done'
 
-type InsightPlaybackId = 'balance' | 'crownAnswer'
-
 function rotatePoint(
   centerX: number,
   centerY: number,
@@ -300,21 +297,23 @@ function sumPanPhysicsMass(
   return total
 }
 
-const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
+const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) => {
+  const { progress, patchProgress, triggerInsight } = useLessonHub()
+  const progressWeighRef = useRef(progress.weigh)
+  progressWeighRef.current = progress.weigh
+
   const runtimeRef = useRef<PhysicsRuntime | null>(null)
-  const nextItemIdRef = useRef(0)
+  const nextItemIdRef = useRef(progress.weigh.nextItemId)
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [dragOverPan, setDragOverPan] = useState<PanSide | null>(null)
   const [matterReady, setMatterReady] = useState(false)
-  const [massGuess, setMassGuess] = useState('')
-  const [massCheckFeedback, setMassCheckFeedback] = useState('')
-  const [weighPhase, setWeighPhase] = useState<WeighMissionPhase>('crown')
-  const playedBalanceInsightRef = useRef(false)
-  const playedCrownAnswerInsightRef = useRef(false)
-  const balanceInsightAudio = useAudioPlayer(VOICE_CROWN_VS_LUMP_SRC)
-  const crownAnswerInsightAudio = useAudioPlayer(VOICE_CROWN_MASS_ENTERED_SRC)
-  const [insightPlayback, setInsightPlayback] = useState<InsightPlaybackId | null>(null)
-  const [insightBubbleOpen, setInsightBubbleOpen] = useState(false)
+  const [massGuess, setMassGuess] = useState(() => progress.weigh.massGuess)
+  const [massCheckFeedback, setMassCheckFeedback] = useState(
+    () => progress.weigh.massCheckFeedback,
+  )
+  const [weighPhase, setWeighPhase] = useState<WeighMissionPhase>(
+    () => progress.weigh.weighPhase,
+  )
   const crownWeighSceneRef = useRef<HTMLDivElement>(null)
   const [physicsSnapshot, setPhysicsSnapshot] = useState<PhysicsSnapshot>({
     beamAngle: 0,
@@ -477,37 +476,51 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
                 ? 'The scale is balanced. Enter the crown\'s mass in grams.'
                 : 'Adjust the deadweights until the crown alone balances against the known masses.'
 
-  const typedInsightText = useMemo(() => {
-    if (!insightPlayback) return ''
-    const full =
-      insightPlayback === 'balance' ? INSIGHT_TEXT_BALANCE : INSIGHT_TEXT_CROWN_ANSWER
-    const audio =
-      insightPlayback === 'balance' ? balanceInsightAudio : crownAnswerInsightAudio
-    const totalChars = full.length
-    if (!audio.duration || audio.duration === 0) {
-      return audio.currentTime > 0 ? full : ''
-    }
-    const progress = Math.min(1, audio.currentTime / audio.duration)
-    return full.slice(0, Math.round(totalChars * progress))
-  }, [
-    insightPlayback,
-    balanceInsightAudio.currentTime,
-    balanceInsightAudio.duration,
-    crownAnswerInsightAudio.currentTime,
-    crownAnswerInsightAudio.duration,
-  ])
-
-  const archimedesSpeaking =
-    balanceInsightAudio.isPlaying || crownAnswerInsightAudio.isPlaying
+  const saveWeighLayout = useCallback(() => {
+    const rt = runtimeRef.current
+    if (!rt) return
+    const rows = Array.from(rt.items.entries()).map(([instanceId, item]) => ({
+      instanceId,
+      type: item.type,
+      pan: item.pan,
+    }))
+    patchProgress({
+      weigh: {
+        placedItems: rows,
+        nextItemId: nextItemIdRef.current,
+      },
+    })
+  }, [patchProgress])
 
   useEffect(() => {
-    if (!hasCrownVersusLumpBalance || playedBalanceInsightRef.current) return
-    playedBalanceInsightRef.current = true
-    crownAnswerInsightAudio.pause()
-    setInsightPlayback('balance')
-    setInsightBubbleOpen(true)
-    void balanceInsightAudio.play()
-  }, [hasCrownVersusLumpBalance, balanceInsightAudio, crownAnswerInsightAudio])
+    if (!hasCrownVersusLumpBalance || progress.weigh.playedBalanceInsight) return
+    patchProgress({ weigh: { playedBalanceInsight: true } })
+    triggerInsight({
+      kind: 'balance',
+      transcript: INSIGHT_TEXT_BALANCE,
+      audioSrc: VOICE_CROWN_VS_LUMP_SRC,
+    })
+  }, [
+    hasCrownVersusLumpBalance,
+    progress.weigh.playedBalanceInsight,
+    patchProgress,
+    triggerInsight,
+  ])
+
+  useEffect(() => {
+    patchProgress({ weigh: { weighPhase } })
+  }, [weighPhase, patchProgress])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      patchProgress({ weigh: { massGuess } })
+    }, 350)
+    return () => window.clearTimeout(t)
+  }, [massGuess, patchProgress])
+
+  useEffect(() => {
+    patchProgress({ weigh: { massCheckFeedback } })
+  }, [massCheckFeedback, patchProgress])
 
   function checkMassGuess() {
     const normalized = massGuess.trim().replace(',', '.')
@@ -524,12 +537,13 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
         return
       }
       if (Math.abs(parsed - CROWN_MASS_G) < 0.5) {
-        if (!playedCrownAnswerInsightRef.current) {
-          playedCrownAnswerInsightRef.current = true
-          balanceInsightAudio.pause()
-          setInsightPlayback('crownAnswer')
-          setInsightBubbleOpen(true)
-          void crownAnswerInsightAudio.play()
+        if (!progress.weigh.playedCrownAnswerInsight) {
+          patchProgress({ weigh: { playedCrownAnswerInsight: true } })
+          triggerInsight({
+            kind: 'crownAnswer',
+            transcript: INSIGHT_TEXT_CROWN_ANSWER,
+            audioSrc: VOICE_CROWN_MASS_ENTERED_SRC,
+          })
         }
         setMassGuess('')
         setWeighPhase('lump')
@@ -833,6 +847,17 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
 
     runtimeRef.current = runtime
 
+    const w = progressWeighRef.current
+    if (w.placedItems?.length) {
+      for (const row of w.placedItems) {
+        runtime.items.set(row.instanceId, {
+          type: row.type as ScaleItemId,
+          pan: row.pan,
+        })
+      }
+    }
+    nextItemIdRef.current = w.nextItemId
+
     const handleBeforeUpdate = () => {
       const leftPanMass = sumPanPhysicsMass(runtime.items, 'left')
       const rightPanMass = sumPanPhysicsMass(runtime.items, 'right')
@@ -852,6 +877,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     Events.on(engine, 'afterUpdate', handleAfterUpdate)
     runtime.syncView()
     Runner.run(runtime.runner, engine)
+    runtime.syncView()
 
     return () => {
       Events.off(engine, 'beforeUpdate', handleBeforeUpdate)
@@ -882,18 +908,23 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     })
     runtime.applyPanMasses()
     runtime.syncView()
-  }, [placedItems])
+    saveWeighLayout()
+  }, [placedItems, saveWeighLayout])
 
-  const removePlacedItem = useCallback((instanceId: string) => {
-    const runtime = runtimeRef.current
-    if (!runtime) return
-    const item = runtime.items.get(instanceId)
-    if (!item) return
+  const removePlacedItem = useCallback(
+    (instanceId: string) => {
+      const runtime = runtimeRef.current
+      if (!runtime) return
+      const item = runtime.items.get(instanceId)
+      if (!item) return
 
-    runtime.items.delete(instanceId)
-    runtime.applyPanMasses()
-    runtime.syncView()
-  }, [])
+      runtime.items.delete(instanceId)
+      runtime.applyPanMasses()
+      runtime.syncView()
+      saveWeighLayout()
+    },
+    [saveWeighLayout],
+  )
 
   const clearPans = useCallback(() => {
     const runtime = runtimeRef.current
@@ -919,8 +950,10 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     runtime.Matter.Body.setVelocity(runtime.rightPan, { x: 0, y: 0 })
     runtime.Matter.Body.setAngularVelocity(runtime.leftPan, 0)
     runtime.Matter.Body.setAngularVelocity(runtime.rightPan, 0)
+    nextItemIdRef.current = 0
     runtime.syncView()
-  }, [])
+    saveWeighLayout()
+  }, [saveWeighLayout])
 
   function handleDragStart(e: React.DragEvent, id: ScaleItemId) {
     if (id === 'crown' && !crownInPool) {
@@ -1075,66 +1108,9 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
     </div>
   )
 
-  const narrationWidgetInner = (
-    <>
-      {insightBubbleOpen && insightPlayback ? (
-        <section className="weigh-narrator-bubble weigh-narrator-bubble--insight" aria-live="polite">
-          <p className="weigh-narrator-kicker">
-            Archimedes
-            <span className="weigh-narrator-kicker-count">
-              {insightPlayback === 'balance' ? 'Clue' : 'Note'}
-            </span>
-          </p>
-          <p className="scene-text weigh-narrator-text">{typedInsightText}</p>
-          <p className="helper-text weigh-narrator-audio-hint">
-            Placeholder audio:{' '}
-            {insightPlayback === 'balance' ? VOICE_CROWN_VS_LUMP_SRC : VOICE_CROWN_MASS_ENTERED_SRC}
-          </p>
-        </section>
-      ) : null}
-      {insightBubbleOpen && !insightPlayback ? (
-        <section className="weigh-narrator-bubble" aria-live="polite">
-          <p className="weigh-narrator-kicker">Archimedes</p>
-          <p className="helper-text weigh-narrator-text">
-            Commentary will play from here when you balance the crown on one pan and the king&apos;s lump on the other, or when you submit the correct crown mass.
-          </p>
-        </section>
-      ) : null}
-      <button
-        type="button"
-        className={`weigh-narrator-button ${insightBubbleOpen ? 'weigh-narrator-button-open' : ''} ${archimedesSpeaking ? 'weigh-narrator-button--speaking' : ''}`}
-        onClick={() => setInsightBubbleOpen((o) => !o)}
-        title="Archimedes — show or hide commentary"
-        aria-label="Archimedes commentary"
-        aria-expanded={insightBubbleOpen}
-      >
-        <span className="weigh-narrator-button-glow" aria-hidden="true" />
-        <img
-          src={headImg}
-          alt=""
-          className={`weigh-narrator-button-img ${
-            archimedesSpeaking ? 'weigh-narrator-button-img--attention' : ''
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-    </>
-  )
-
-  const narrationWidgetFooter = (
-    <div className="weigh-narrator-widget">{narrationWidgetInner}</div>
-  )
-
   return (
     <div ref={crownWeighSceneRef} className="scene crown-weigh-scene">
-      <header className="scene-header">
-        <button
-          className="link-button"
-          type="button"
-          onClick={() => onNavigate('intro')}
-        >
-          ← Back to story intro
-        </button>
+      <header className="scene-header hub-scene-header">
         <h2>Weighing chamber – crown and king&apos;s gold</h2>
       </header>
 
@@ -1144,7 +1120,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
             <p className="weigh-panel-kicker">Mission objective</p>
             <h3>Measure the crown, then the unlabeled lump</h3>
             <p className="scene-text">
-              Find each mass using trusted weights. Try putting the crown on one pan and the king&apos;s gold lump on the other — when the beam levels, they weigh the same. Archimedes speaks from the head icon at that moment and again when you enter the correct crown mass.
+              Find each mass using trusted weights. Try putting the crown on one pan and the king&apos;s gold lump on the other — when the beam levels, they weigh the same. Archimedes comments from the floating companion when that happens and when you enter the correct crown mass.
             </p>
           </section>
 
@@ -1163,7 +1139,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
               </div>
               <div className="weigh-guidance-item">
                 <span className="weigh-guidance-step">3</span>
-                <p>Weigh the lump alone and enter its mass. Use the head icon for Archimedes&apos; lines.</p>
+                <p>Weigh the lump alone and enter its mass. Open the companion bubble to replay his lines.</p>
               </div>
             </div>
           </section>
@@ -1249,7 +1225,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
                 </p>
                 <p className="helper-text weigh-conclusion-hint">
                   {weighPhase === 'done'
-                    ? 'Archimedes stays on the head icon below. Use the room bar to explore other labs.'
+                    ? 'Use the room bar below to explore other labs. The Archimedes companion stays on screen for replay.'
                     : 'The beam must be level before your gram answer counts — you are measuring against trusted masses, not guessing from the animation alone.'}
                 </p>
               </div>
@@ -1428,19 +1404,6 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate }) => {
           </div>
         </div>
       </section>
-
-      <footer className="scene-footer crown-weigh-scene-footer--hub">
-        <div className="scene-footer-left">
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => onNavigate('intro')}
-          >
-            Back to story intro
-          </button>
-        </div>
-        <div className="scene-footer-right">{narrationWidgetFooter}</div>
-      </footer>
     </div>
   )
 }

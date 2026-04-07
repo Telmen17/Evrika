@@ -1,9 +1,9 @@
 import type { FC } from 'react'
-import { useState } from 'react'
 import archimedesImg from '../assets/archimedes.png'
 import kingSitImg from '../assets/kingSit.png'
 import blacksmithImg from '../assets/blacksmith-removebg-preview.png'
 import type { SceneId } from './LandingPage'
+import { useLessonHub } from '../context/LessonHubContext'
 
 interface StoryFinaleSceneProps {
   onNavigate: (scene: SceneId) => void
@@ -41,18 +41,95 @@ const finaleBeats = [
 ]
 
 const StoryFinaleScene: FC<StoryFinaleSceneProps> = ({ onNavigate }) => {
-  const [index, setIndex] = useState(0)
-  const beat = finaleBeats[index]
+  const { progress, patchProgress } = useLessonHub()
+  const { proofPresented, beatIndex } = progress.throne
+  const proofUnlocked = progress.archimedes.proofUnlocked
 
-  const goNext = () => setIndex((i) => Math.min(i + 1, finaleBeats.length - 1))
-  const goPrev = () => setIndex((i) => Math.max(i - 1, 0))
+  const beat = finaleBeats[Math.min(beatIndex, finaleBeats.length - 1)]
+
+  const presentProof = () => {
+    patchProgress({ throne: { proofPresented: true, beatIndex: 0 } })
+  }
+
+  const goNext = () =>
+    patchProgress({
+      throne: {
+        proofPresented,
+        beatIndex: Math.min(beatIndex + 1, finaleBeats.length - 1),
+      },
+    })
+
+  const goPrev = () =>
+    patchProgress({
+      throne: {
+        proofPresented,
+        beatIndex: Math.max(beatIndex - 1, 0),
+      },
+    })
+
+  if (!proofPresented) {
+    return (
+      <div className="scene story-finale-scene">
+        <header className="scene-header hub-scene-header">
+          <h2>Throne room</h2>
+        </header>
+
+        <section className="scene-body story-finale-body">
+          <div className="story-finale-gate">
+            <div className="story-finale-layout">
+              <div className="story-finale-visual">
+                <img
+                  src={kingSitImg}
+                  alt=""
+                  className="story-finale-img story-finale-img--king"
+                />
+              </div>
+              <div className="story-finale-copy">
+                <p className="scene-text story-finale-text">
+                  King Hiero waits. He will not be satisfied until you can <strong>prove</strong>, on
+                  paper, whether the crown is pure gold — using the masses and volumes you gathered in
+                  the workshops.
+                </p>
+              </div>
+            </div>
+
+            <div
+              className={`story-finale-gate-card${proofUnlocked ? '' : ' story-finale-gate-card--locked'}`}
+            >
+              <p className="weigh-panel-kicker">Requirement</p>
+              <h3>Proof scroll</h3>
+              <p className="scene-text">
+                {proofUnlocked
+                  ? 'Your density proof is sealed. When you are ready, present the scroll to the king to begin the closing scene.'
+                  : 'Locked — complete Archimedes’ study with the crown and gold-lump density rows, then seal the proof scroll there.'}
+              </p>
+            </div>
+
+            <div className="story-finale-gate-actions">
+              <button
+                type="button"
+                className="primary-button"
+                disabled={!proofUnlocked}
+                onClick={presentProof}
+              >
+                Give proof paper to the king
+              </button>
+              {!proofUnlocked ? (
+                <p className="helper-text">
+                  Use the bottom bar to open <strong>Archimedes&apos; room</strong> and fill in the
+                  proof.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
 
   return (
     <div className="scene story-finale-scene">
-      <header className="scene-header">
-        <button className="link-button" type="button" onClick={() => onNavigate('displacement')}>
-          ← Back
-        </button>
+      <header className="scene-header hub-scene-header">
         <h2>{beat.title}</h2>
       </header>
 
@@ -83,12 +160,12 @@ const StoryFinaleScene: FC<StoryFinaleSceneProps> = ({ onNavigate }) => {
 
       <footer className="scene-footer story-finale-footer">
         <div className="scene-footer-left">
-          <button className="secondary-button" type="button" onClick={goPrev} disabled={index === 0}>
+          <button className="secondary-button" type="button" onClick={goPrev} disabled={beatIndex === 0}>
             Previous
           </button>
         </div>
         <div className="scene-footer-right">
-          {index < finaleBeats.length - 1 ? (
+          {beatIndex < finaleBeats.length - 1 ? (
             <button className="primary-button" type="button" onClick={goNext}>
               Next
             </button>

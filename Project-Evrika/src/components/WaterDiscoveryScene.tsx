@@ -1,11 +1,12 @@
 import type { CSSProperties, FC } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import crownSvg from '../assets/crown.svg'
 import goldNugget1 from '../assets/goldNugget1png.png'
 import rockPng from '../assets/rock.png'
 import woodPng from '../assets/wood.png'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
 import type { SceneId } from './LandingPage'
+import { useLessonHub } from '../context/LessonHubContext'
 
 type ItemId = 'crown' | 'gold' | 'rock' | 'wood' | 'silver'
 
@@ -198,7 +199,8 @@ interface WaterDiscoverySceneProps {
   onNavigate: (scene: SceneId) => void
 }
 
-const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
+const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate: _onNavigate }) => {
+  const { progress, patchProgress } = useLessonHub()
   const hostRef = useRef<HTMLDivElement>(null)
   const [matterReady, setMatterReady] = useState(false)
   const [simVersion, setSimVersion] = useState(0)
@@ -211,6 +213,12 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
   const [replayItemId, setReplayItemId] = useState<ItemId | null>(null)
 
   const firstDiscoveryHandled = useRef(false)
+
+  useLayoutEffect(() => {
+    if (progress.waterLab.discoverySeen) {
+      firstDiscoveryHandled.current = true
+    }
+  }, [progress.waterLab.discoverySeen])
   const closeupTimerRef = useRef<number | undefined>(undefined)
   const modalSettleTimerRef = useRef<number | undefined>(undefined)
   const modalRafRef = useRef<number | undefined>(undefined)
@@ -274,6 +282,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
   const triggerFirstDiscovery = useCallback((itemId: ItemId) => {
     if (firstDiscoveryHandled.current) return
     firstDiscoveryHandled.current = true
+    patchProgress({ waterLab: { discoverySeen: true } })
 
     setSparkleKey((k) => k + 1)
     setReplayItemId(itemId)
@@ -308,7 +317,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
       setCloseupReplay(false)
       if (modalRafRef.current) cancelAnimationFrame(modalRafRef.current)
     }, dismissAfter)
-  }, [])
+  }, [patchProgress])
 
   triggerDiscoveryRef.current = triggerFirstDiscovery
 
@@ -724,14 +733,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
 
   return (
     <div className="scene water-discovery-scene">
-      <header className="scene-header">
-        <button
-          className="link-button"
-          type="button"
-          onClick={() => onNavigate('melt')}
-        >
-          ← Back to the workshop
-        </button>
+      <header className="scene-header hub-scene-header">
         <h2>Play around — find out</h2>
       </header>
 
@@ -853,17 +855,6 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate }) => {
         </div>
       ) : null}
 
-      <footer className="scene-footer water-discovery-footer">
-        <div className="scene-footer-left">
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => onNavigate('melt')}
-          >
-            Back to the workshop
-          </button>
-        </div>
-      </footer>
     </div>
   )
 }
