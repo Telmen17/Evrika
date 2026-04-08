@@ -1,7 +1,9 @@
 import type { FC } from 'react'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import scrollPng from '../assets/scroll.png'
 import type { SceneId } from './LandingPage'
 import { useLessonHub } from '../context/LessonHubContext'
+import { ProofScrollWithLock } from './ProofScrollWithLock'
 
 interface ArchimedesRoomSceneProps {
   onNavigate: (scene: SceneId) => void
@@ -39,6 +41,26 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
     a.lumpMassG.trim() &&
     a.lumpVolumeMl.trim()
 
+  const [sealUnlockPhase, setSealUnlockPhase] = useState<
+    'idle' | 'playing' | 'done'
+  >(() => (filled ? 'done' : 'idle'))
+  const prevFilledRef = useRef(filled)
+
+  useEffect(() => {
+    if (a.proofUnlocked) return
+    if (filled && !prevFilledRef.current) {
+      setSealUnlockPhase('playing')
+    }
+    if (!filled) {
+      setSealUnlockPhase('idle')
+    }
+    prevFilledRef.current = filled
+  }, [filled, a.proofUnlocked])
+
+  const onSealUnlockVideoEnded = useCallback(() => {
+    setSealUnlockPhase('done')
+  }, [])
+
   const tryUnlockProof = useCallback(() => {
     if (!filled || a.proofUnlocked) return
     patchProgress({
@@ -68,6 +90,7 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
               <input
                 type="text"
                 inputMode="decimal"
+                autoComplete="off"
                 value={a.crownMassG}
                 onChange={(e) => setField({ crownMassG: e.target.value })}
                 aria-label="Crown mass in grams"
@@ -78,6 +101,7 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
               <input
                 type="text"
                 inputMode="decimal"
+                autoComplete="off"
                 value={a.crownVolumeMl}
                 onChange={(e) => setField({ crownVolumeMl: e.target.value })}
                 aria-label="Crown volume in milliliters"
@@ -98,6 +122,7 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
               <input
                 type="text"
                 inputMode="decimal"
+                autoComplete="off"
                 value={a.lumpMassG}
                 onChange={(e) => setField({ lumpMassG: e.target.value })}
                 aria-label="Gold lump mass in grams"
@@ -108,6 +133,7 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
               <input
                 type="text"
                 inputMode="decimal"
+                autoComplete="off"
                 value={a.lumpVolumeMl}
                 onChange={(e) => setField({ lumpVolumeMl: e.target.value })}
                 aria-label="Gold lump volume in milliliters"
@@ -122,14 +148,44 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
         </div>
 
         <div className="archimedes-proof-actions">
-          <button
-            type="button"
-            className="primary-button"
-            disabled={!filled || a.proofUnlocked}
-            onClick={tryUnlockProof}
-          >
-            {a.proofUnlocked ? 'Proof scroll ready' : 'Seal the proof scroll'}
-          </button>
+          {a.proofUnlocked ? (
+            <div className="archimedes-proof-scroll-ready" aria-live="polite">
+              <img
+                src={scrollPng}
+                alt=""
+                className="archimedes-proof-scroll-img archimedes-proof-scroll-img--sealed"
+              />
+              <p className="archimedes-proof-scroll-status">Proof scroll ready</p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="archimedes-proof-scroll-hit"
+              disabled={!filled || sealUnlockPhase === 'playing'}
+              onClick={tryUnlockProof}
+              aria-busy={sealUnlockPhase === 'playing'}
+              aria-label={
+                filled
+                  ? 'Seal the proof scroll for the throne room'
+                  : 'Fill crown and gold lump mass and volume to seal the proof scroll'
+              }
+            >
+              <ProofScrollWithLock
+                scrollSrc={scrollPng}
+                scrollImgClassName="archimedes-proof-scroll-img"
+                showPadlock={!filled || sealUnlockPhase === 'idle'}
+                playUnlockVideo={sealUnlockPhase === 'playing'}
+                onUnlockVideoEnded={onSealUnlockVideoEnded}
+              />
+              <span className="archimedes-proof-scroll-hintline">
+                {sealUnlockPhase === 'playing'
+                  ? 'Unlocking…'
+                  : filled
+                    ? 'Tap the scroll to seal it'
+                    : 'Fill all fields above to seal'}
+              </span>
+            </button>
+          )}
           {a.proofUnlocked ? (
             <p className="helper-text archimedes-proof-hint">
               Take the scroll to the Throne Room and present it to the king when you are ready for

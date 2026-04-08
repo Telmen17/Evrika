@@ -114,6 +114,28 @@ export type LessonProgressPatch = {
   throne?: Partial<LessonProgress['throne']>
 }
 
+/** Coerce hub string fields after merge/load so controlled text inputs always get strings (JSON may store numbers). */
+function normalizeProgressStrings(p: LessonProgress): LessonProgress {
+  const a = p.archimedes
+  const w = p.weigh
+  return {
+    ...p,
+    weigh: {
+      ...w,
+      massGuess: w.massGuess == null ? '' : String(w.massGuess),
+      massCheckFeedback:
+        w.massCheckFeedback == null ? '' : String(w.massCheckFeedback),
+    },
+    archimedes: {
+      crownMassG: a.crownMassG == null ? '' : String(a.crownMassG),
+      crownVolumeMl: a.crownVolumeMl == null ? '' : String(a.crownVolumeMl),
+      lumpMassG: a.lumpMassG == null ? '' : String(a.lumpMassG),
+      lumpVolumeMl: a.lumpVolumeMl == null ? '' : String(a.lumpVolumeMl),
+      proofUnlocked: Boolean(a.proofUnlocked),
+    },
+  }
+}
+
 function deepMergeProgress(
   base: LessonProgress,
   patch: LessonProgressPatch,
@@ -127,7 +149,7 @@ function deepMergeProgress(
   if (patch.archimedes)
     next.archimedes = { ...base.archimedes, ...patch.archimedes }
   if (patch.throne) next.throne = { ...base.throne, ...patch.throne }
-  return next
+  return normalizeProgressStrings(next)
 }
 
 function loadStoredProgress(): LessonProgress {
@@ -177,7 +199,9 @@ const LessonHubContext = createContext<LessonHubContextValue | null>(null)
 
 export const LessonHubProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [progress, setProgress] = useState<LessonProgress>(() =>
-    typeof window !== 'undefined' ? loadStoredProgress() : DEFAULT_LESSON_PROGRESS,
+    typeof window !== 'undefined'
+      ? loadStoredProgress()
+      : normalizeProgressStrings(DEFAULT_LESSON_PROGRESS),
   )
   const [companion, setCompanion] = useState<CompanionState>(DEFAULT_COMPANION)
 
@@ -194,7 +218,7 @@ export const LessonHubProvider: FC<{ children: ReactNode }> = ({ children }) => 
   }, [])
 
   const resetProgress = useCallback(() => {
-    setProgress(DEFAULT_LESSON_PROGRESS)
+    setProgress(normalizeProgressStrings(DEFAULT_LESSON_PROGRESS))
     try {
       localStorage.removeItem(LESSON_HUB_STORAGE_KEY)
     } catch {

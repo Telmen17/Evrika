@@ -1,9 +1,12 @@
 import type { FC } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import archimedesImg from '../assets/archimedes.png'
 import kingSitImg from '../assets/kingSit.png'
 import blacksmithImg from '../assets/blacksmith-removebg-preview.png'
+import scrollPng from '../assets/scroll.png'
 import type { SceneId } from './LandingPage'
 import { useLessonHub } from '../context/LessonHubContext'
+import { ProofScrollWithLock } from './ProofScrollWithLock'
 
 interface StoryFinaleSceneProps {
   onNavigate: (scene: SceneId) => void
@@ -44,6 +47,18 @@ const StoryFinaleScene: FC<StoryFinaleSceneProps> = ({ onNavigate }) => {
   const { progress, patchProgress } = useLessonHub()
   const { proofPresented, beatIndex } = progress.throne
   const proofUnlocked = progress.archimedes.proofUnlocked
+
+  const [throneUnlockPhase, setThroneUnlockPhase] = useState<
+    'idle' | 'playing' | 'done'
+  >(() => (proofUnlocked ? 'playing' : 'idle'))
+
+  useEffect(() => {
+    if (!proofUnlocked) setThroneUnlockPhase('idle')
+  }, [proofUnlocked])
+
+  const onThroneUnlockVideoEnded = useCallback(() => {
+    setThroneUnlockPhase('done')
+  }, [])
 
   const beat = finaleBeats[Math.min(beatIndex, finaleBeats.length - 1)]
 
@@ -108,11 +123,30 @@ const StoryFinaleScene: FC<StoryFinaleSceneProps> = ({ onNavigate }) => {
             <div className="story-finale-gate-actions">
               <button
                 type="button"
-                className="primary-button"
-                disabled={!proofUnlocked}
+                className="story-finale-proof-scroll-hit"
+                disabled={!proofUnlocked || throneUnlockPhase === 'playing'}
                 onClick={presentProof}
+                aria-busy={throneUnlockPhase === 'playing'}
+                aria-label={
+                  proofUnlocked
+                    ? 'Present the proof scroll to the king'
+                    : 'Proof scroll locked — complete Archimedes’ study first'
+                }
               >
-                Give proof paper to the king
+                <ProofScrollWithLock
+                  scrollSrc={scrollPng}
+                  scrollImgClassName="story-finale-proof-scroll-img"
+                  showPadlock={!proofUnlocked}
+                  playUnlockVideo={proofUnlocked && throneUnlockPhase === 'playing'}
+                  onUnlockVideoEnded={onThroneUnlockVideoEnded}
+                />
+                <span className="story-finale-proof-scroll-caption">
+                  {!proofUnlocked
+                    ? 'Scroll locked'
+                    : throneUnlockPhase === 'playing'
+                      ? 'Unlocking…'
+                      : 'Present scroll to the king'}
+                </span>
               </button>
               {!proofUnlocked ? (
                 <p className="helper-text">
