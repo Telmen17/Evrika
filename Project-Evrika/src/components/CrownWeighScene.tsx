@@ -137,13 +137,13 @@ function makeGoldLumpIcon() {
 const CROWN_MASS_G = 2000
 const LUMP_MASS_G = 2000
 /** Plays once when crown and lump sit on opposite pans and the beam levels (equal-weight clue). */
-const VOICE_CROWN_VS_LUMP_SRC = '/audio/archimedes_crown_vs_lump_balance.mp3'
+const VOICE_CROWN_VS_LUMP_SRC = '/audio/archimedes-crown-match.mp3'
 /** Plays once when the player submits the correct crown mass in the input. */
 const VOICE_CROWN_MASS_ENTERED_SRC = '/audio/scale_conclusion-2.mp3'
 const INSIGHT_TEXT_BALANCE =
-  "Hmm… the crown and the king's gold balance evenly against each other — they weigh the same. Keep that in mind."
+  "Hmm, it seems like the blacksmith made the golden crown weigh exactly the same as the gold given to him by the king. There should be another way to solve this."
 const INSIGHT_TEXT_CROWN_ANSWER =
-  'Good — that matches what the scale showed. Hold onto that mass for the rest of the mystery.'
+  "The crown has weight. That much is certain. But a dishonest goldsmith knows how to match a number on a scale. Mass is a clue, not a conclusion. The secret of what lies inside the crown still waits to be uncovered."
 
 const MASS_KG: Record<ScaleItemId, number> = {
   crown: 2.0,
