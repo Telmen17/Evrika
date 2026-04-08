@@ -79,6 +79,11 @@ const QUIZ_FEEDBACK: Record<QuizOptionId, string> = {
     'You’re right — we can’t melt it. But let’s see whether Archimedes’s idea works or not.',
 }
 
+/** After the room is complete, tapping furnace / crown / guard plays this reminder. */
+const GUARD_REVISIT_AUDIO_SRC = '/audio/guard-warn2.mp3'
+const GUARD_REVISIT_TRANSCRIPT =
+  "Don't try anything funny, you are still forbidden from melting the crown!"
+
 /** Furnace image + animated fire (shared by quiz preview and interactive workshop). */
 const FurnaceFireVisual: FC = () => (
   <>
@@ -112,6 +117,9 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
   const [guardVoicePlaying, setGuardVoicePlaying] = useState(false)
   const guardTimersRef = useRef<number[]>([])
   const guardAudioRef = useRef<HTMLAudioElement | null>(null)
+  const revisitAudioRef = useRef<HTMLAudioElement | null>(null)
+  const [revisitWarnOpen, setRevisitWarnOpen] = useState(false)
+  const [revisitVoicePlaying, setRevisitVoicePlaying] = useState(false)
   const guardPoseRef = useRef(guardPose)
   const guardSpeechRef = useRef(guardSpeech)
   guardPoseRef.current = guardPose
@@ -281,6 +289,49 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
     }
   }, [guardSpeech])
 
+  const triggerRevisitGuardWarn = useCallback(() => {
+    if (phase !== 'done') return
+    setRevisitWarnOpen(true)
+    const el = revisitAudioRef.current
+    if (el) {
+      el.currentTime = 0
+      void el.play().catch(() => {
+        /* autoplay / missing file */
+      })
+    }
+  }, [phase])
+
+  const closeRevisitWarn = useCallback(() => {
+    setRevisitWarnOpen(false)
+    const el = revisitAudioRef.current
+    if (el) {
+      el.pause()
+      el.currentTime = 0
+    }
+    setRevisitVoicePlaying(false)
+  }, [])
+
+  const toggleRevisitVoice = useCallback(() => {
+    const el = revisitAudioRef.current
+    if (!el) return
+    if (el.paused) {
+      void el.play().catch(() => {})
+    } else {
+      el.pause()
+    }
+  }, [])
+
+  const onRevisitKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (phase !== 'done') return
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        triggerRevisitGuardWarn()
+      }
+    },
+    [phase, triggerRevisitGuardWarn],
+  )
+
   return (
     <div className="scene crown-melt-scene">
       <header className="scene-header hub-scene-header">
@@ -381,6 +432,47 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
 
         <div className="experiment-canvas crown-melt-canvas">
           <div className="crown-melt-workshop">
+            {phase === 'done' && revisitWarnOpen ? (
+              <div
+                className="crown-melt-revisit-bubble"
+                role="dialog"
+                aria-labelledby="crown-melt-revisit-title"
+                aria-modal="true"
+              >
+                <button
+                  type="button"
+                  className="crown-melt-revisit-close"
+                  onClick={closeRevisitWarn}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+                <button
+                  type="button"
+                  className={`crown-melt-revisit-audio ${revisitVoicePlaying ? 'crown-melt-revisit-audio--on' : ''}`}
+                  aria-label={revisitVoicePlaying ? 'Stop voice' : 'Play voice'}
+                  onClick={(ev) => {
+                    ev.stopPropagation()
+                    toggleRevisitVoice()
+                  }}
+                >
+                  <span aria-hidden>{revisitVoicePlaying ? '◼' : '▶'}</span>
+                </button>
+                <p id="crown-melt-revisit-title" className="crown-melt-revisit-kicker">
+                  Royal guard
+                </p>
+                <p className="crown-melt-revisit-text">{GUARD_REVISIT_TRANSCRIPT}</p>
+                <audio
+                  ref={revisitAudioRef}
+                  src={GUARD_REVISIT_AUDIO_SRC}
+                  preload="metadata"
+                  onPlay={() => setRevisitVoicePlaying(true)}
+                  onPause={() => setRevisitVoicePlaying(false)}
+                  onEnded={() => setRevisitVoicePlaying(false)}
+                />
+              </div>
+            ) : null}
+
             <div
               className="crown-melt-stage-row"
               aria-hidden={phase === 'quiz' || phase === 'quizFeedback'}
@@ -388,12 +480,19 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
               <div className="crown-melt-slot crown-melt-slot--guard">
                 {guardOrAfter ? (
                   <div
-                    className={`crown-melt-guard ${guardPose >= 1 ? 'crown-melt-guard-visible' : ''} crown-melt-guard-pose-${guardPose}`}
-                    role="img"
-                    aria-label="Royal guard halting the attempt"
+                    className={`crown-melt-guard ${guardPose >= 1 ? 'crown-melt-guard-visible' : ''} crown-melt-guard-pose-${guardPose}${phase === 'done' ? ' crown-melt-guard--done-tappable' : ''}`}
+                    role={phase === 'done' ? 'button' : 'img'}
+                    tabIndex={phase === 'done' ? 0 : undefined}
+                    aria-label={
+                      phase === 'done'
+                        ? 'Royal guard — tap for reminder about the crown'
+                        : 'Royal guard halting the attempt'
+                    }
+                    onClick={phase === 'done' ? () => triggerRevisitGuardWarn() : undefined}
+                    onKeyDown={phase === 'done' ? onRevisitKeyDown : undefined}
                   >
                     <div className="crown-melt-guard-stack">
-                      {guardSpeech && (
+                      {guardSpeech && phase !== 'done' && (
                         <div className="crown-melt-guard-speech">
                           <button
                             type="button"
@@ -437,7 +536,12 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
 
               <div className="crown-melt-slot crown-melt-slot--furnace">
                 <div
-                  className={`crown-melt-furnace-wrap ${phase === 'forge' && !crownAtForge ? 'crown-melt-furnace-wrap-active' : ''}`}
+                  className={`crown-melt-furnace-wrap ${phase === 'forge' && !crownAtForge ? 'crown-melt-furnace-wrap-active' : ''}${phase === 'done' ? ' crown-melt-furnace-wrap--done-tappable' : ''}`}
+                  role={phase === 'done' ? 'button' : undefined}
+                  tabIndex={phase === 'done' ? 0 : undefined}
+                  aria-label={phase === 'done' ? 'Furnace — tap for a reminder' : undefined}
+                  onClick={phase === 'done' ? () => triggerRevisitGuardWarn() : undefined}
+                  onKeyDown={phase === 'done' ? onRevisitKeyDown : undefined}
                   onDragOver={handleDragOverForge}
                   onDrop={handleDropOnForge}
                 >
@@ -460,11 +564,16 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
               <div className="crown-melt-slot crown-melt-slot--crown">
                 {showCrownPool ? (
                   <div
-                    className={`crown-melt-crown-pool ${phase === 'returnCrown' && crownAtForge ? 'crown-melt-crown-pool-drop-target' : ''}`}
+                    className={`crown-melt-crown-pool ${phase === 'returnCrown' && crownAtForge ? 'crown-melt-crown-pool-drop-target' : ''}${phase === 'done' ? ' crown-melt-crown-pool--done-tappable' : ''}`}
+                    role={phase === 'done' ? 'button' : undefined}
+                    tabIndex={phase === 'done' ? 0 : undefined}
+                    aria-label={phase === 'done' ? 'Crown on pedestal — tap for a reminder' : undefined}
                     draggable={phase === 'forge' && !crownAtForge}
                     onDragStart={handleDragFromPool}
                     onDragOver={handleDragOverPool}
                     onDrop={handleDropOnPool}
+                    onClick={phase === 'done' ? () => triggerRevisitGuardWarn() : undefined}
+                    onKeyDown={phase === 'done' ? onRevisitKeyDown : undefined}
                   >
                     {phase === 'returnCrown' && crownAtForge ? null : (
                       <img src={crownSvg} alt="Royal crown" className="crown-melt-crown-img" />

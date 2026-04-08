@@ -135,7 +135,6 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
   }
 
   const isLast = index >= beats.length - 1
-  const progressPct = Math.round(timeline01 * 100)
 
   return (
     <div className="scene journey-scene">
@@ -221,7 +220,9 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
           disabled={index === 0}
           aria-label="Previous scene"
         >
-          ‹
+          <span className="journey-skip-btn__glyph" aria-hidden>
+            ‹
+          </span>
         </button>
         <div
           className="journey-progress-wrap"
@@ -232,8 +233,11 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={progressPct}
-            aria-label={`Scene progress, ${progressPct}% until next scene`}
+            aria-valuenow={Math.round(timeline01 * 100)}
+            aria-valuetext={
+              isLast ? 'Final scene' : 'Automatic advance timer for this scene'
+            }
+            aria-label="Automatic advance timer for this scene"
           >
             <div
               className="journey-progress-fill"
@@ -241,7 +245,9 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
             />
           </div>
           <span className="journey-progress-caption">
-            {isLast ? 'Final scene — enter the workshop when you are ready' : `Next scene · ${progressPct}%`}
+            {isLast
+              ? 'Final scene — tap → when you are ready'
+              : 'Next scene plays automatically — or skip with the arrows'}
           </span>
         </div>
         {isLast ? (
@@ -251,7 +257,9 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
             onClick={() => onNavigate('hub')}
             aria-label="Enter Archimedes workshop"
           >
-            ›
+            <span className="journey-skip-btn__glyph" aria-hidden>
+              ›
+            </span>
           </button>
         ) : (
           <button
@@ -260,7 +268,9 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
             onClick={goNext}
             aria-label="Next scene"
           >
-            ›
+            <span className="journey-skip-btn__glyph" aria-hidden>
+              ›
+            </span>
           </button>
         )}
       </div>

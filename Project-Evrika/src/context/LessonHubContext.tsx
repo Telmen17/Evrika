@@ -9,7 +9,8 @@ import {
   type ReactNode,
 } from 'react'
 
-const STORAGE_KEY = 'evrika-hub-progress-v1'
+/** localStorage key — clear this in dev tools or use “Reset progress” in the hub to test from scratch. */
+export const LESSON_HUB_STORAGE_KEY = 'evrika-hub-progress-v1'
 
 export type WeighMissionPhaseSave = 'crown' | 'lump' | 'done'
 
@@ -131,7 +132,7 @@ function deepMergeProgress(
 
 function loadStoredProgress(): LessonProgress {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(LESSON_HUB_STORAGE_KEY)
     if (!raw) return DEFAULT_LESSON_PROGRESS
     const parsed = JSON.parse(raw) as LessonProgressPatch
     return deepMergeProgress(DEFAULT_LESSON_PROGRESS, parsed)
@@ -182,7 +183,7 @@ export const LessonHubProvider: FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+      localStorage.setItem(LESSON_HUB_STORAGE_KEY, JSON.stringify(progress))
     } catch {
       /* ignore */
     }
@@ -195,7 +196,7 @@ export const LessonHubProvider: FC<{ children: ReactNode }> = ({ children }) => 
   const resetProgress = useCallback(() => {
     setProgress(DEFAULT_LESSON_PROGRESS)
     try {
-      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(LESSON_HUB_STORAGE_KEY)
     } catch {
       /* ignore */
     }

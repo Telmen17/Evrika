@@ -1,6 +1,6 @@
 import { type FC, useState, useCallback, useRef, useEffect } from 'react'
 import type { SceneId } from './LandingPage'
-import { LessonHubProvider } from '../context/LessonHubContext'
+import { LessonHubProvider, useLessonHub } from '../context/LessonHubContext'
 import CrownWeighScene from './CrownWeighScene'
 import CrownMeltScene from './CrownMeltScene'
 import WaterDiscoveryScene from './WaterDiscoveryScene'
@@ -147,9 +147,23 @@ interface ExplorationHubProps {
 }
 
 function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
+  const { resetProgress } = useLessonHub()
   const [activeRoom, setActiveRoom] = useState<RoomId>('weigh')
   const [transitionKey, setTransitionKey] = useState(0)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  const handleResetProgress = useCallback(() => {
+    if (
+      !window.confirm(
+        'Reset all workshop progress (scales, furnace, proof scroll, throne, etc.)? You will start fresh in the hub.',
+      )
+    ) {
+      return
+    }
+    resetProgress()
+    setActiveRoom('weigh')
+    setTransitionKey((k) => k + 1)
+  }, [resetProgress])
 
   const switchRoom = useCallback(
     (room: RoomId) => {
@@ -226,6 +240,14 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
           </svg>
         </span>
         <p className="hub-objective-text">{OBJECTIVE_TEXT}</p>
+        <button
+          className="hub-reset-button"
+          type="button"
+          onClick={handleResetProgress}
+          title="Clears saved lesson state so you can test from the beginning"
+        >
+          Reset progress
+        </button>
         <button className="hub-menu-button" type="button" onClick={() => onNavigate('landing')}>
           Menu
         </button>
