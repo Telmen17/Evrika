@@ -14,6 +14,7 @@ import DisplacementLabScene from './components/DisplacementLabScene'
 import StoryFinaleScene from './components/StoryFinaleScene'
 import PracticeProblemsScreen from './components/PracticeProblemsScreen'
 import ExplorationHub from './components/ExplorationHub'
+import { GlobalAudioToggle } from './components/GlobalAudioToggle'
 
 const LEAF_LENGTH_PX = 140
 const LEAF_OVERLAP_PX = 44
@@ -170,6 +171,7 @@ function App() {
         </div>
       </div>
       <div className="app-root">{content}</div>
+      <GlobalAudioToggle visible={currentScene !== 'landing'} />
       {showCloudTransition ? (
         <div className={`cloud-transition cloud-transition-${transitionPhase}`} aria-hidden="true">
           <div className="cloud-transition-glow" />

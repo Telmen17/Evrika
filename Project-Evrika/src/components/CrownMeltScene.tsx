@@ -5,6 +5,7 @@ import crownSvg from '../assets/crown.svg'
 import furnacePng from '../assets/furnace.png'
 import guardPng from '../assets/guard.png'
 import type { SceneId } from './LandingPage'
+import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 import { useLessonHub } from '../context/LessonHubContext'
 
 interface CrownMeltSceneProps {
@@ -103,6 +104,7 @@ const FurnaceFireVisual: FC = () => (
 )
 
 const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) => {
+  const audioEnabled = useOptionalAudioEnabled()
   const { progress, patchProgress } = useLessonHub()
   const saved = progress.melt
   const [phase, setPhase] = useState<MeltPhase>(() => saved.phase)
@@ -114,12 +116,11 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
   const [guardSpeech, setGuardSpeech] = useState(() =>
     initialGuardSpeechForMelt(saved),
   )
-  const [guardVoicePlaying, setGuardVoicePlaying] = useState(false)
   const guardTimersRef = useRef<number[]>([])
   const guardAudioRef = useRef<HTMLAudioElement | null>(null)
+  const guardSpeechAudioStartedRef = useRef(false)
   const revisitAudioRef = useRef<HTMLAudioElement | null>(null)
   const [revisitWarnOpen, setRevisitWarnOpen] = useState(false)
-  const [revisitVoicePlaying, setRevisitVoicePlaying] = useState(false)
   const guardPoseRef = useRef(guardPose)
   const guardSpeechRef = useRef(guardSpeech)
   guardPoseRef.current = guardPose
@@ -267,38 +268,66 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
     phase === 'returnCrown' ||
     phase === 'done'
 
-  const toggleGuardVoice = useCallback(() => {
-    const el = guardAudioRef.current
-    if (!el) return
-    if (el.paused) {
-      el.play().catch(() => {})
-    } else {
-      el.pause()
-      el.currentTime = 0
+  useEffect(() => {
+    if (
+      phase === 'quiz' ||
+      phase === 'quizFeedback' ||
+      phase === 'forge' ||
+      phase === 'done'
+    ) {
+      guardSpeechAudioStartedRef.current = false
     }
-  }, [])
+  }, [phase])
 
   useEffect(() => {
-    if (!guardSpeech) {
-      const a = guardAudioRef.current
-      if (a) {
-        a.pause()
-        a.currentTime = 0
-      }
-      setGuardVoicePlaying(false)
+    const el = guardAudioRef.current
+    if (!el) return
+    const showGuardBubble =
+      guardSpeech &&
+      phase !== 'done' &&
+      phase !== 'quiz' &&
+      phase !== 'quizFeedback' &&
+      phase !== 'forge'
+    if (!showGuardBubble) {
+      el.pause()
+      return
     }
-  }, [guardSpeech])
+    el.volume = audioEnabled ? 1 : 0
+    if (!audioEnabled) {
+      el.pause()
+      return
+    }
+    if (!guardSpeechAudioStartedRef.current) {
+      guardSpeechAudioStartedRef.current = true
+      el.currentTime = 0
+      void el.play().catch(() => {})
+      return
+    }
+    if (el.paused && !el.ended) {
+      void el.play().catch(() => {})
+    }
+  }, [guardSpeech, phase, audioEnabled])
+
+  useEffect(() => {
+    const el = revisitAudioRef.current
+    if (!el) return
+    if (!revisitWarnOpen) {
+      el.pause()
+      el.currentTime = 0
+      return
+    }
+    el.volume = audioEnabled ? 1 : 0
+    if (!audioEnabled) {
+      el.pause()
+      return
+    }
+    el.currentTime = 0
+    void el.play().catch(() => {})
+  }, [revisitWarnOpen, audioEnabled])
 
   const triggerRevisitGuardWarn = useCallback(() => {
     if (phase !== 'done') return
     setRevisitWarnOpen(true)
-    const el = revisitAudioRef.current
-    if (el) {
-      el.currentTime = 0
-      void el.play().catch(() => {
-        /* autoplay / missing file */
-      })
-    }
   }, [phase])
 
   const closeRevisitWarn = useCallback(() => {
@@ -307,17 +336,6 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
     if (el) {
       el.pause()
       el.currentTime = 0
-    }
-    setRevisitVoicePlaying(false)
-  }, [])
-
-  const toggleRevisitVoice = useCallback(() => {
-    const el = revisitAudioRef.current
-    if (!el) return
-    if (el.paused) {
-      void el.play().catch(() => {})
-    } else {
-      el.pause()
     }
   }, [])
 
@@ -383,7 +401,8 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
             {phase === 'guard' && (
               <div className="crown-melt-panel-hint">
                 <p className="scene-text crown-melt-panel-hint-single">
-                  A guard steps in — listen, then move the crown back.
+                  A guard steps in — voice plays automatically (mute with the speaker button if needed),
+                  then move the crown back.
                 </p>
               </div>
             )}
@@ -447,29 +466,11 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
                 >
                   ×
                 </button>
-                <button
-                  type="button"
-                  className={`crown-melt-revisit-audio ${revisitVoicePlaying ? 'crown-melt-revisit-audio--on' : ''}`}
-                  aria-label={revisitVoicePlaying ? 'Stop voice' : 'Play voice'}
-                  onClick={(ev) => {
-                    ev.stopPropagation()
-                    toggleRevisitVoice()
-                  }}
-                >
-                  <span aria-hidden>{revisitVoicePlaying ? '◼' : '▶'}</span>
-                </button>
                 <p id="crown-melt-revisit-title" className="crown-melt-revisit-kicker">
                   Royal guard
                 </p>
                 <p className="crown-melt-revisit-text">{GUARD_REVISIT_TRANSCRIPT}</p>
-                <audio
-                  ref={revisitAudioRef}
-                  src={GUARD_REVISIT_AUDIO_SRC}
-                  preload="metadata"
-                  onPlay={() => setRevisitVoicePlaying(true)}
-                  onPause={() => setRevisitVoicePlaying(false)}
-                  onEnded={() => setRevisitVoicePlaying(false)}
-                />
+                <audio ref={revisitAudioRef} src={GUARD_REVISIT_AUDIO_SRC} preload="metadata" />
               </div>
             ) : null}
 
@@ -494,19 +495,6 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
                     <div className="crown-melt-guard-stack">
                       {guardSpeech && phase !== 'done' && (
                         <div className="crown-melt-guard-speech">
-                          <button
-                            type="button"
-                            className={`crown-melt-guard-speech-audio ${guardVoicePlaying ? 'crown-melt-guard-speech-audio--on' : ''}`}
-                            aria-label={guardVoicePlaying ? 'Stop guard voice' : 'Play guard voice'}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggleGuardVoice()
-                            }}
-                          >
-                            <span className="crown-melt-guard-speech-audio-icon" aria-hidden="true">
-                              {guardVoicePlaying ? '◼' : '▶'}
-                            </span>
-                          </button>
                           <p className="crown-melt-guard-speech-text">
                             <strong>Halt!</strong> The crown is sacred — you may not melt or destroy it.
                             Hiero&apos;s order stands.
@@ -515,9 +503,6 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
                             ref={guardAudioRef}
                             src="/audio/guard-voice.mp3"
                             preload="metadata"
-                            onEnded={() => setGuardVoicePlaying(false)}
-                            onPlay={() => setGuardVoicePlaying(true)}
-                            onPause={() => setGuardVoicePlaying(false)}
                           />
                         </div>
                       )}

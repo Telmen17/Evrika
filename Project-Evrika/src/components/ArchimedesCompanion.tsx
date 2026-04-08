@@ -1,23 +1,42 @@
 import { useEffect, useRef } from 'react'
 import headImg from '../assets/head.png'
+import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 import { useLessonHub } from '../context/LessonHubContext'
 
 export function ArchimedesCompanion() {
   const { companion, setCompanionBubbleOpen } = useLessonHub()
+  const audioEnabled = useOptionalAudioEnabled()
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const companionAudioSrcRef = useRef<string | null>(null)
 
   useEffect(() => {
     const el = audioRef.current
-    if (!el || !companion.audioSrc) return
-    el.src = companion.audioSrc
-    el.currentTime = 0
+    if (!companion.audioSrc) {
+      companionAudioSrcRef.current = null
+      el?.pause()
+      return
+    }
+    if (!el) return
+    const srcChanged = companionAudioSrcRef.current !== companion.audioSrc
+    companionAudioSrcRef.current = companion.audioSrc
+    if (srcChanged) {
+      el.src = companion.audioSrc
+      el.currentTime = 0
+    }
+    el.volume = audioEnabled ? 1 : 0
+    if (!audioEnabled) {
+      el.pause()
+      return () => {
+        el.pause()
+      }
+    }
     void el.play().catch(() => {
       /* autoplay blocked */
     })
     return () => {
       el.pause()
     }
-  }, [companion.audioSrc])
+  }, [companion.audioSrc, audioEnabled])
 
   return (
     <div className="archimedes-companion" aria-live="polite">
@@ -41,21 +60,6 @@ export function ArchimedesCompanion() {
             <p className="archimedes-companion__bubble-text">
               {companion.transcript || 'Tap the head when I have something to say.'}
             </p>
-            {companion.audioSrc ? (
-              <button
-                type="button"
-                className="archimedes-companion__replay"
-                onClick={() => {
-                  const el = audioRef.current
-                  if (el) {
-                    el.currentTime = 0
-                    void el.play().catch(() => {})
-                  }
-                }}
-              >
-                Replay voice
-              </button>
-            ) : null}
           </div>
         ) : null}
         <button

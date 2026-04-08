@@ -1,5 +1,6 @@
 import type { FC } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import type { SceneId } from './LandingPage'
 import archimedesImg from '../assets/archimedes.png'
@@ -80,17 +81,34 @@ const beats: StoryBeat[] = [
   },
 ]
 
-/** Auto-advance one scene after this many ms (movie-style pacing). */
-const INTRO_SCENE_MS = 10_000
-
 const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
   const [index, setIndex] = useState(0)
-  const [timeline01, setTimeline01] = useState(0)
   const beat = beats[index]
   const visibleActors = useMemo(() => new Set(beat.visibleActors), [beat.visibleActors])
-  const { isPlaying, toggle } = useAudioPlayer(beat.audioSrc)
-  const indexRef = useRef(index)
-  indexRef.current = index
+  const audioEnabled = useOptionalAudioEnabled()
+
+  const onIntroClipEnded = useCallback(() => {
+    setIndex((prev) => {
+      if (prev >= beats.length - 1) return prev
+      return prev + 1
+    })
+  }, [])
+
+  const { play, currentTime, duration } = useAudioPlayer(beat.audioSrc, {
+    onEnded: onIntroClipEnded,
+  })
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      play()
+    }, 220)
+    return () => clearTimeout(t)
+  }, [beat.audioSrc, play])
+
+  const timeline01 =
+    duration > 0 && Number.isFinite(duration)
+      ? Math.min(1, currentTime / duration)
+      : 0
 
   const goNext = () => {
     setIndex((prev) => Math.min(prev + 1, beats.length - 1))
@@ -99,34 +117,6 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
   const goPrev = () => {
     setIndex((prev) => Math.max(prev - 1, 0))
   }
-
-  useEffect(() => {
-    setTimeline01(0)
-  }, [index])
-
-  useEffect(() => {
-    let raf = 0
-    const t0 = performance.now()
-
-    const tick = (now: number) => {
-      const elapsed = now - t0
-      const u = Math.min(1, elapsed / INTRO_SCENE_MS)
-      setTimeline01(u)
-
-      if (u < 1) {
-        raf = requestAnimationFrame(tick)
-        return
-      }
-
-      const i = indexRef.current
-      if (i < beats.length - 1) {
-        setIndex(i + 1)
-      }
-    }
-
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [index])
 
   function actorClass(actorId: IntroActorId, baseClass: string) {
     const isVisible = visibleActors.has(actorId)
@@ -191,20 +181,6 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
               </div>
               <h2 className="journey-beat-title">{beat.title}</h2>
             </div>
-            <button
-              className="secondary-button narration-button narration-icon-button"
-              type="button"
-              onClick={toggle}
-            >
-              <span className="narration-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="M5 14h3l4 4V6L8 10H5z" />
-                  <path d="M15 9a4 4 0 010 6" />
-                  <path d="M17.5 6.5a7.5 7.5 0 010 11" />
-                </svg>
-              </span>
-              <span>{isPlaying ? 'Pause voice' : 'Play voice'}</span>
-            </button>
           </div>
           <div className="scene-text journey-story-text">
             <p>{beat.text}</p>
@@ -226,7 +202,11 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
         </button>
         <div
           className="journey-progress-wrap"
-          title={`Next scene in ${INTRO_SCENE_MS / 1000}s (or use arrows)`}
+          title={
+            isLast
+              ? 'Narration progress for this scene'
+              : 'Bar tracks voice — mute only affects sound, not timing. Skip with arrows.'
+          }
         >
           <div
             className="journey-progress-track"
@@ -235,9 +215,13 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
             aria-valuemax={100}
             aria-valuenow={Math.round(timeline01 * 100)}
             aria-valuetext={
-              isLast ? 'Final scene' : 'Automatic advance timer for this scene'
+              duration > 0 && Number.isFinite(duration)
+                ? `${Math.round(currentTime)} of ${Math.round(duration)} seconds`
+                : isLast
+                  ? 'Final scene narration'
+                  : 'Narration progress'
             }
-            aria-label="Automatic advance timer for this scene"
+            aria-label="Narration progress for this scene"
           >
             <div
               className="journey-progress-fill"
@@ -246,21 +230,26 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
           </div>
           <span className="journey-progress-caption">
             {isLast
-              ? 'Final scene — tap → when you are ready'
-              : 'Next scene plays automatically — or skip with the arrows'}
+              ? 'When the bar finishes, tap → to enter the workshop'
+              : audioEnabled
+                ? 'Bar follows the voice — mute is volume only'
+                : 'Sound off — bar still follows the narration timing'}
           </span>
         </div>
         {isLast ? (
-          <button
-            type="button"
-            className="journey-skip-btn journey-skip-btn--primary"
-            onClick={() => onNavigate('hub')}
-            aria-label="Enter Archimedes workshop"
-          >
-            <span className="journey-skip-btn__glyph" aria-hidden>
-              ›
-            </span>
-          </button>
+          <div className="journey-final-cta">
+            <span className="journey-final-cta-rays" aria-hidden />
+            <button
+              type="button"
+              className="journey-skip-btn journey-skip-btn--primary journey-skip-btn--final-pulse"
+              onClick={() => onNavigate('hub')}
+              aria-label="Enter Archimedes workshop"
+            >
+              <span className="journey-skip-btn__glyph" aria-hidden>
+                ›
+              </span>
+            </button>
+          </div>
         ) : (
           <button
             type="button"

@@ -1178,7 +1178,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
           <section className="weigh-info-card weigh-howto-card">
             <h4>Quick tips</h4>
             <p className="weigh-howto-text">
-              One object per side while measuring; add deadweights until the beam levels, then type grams. Use the companion bubble to replay Archimedes.
+              One object per side while measuring; add deadweights until the beam levels, then type grams. Open the companion bubble to read Archimedes again.
             </p>
           </section>
 

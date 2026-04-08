@@ -39,6 +39,69 @@ body.lesson-active {
   padding: 2rem;
 }
 
+/* Global narration / voice mute (all lesson scenes except landing) */
+.global-audio-toggle {
+  position: fixed;
+  top: max(0.65rem, env(safe-area-inset-top));
+  right: max(0.65rem, env(safe-area-inset-right));
+  z-index: 1100;
+  width: 2.65rem;
+  height: 2.65rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(120, 80, 30, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff9ec, #f0ddb8);
+  color: #5a4210;
+  cursor: pointer;
+  box-shadow: 0 3px 14px rgba(60, 40, 10, 0.18);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.global-audio-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(184, 134, 11, 0.65);
+  box-shadow: 0 5px 18px rgba(80, 50, 10, 0.2);
+}
+
+.global-audio-toggle:focus-visible {
+  outline: 2px solid rgba(214, 145, 35, 0.95);
+  outline-offset: 2px;
+}
+
+.global-audio-toggle--muted {
+  color: #6b5344;
+  background: linear-gradient(180deg, #f5f0e8, #e8dcc8);
+}
+
+.global-audio-toggle__icon-wrap {
+  position: relative;
+  width: 1.45rem;
+  height: 1.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.global-audio-toggle__speaker {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.global-audio-toggle__mute-line {
+  position: absolute;
+  inset: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  pointer-events: none;
+}
+
 .cloud-transition {
   position: fixed;
   inset: 0;
@@ -2982,6 +3045,70 @@ body.lesson-active {
   background: linear-gradient(135deg, #fff4d4, #f0d090);
   border-color: #b8860b;
   font-weight: 500;
+}
+
+/* Final intro CTA: radiating lines + pulse so “next” is obvious */
+.journey-final-cta {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.journey-final-cta-rays {
+  position: absolute;
+  inset: -1.15rem;
+  border-radius: 50%;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg,
+    transparent 0deg 7deg,
+    rgba(184, 134, 11, 0.42) 7deg 8deg
+  );
+  opacity: 0.9;
+  animation: journey-final-rays-spin 10s linear infinite;
+}
+
+@keyframes journey-final-rays-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.journey-skip-btn--final-pulse {
+  position: relative;
+  z-index: 1;
+  animation: journey-final-btn-pulse 1.35s ease-in-out infinite;
+}
+
+@keyframes journey-final-btn-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 0 rgba(184, 134, 11, 0.55),
+      0 0 12px rgba(184, 134, 11, 0.25);
+  }
+
+  50% {
+    transform: scale(1.14);
+    box-shadow:
+      0 0 0 6px rgba(184, 134, 11, 0.12),
+      0 0 20px rgba(232, 197, 71, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journey-final-cta-rays,
+  .journey-skip-btn--final-pulse {
+    animation: none;
+  }
+
+  .journey-skip-btn--final-pulse {
+    box-shadow: 0 0 14px rgba(184, 134, 11, 0.4);
+  }
 }
 
 /* Spacer body fills viewport so controls stay bottom; no margin-top:auto needed */
