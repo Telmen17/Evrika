@@ -767,10 +767,6 @@ body.lesson-active {
   padding-right: 0.4rem;
 }
 
-.weigh-reading-panel-footer {
-  padding-bottom: 0.1rem;
-}
-
 .weigh-answer-card {
   display: grid;
   gap: 0.75rem;
@@ -871,6 +867,87 @@ body.lesson-active {
     radial-gradient(circle at top right, rgba(255, 252, 225, 0.9), transparent 42%),
     linear-gradient(135deg, rgba(255, 247, 220, 0.98), rgba(247, 220, 153, 0.92));
   box-shadow: 0 12px 28px rgba(168, 111, 25, 0.14);
+}
+
+.weigh-mission-card--compact {
+  padding: 0.75rem 0.9rem;
+}
+
+.weigh-mission-card--compact .weigh-panel-kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+}
+
+.weigh-mission-card--compact h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  line-height: 1.28;
+  font-weight: 700;
+}
+
+.weigh-mission-lede {
+  margin: 0 0 0.55rem;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #5c3d1e;
+}
+
+.weigh-mission-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0.55rem 0 0;
+  border-top: 1px solid rgba(146, 92, 28, 0.18);
+  display: grid;
+  gap: 0.42rem;
+}
+
+.weigh-mission-checklist-item {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #4a2c16;
+}
+
+.weigh-mission-checklist-item--optional {
+  color: #5c4428;
+  font-size: 0.7rem;
+}
+
+.weigh-mission-check {
+  flex-shrink: 0;
+  width: 1rem;
+  margin-top: 0.12rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.weigh-mission-check--done {
+  color: #15803d;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.weigh-mission-check--todo {
+  color: #1a1a1a;
+  font-size: 0.42rem;
+  transform: translateY(0.06rem);
+}
+
+.weigh-howto-card h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+}
+
+.weigh-howto-text {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #4a2c16;
 }
 
 .weigh-panel-kicker {
@@ -1379,21 +1456,58 @@ body.lesson-active {
   align-items: center;
 }
 
-.weigh-conclusion-card {
-  padding: 1rem 1rem 1.1rem;
-  border-radius: 16px;
-  border: 1px solid rgba(146, 92, 28, 0.28);
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.5), transparent 38%),
-    linear-gradient(135deg, rgba(255, 249, 237, 0.98), rgba(247, 235, 206, 0.96));
-  box-shadow: 0 10px 24px rgba(82, 50, 14, 0.12);
+.crown-weigh-scale-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
 }
 
-.weigh-conclusion-card-success {
-  border-color: rgba(102, 150, 47, 0.32);
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.56), transparent 38%),
-    linear-gradient(135deg, rgba(247, 255, 236, 0.98), rgba(224, 243, 196, 0.95));
+.crown-scale-reset-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 2px solid rgba(146, 92, 28, 0.45);
+  background: linear-gradient(180deg, #fff9ec, #f0ddb8);
+  color: #5a4210;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(82, 50, 14, 0.12);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.12s ease,
+    box-shadow 0.15s ease;
+}
+
+.crown-scale-reset-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fffdf5, #f5e6c8);
+  border-color: rgba(184, 134, 11, 0.65);
+  box-shadow: 0 4px 12px rgba(120, 80, 20, 0.15);
+  transform: translateY(-1px);
+}
+
+.crown-scale-reset-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(82, 50, 14, 0.12);
+}
+
+.crown-scale-reset-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.crown-scale-reset-button:focus-visible {
+  outline: 2px solid rgba(214, 145, 35, 0.85);
+  outline-offset: 2px;
+}
+
+.crown-scale-reset-button-icon {
+  width: 1.2rem;
+  height: 1.2rem;
 }
 
 .mission-continue-button {
@@ -1416,94 +1530,6 @@ body.lesson-active {
   animation: missionButtonPulse 1.5s ease-in-out infinite;
 }
 
-
-.weigh-conclusion-copy h4 {
-  margin: 0.2rem 0 0.5rem;
-  color: #3a230d;
-  font-size: 1.05rem;
-}
-
-.weigh-conclusion-kicker {
-  margin: 0;
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #9a7320;
-}
-
-.weigh-conclusion-text {
-  margin: 0;
-}
-
-.weigh-conclusion-hint {
-  display: block;
-  margin-top: 0.65rem;
-}
-
-.weigh-conclusion-audio {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.6rem;
-  margin-top: 0.9rem;
-}
-
-.weigh-conclusion-audio-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  width: 100%;
-  min-height: 46px;
-  padding: 0.7rem 0.85rem;
-  border-radius: 12px;
-  border: 1px solid rgba(146, 92, 28, 0.28);
-  background: rgba(255, 255, 255, 0.78);
-  color: #3a230d;
-  cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-.weigh-conclusion-audio-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(82, 50, 14, 0.12);
-}
-
-.weigh-conclusion-audio-button-active {
-  border-color: rgba(185, 120, 36, 0.7);
-  background: linear-gradient(135deg, rgba(255, 236, 189, 0.95), rgba(245, 201, 119, 0.85));
-}
-
-.weigh-conclusion-audio-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: rgba(154, 115, 32, 0.12);
-  color: #7b5427;
-}
-
-.weigh-conclusion-audio-icon svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.weigh-conclusion-audio-label {
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.35;
-  text-align: left;
-}
 
 .crown-scale-stage {
   position: relative;
@@ -3165,10 +3191,6 @@ body.lesson-active {
 
   .crown-weigh-workspace {
     overflow: visible;
-  }
-
-  .weigh-conclusion-audio {
-    grid-template-columns: 1fr;
   }
 
   .title {
@@ -5194,6 +5216,57 @@ body.lesson-active {
 
 .hub-room-content .scene-body {
   width: 100%;
+}
+
+/* Weigh room: fill hub viewport; scroll only the left column (wide layouts). */
+@media (min-width: 961px) {
+  .hub-room-content:has(> .crown-weigh-scene) {
+    overflow: hidden;
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  .hub-room-content > .crown-weigh-scene {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding-top: 0.35rem;
+  }
+
+  .hub-room-content > .crown-weigh-scene .scene-body.experiment-layout {
+    grid-template-rows: minmax(0, 1fr);
+    justify-items: stretch;
+    align-items: stretch;
+    min-height: 0;
+    max-width: 1180px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hub-room-content > .crown-weigh-scene .weigh-reading-panel {
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hub-room-content > .crown-weigh-scene .crown-weigh-panel {
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 960px) {
+  .hub-room-content:has(> .crown-weigh-scene) {
+    overflow-y: auto;
+  }
+
+  .hub-room-content > .crown-weigh-scene .scene-body.experiment-layout {
+    grid-template-rows: none;
+  }
 }
 
 /* --- Bottom Navigation Bar --- */

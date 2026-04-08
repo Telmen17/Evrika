@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SceneId } from './LandingPage'
 import crownSvg from '../assets/crown.svg'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
-import { useLessonHub } from '../context/LessonHubContext'
+import { DEFAULT_LESSON_PROGRESS, useLessonHub } from '../context/LessonHubContext'
 
 type PanSide = 'left' | 'right'
 export type ScaleItemId =
@@ -453,28 +453,10 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     (weighPhase === 'crown' && canRevealCounterMass) ||
     (weighPhase === 'lump' && canRevealLumpCounter) ||
     versusOpposedSetup
-  const taskStatus =
-    weighPhase === 'done'
-      ? 'Mission complete. Use the room bar below to explore other workshops.'
-      : weighPhase === 'lump'
-        ? goldLumpPan === null
-          ? 'Drag the unlabeled lump of gold into a bowl by itself — you must discover its mass without a label.'
-          : !lumpIsAlone
-            ? 'Weigh only the lump on one side (nothing else with it).'
-            : !canRevealLumpCounter
-              ? 'Add trusted masses to the other bowl until the beam settles.'
-              : hasSolvedLumpMeasurement
-                ? 'The scale is balanced. Enter the lump\'s mass in grams.'
-                : 'Adjust the deadweights until the lump alone balances.'
-        : crownPan === null
-          ? 'Place the crown in one bowl to measure its mass first.'
-          : !crownIsAlone
-            ? 'Keep the crown by itself on one side so you measure only the crown.'
-            : !canRevealCounterMass
-              ? 'Add trusted masses to the other bowl until the balance begins to settle.'
-              : hasSolvedMeasurement
-                ? 'The scale is balanced. Enter the crown\'s mass in grams.'
-                : 'Adjust the deadweights until the crown alone balances against the known masses.'
+  const checklistCrownDone =
+    weighPhase === 'lump' || weighPhase === 'done'
+  const checklistLumpDone = weighPhase === 'done'
+  const checklistBalanceClueDone = hasCrownVersusLumpBalance
 
   const saveWeighLayout = useCallback(() => {
     const rt = runtimeRef.current
@@ -955,6 +937,14 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     saveWeighLayout()
   }, [saveWeighLayout])
 
+  const resetScaleToStart = useCallback(() => {
+    clearPans()
+    setWeighPhase('crown')
+    setMassGuess('')
+    setMassCheckFeedback('')
+    patchProgress({ weigh: { ...DEFAULT_LESSON_PROGRESS.weigh } })
+  }, [clearPans, patchProgress])
+
   function handleDragStart(e: React.DragEvent, id: ScaleItemId) {
     if (id === 'crown' && !crownInPool) {
       e.preventDefault()
@@ -1053,7 +1043,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
               />
             </div>
           </div>
-          <span className="weigh-crown-showcase-label">Gold lump (no label)</span>
+          <span className="weigh-crown-showcase-label">King's gold lump</span>
         </div>
       </div>
 
@@ -1116,32 +1106,80 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
 
       <section className="scene-body experiment-layout">
         <div className="experiment-controls weigh-reading-panel">
-          <section className="weigh-info-card weigh-mission-card">
+          <section className="weigh-info-card weigh-mission-card weigh-mission-card--compact">
             <p className="weigh-panel-kicker">Mission objective</p>
-            <h3>Measure the crown, then the unlabeled lump</h3>
-            <p className="scene-text">
-              Find each mass using trusted weights. Try putting the crown on one pan and the king&apos;s gold lump on the other — when the beam levels, they weigh the same. Archimedes comments from the floating companion when that happens and when you enter the correct crown mass.
+            <h3>Crown and lump — grams from the balance</h3>
+            <p className="weigh-mission-lede">
+              Balance each piece alone against trusted weights. Beam level before you submit a gram value.
             </p>
+            <ul
+              className="weigh-mission-checklist"
+              aria-label="Mission progress"
+            >
+              <li className="weigh-mission-checklist-item">
+                {checklistCrownDone ? (
+                  <span
+                    className="weigh-mission-check weigh-mission-check--done"
+                    aria-hidden
+                  >
+                    ✓
+                  </span>
+                ) : (
+                  <span
+                    className="weigh-mission-check weigh-mission-check--todo"
+                    aria-hidden
+                  >
+                    ●
+                  </span>
+                )}
+                <span>Record crown mass</span>
+              </li>
+              <li className="weigh-mission-checklist-item weigh-mission-checklist-item--optional">
+                {checklistBalanceClueDone ? (
+                  <span
+                    className="weigh-mission-check weigh-mission-check--done"
+                    aria-hidden
+                  >
+                    ✓
+                  </span>
+                ) : (
+                  <span
+                    className="weigh-mission-check weigh-mission-check--todo"
+                    aria-hidden
+                  >
+                    ●
+                  </span>
+                )}
+                <span>Optional: crown vs lump on opposite pans — level beam means equal mass</span>
+              </li>
+              <li className="weigh-mission-checklist-item">
+                {checklistLumpDone ? (
+                  <span
+                    className="weigh-mission-check weigh-mission-check--done"
+                    aria-hidden
+                  >
+                    ✓
+                  </span>
+                ) : (
+                  <span
+                    className="weigh-mission-check weigh-mission-check--todo"
+                    aria-hidden
+                  >
+                    ●
+                  </span>
+                )}
+                <span>Record lump mass</span>
+              </li>
+            </ul>
           </section>
 
           {toolboxItems}
 
-          <section className="weigh-info-card">
-            <h4>How to solve it</h4>
-            <div className="weigh-guidance-list">
-              <div className="weigh-guidance-item">
-                <span className="weigh-guidance-step">1</span>
-                <p>Weigh the crown alone against trusted masses; enter its mass in grams.</p>
-              </div>
-              <div className="weigh-guidance-item">
-                <span className="weigh-guidance-step">2</span>
-                <p>Optional clue: crown on one side, lump on the other — if the beam levels, they match.</p>
-              </div>
-              <div className="weigh-guidance-item">
-                <span className="weigh-guidance-step">3</span>
-                <p>Weigh the lump alone and enter its mass. Open the companion bubble to replay his lines.</p>
-              </div>
-            </div>
+          <section className="weigh-info-card weigh-howto-card">
+            <h4>Quick tips</h4>
+            <p className="weigh-howto-text">
+              One object per side while measuring; add deadweights until the beam levels, then type grams. Use the companion bubble to replay Archimedes.
+            </p>
           </section>
 
           {weighPhase === 'crown' || weighPhase === 'lump' ? (
@@ -1184,63 +1222,17 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
               </p>
             </section>
           ) : null}
-
-          <div className="weigh-reading-panel-footer">
-            <section
-              className={`weigh-conclusion-card ${
-                weighPhase === 'done' ||
-                (weighPhase === 'crown' && hasSolvedMeasurement) ||
-                (weighPhase === 'lump' && hasSolvedLumpMeasurement) ||
-                hasCrownVersusLumpBalance
-                  ? 'weigh-conclusion-card-success'
-                  : ''
-              }`}
-              aria-live="polite"
-            >
-              <div className="weigh-conclusion-copy">
-                <p className="weigh-conclusion-kicker">
-                  {weighPhase === 'done'
-                    ? 'Mission complete'
-                    : weighPhase === 'lump'
-                      ? hasSolvedLumpMeasurement
-                        ? 'Lump balanced'
-                        : 'Current task'
-                      : hasSolvedMeasurement
-                        ? 'Crown balanced'
-                        : 'Current task'}
-                </p>
-                <h4>
-                  {weighPhase === 'done'
-                    ? 'Both masses recorded'
-                    : weighPhase === 'lump'
-                      ? hasSolvedLumpMeasurement
-                        ? 'Ready to enter lump mass'
-                        : 'Weigh the lump alone'
-                      : hasSolvedMeasurement
-                        ? 'Ready to enter crown mass'
-                        : 'Weigh the crown alone'}
-                </h4>
-                <p className="scene-text weigh-conclusion-text">
-                  {taskStatus}
-                </p>
-                <p className="helper-text weigh-conclusion-hint">
-                  {weighPhase === 'done'
-                    ? 'Use the room bar below to explore other labs. The Archimedes companion stays on screen for replay.'
-                    : 'The beam must be level before your gram answer counts — you are measuring against trusted masses, not guessing from the animation alone.'}
-                </p>
-              </div>
-            </section>
-          </div>
         </div>
 
         <div className="experiment-canvas crown-weigh-panel">
-          <div
-            className="crown-scale-stage"
-            style={{
-              width: `${STAGE_GEOMETRY.width}px`,
-              height: `${STAGE_GEOMETRY.height}px`,
-            }}
-          >
+          <div className="crown-weigh-scale-column">
+            <div
+              className="crown-scale-stage"
+              style={{
+                width: `${STAGE_GEOMETRY.width}px`,
+                height: `${STAGE_GEOMETRY.height}px`,
+              }}
+            >
                 <div
                   className="crown-scale-base"
                   style={{
@@ -1401,6 +1393,38 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                     {(rightMass * 1000).toFixed(0)} g
                   </div>
                 ) : null}
+            </div>
+            <button
+              type="button"
+              className="crown-scale-reset-button"
+              onClick={resetScaleToStart}
+              disabled={!matterReady}
+              aria-label="Reset scale: clear both bowls, level the beam, and restart the weighing mission"
+              title="Reset scale — clear pans, level beam, start the mission over"
+            >
+              <svg
+                className="crown-scale-reset-button-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden
+              >
+                <path
+                  d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M3 16v5h5"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       </section>
