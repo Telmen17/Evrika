@@ -171,6 +171,8 @@ export interface CompanionState {
   insightLabel: string
   /** Bumps on each triggerInsight so the same audio URL can play again. */
   insightRevision: number
+  /** Monotonic id per insight trigger; used to ignore stale `ended` after src replacement. */
+  audioSessionId: number
 }
 
 const DEFAULT_COMPANION: CompanionState = {
@@ -180,6 +182,7 @@ const DEFAULT_COMPANION: CompanionState = {
   audioSrc: null,
   insightLabel: 'Archimedes',
   insightRevision: 0,
+  audioSessionId: 0,
 }
 
 interface LessonHubContextValue {
@@ -196,6 +199,11 @@ interface LessonHubContextValue {
     autoOpen?: boolean
   }) => void
   clearCompanionAudio: () => void
+  /** Bumps when companion insight audio fires a valid `ended` (serial playback / unlock next insight). */
+  insightPlaybackGeneration: number
+  /** Pathname of the clip that ended (e.g. `/audio/scale_conclusion2.mp3`), same tick as generation bump. */
+  lastCompanionInsightEndedSrc: string
+  notifyInsightPlaybackEnded: (endedSrcPathname: string) => void
 }
 
 const LessonHubContext = createContext<LessonHubContextValue | null>(null)
@@ -207,6 +215,17 @@ export const LessonHubProvider: FC<{ children: ReactNode }> = ({ children }) => 
       : normalizeProgressStrings(DEFAULT_LESSON_PROGRESS),
   )
   const [companion, setCompanion] = useState<CompanionState>(DEFAULT_COMPANION)
+  const [companionInsightPlayback, setCompanionInsightPlayback] = useState({
+    generation: 0,
+    endedSrc: '',
+  })
+
+  const notifyInsightPlaybackEnded = useCallback((endedSrcPathname: string) => {
+    setCompanionInsightPlayback((p) => ({
+      generation: p.generation + 1,
+      endedSrc: endedSrcPathname,
+    }))
+  }, [])
 
   useEffect(() => {
     try {
@@ -248,13 +267,18 @@ export const LessonHubProvider: FC<{ children: ReactNode }> = ({ children }) => 
         audioSrc: opts.audioSrc,
         insightLabel: opts.label ?? 'Archimedes',
         insightRevision: (c.insightRevision ?? 0) + 1,
+        audioSessionId: (c.audioSessionId ?? 0) + 1,
       }))
     },
     [],
   )
 
   const clearCompanionAudio = useCallback(() => {
-    setCompanion((c) => ({ ...c, audioSrc: null }))
+    setCompanion((c) => ({
+      ...c,
+      audioSrc: null,
+      audioSessionId: (c.audioSessionId ?? 0) + 1,
+    }))
   }, [])
 
   const value = useMemo(
@@ -266,6 +290,9 @@ export const LessonHubProvider: FC<{ children: ReactNode }> = ({ children }) => 
       setCompanionBubbleOpen,
       triggerInsight,
       clearCompanionAudio,
+      insightPlaybackGeneration: companionInsightPlayback.generation,
+      lastCompanionInsightEndedSrc: companionInsightPlayback.endedSrc,
+      notifyInsightPlaybackEnded,
     }),
     [
       progress,
@@ -275,6 +302,9 @@ export const LessonHubProvider: FC<{ children: ReactNode }> = ({ children }) => 
       setCompanionBubbleOpen,
       triggerInsight,
       clearCompanionAudio,
+      companionInsightPlayback.generation,
+      companionInsightPlayback.endedSrc,
+      notifyInsightPlaybackEnded,
     ],
   )
 

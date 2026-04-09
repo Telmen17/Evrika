@@ -977,9 +977,12 @@ body.lesson-active {
   font-size: 0.74rem;
   line-height: 1.4;
   color: #4a2c16;
+  overflow: visible;
 }
 
 .weigh-mission-checklist-item--optional {
+  position: relative;
+  z-index: 0;
   color: #5c4428;
   font-size: 0.7rem;
 }
@@ -998,6 +1001,35 @@ body.lesson-active {
   color: #15803d;
   font-weight: 800;
   font-size: 0.82rem;
+}
+
+@keyframes weigh-mission-check-pop-in {
+  0% {
+    transform: scale(0.45);
+    opacity: 0.35;
+  }
+
+  58% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.weigh-mission-check--celebrate-in {
+  transform-origin: center center;
+  animation: weigh-mission-check-pop-in 0.52s cubic-bezier(0.33, 1.18, 0.52, 1) forwards;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weigh-mission-check--celebrate-in {
+    animation: none;
+  }
 }
 
 .weigh-mission-check--todo {
@@ -2977,7 +3009,7 @@ body.lesson-active {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0;
 }
 
 .journey-progress-track {
@@ -2986,6 +3018,30 @@ body.lesson-active {
   border-radius: 999px;
   background: rgba(58, 35, 13, 0.18);
   overflow: hidden;
+}
+
+/* Finish-line sparkle at the right end of the bar */
+.journey-progress-track::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  z-index: 2;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  margin-right: -2px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(255, 252, 235, 0.95) 0%,
+    rgba(232, 197, 71, 0.75) 35%,
+    rgba(184, 134, 11, 0.25) 55%,
+    transparent 72%
+  );
+  animation: journey-progress-end-glitter 1.35s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(232, 197, 71, 0.55);
 }
 
 .journey-progress-fill {
@@ -2998,14 +3054,64 @@ body.lesson-active {
   background: linear-gradient(90deg, #b8860b, #e8c547);
   border-radius: 999px;
   box-shadow: 0 0 10px rgba(184, 134, 11, 0.45);
+  overflow: visible;
 }
 
-.journey-progress-caption {
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgba(58, 35, 13, 0.72);
-  text-align: center;
+/* Leading-edge sparkle that moves with narration progress */
+.journey-progress-fill-gleam {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 14px;
+  height: 18px;
+  margin-top: -9px;
+  margin-right: -7px;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 30% 40%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 236, 160, 0.65) 28%,
+    rgba(232, 197, 71, 0.35) 52%,
+    transparent 72%
+  );
+  filter: blur(0.35px);
+  animation: journey-progress-fill-gleam-pulse 0.9s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes journey-progress-end-glitter {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes journey-progress-fill-gleam-pulse {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(0.88);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journey-progress-track::after,
+  .journey-progress-fill-gleam {
+    animation: none;
+    opacity: 0.85;
+  }
 }
 
 .journey-skip-btn {

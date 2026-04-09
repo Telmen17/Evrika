@@ -4,114 +4,53 @@ import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 import { useLessonHub } from '../context/LessonHubContext'
 
 export function ArchimedesCompanion() {
-  const { companion, setCompanionBubbleOpen } = useLessonHub()
+  const { companion, setCompanionBubbleOpen, notifyInsightPlaybackEnded } =
+    useLessonHub()
   const audioEnabled = useOptionalAudioEnabled()
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const companionAudioSrcRef = useRef<string | null>(null)
+  const latestAudioSessionRef = useRef(companion.audioSessionId)
+  latestAudioSessionRef.current = companion.audioSessionId
 
   useEffect(() => {
-    const insightRev = companion.insightRevision
+    const el = audioRef.current
+    if (!el) return
+    const sessionWhenAttached = companion.audioSessionId
+    const onEnded = () => {
+      if (sessionWhenAttached !== latestAudioSessionRef.current) {
+        return
+      }
+      let pathname = ''
+      try {
+        pathname = new URL(
+          el.currentSrc || el.src || '',
+          window.location.href,
+        ).pathname
+      } catch {
+        pathname = ''
+      }
+      notifyInsightPlaybackEnded(pathname)
+    }
+    el.addEventListener('ended', onEnded)
+    return () => el.removeEventListener('ended', onEnded)
+  }, [companion.audioSessionId, notifyInsightPlaybackEnded])
+
+  useEffect(() => {
     const el = audioRef.current
     if (!companion.audioSrc) {
       companionAudioSrcRef.current = null
       el?.pause()
       return
     }
-    if (!el) {
-      // #region agent log
-      fetch('http://127.0.0.1:7631/ingest/6127e0e1-bb22-4c3e-a1d4-6da855fa1c05', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Debug-Session-Id': '6e0570',
-        },
-        body: JSON.stringify({
-          sessionId: '6e0570',
-          runId: 'post-fix',
-          hypothesisId: 'H5',
-          location: 'ArchimedesCompanion.tsx:audio',
-          message: 'no audio element ref',
-          data: { audioSrc: companion.audioSrc, audioEnabled },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-      // #endregion
-      return
-    }
+    if (!el) return
 
     const src = companion.audioSrc
     const tryPlay = () => {
+      el.muted = !audioEnabled
       el.volume = audioEnabled ? 1 : 0
-      if (!audioEnabled) {
-        // #region agent log
-        fetch('http://127.0.0.1:7631/ingest/6127e0e1-bb22-4c3e-a1d4-6da855fa1c05', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Debug-Session-Id': '6e0570',
-          },
-          body: JSON.stringify({
-            sessionId: '6e0570',
-            runId: 'post-fix',
-            hypothesisId: 'H4',
-            location: 'ArchimedesCompanion.tsx:audio',
-            message: 'audio skipped (muted)',
-            data: { audioSrc: src, audioEnabled },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {})
-        // #endregion
-        el.pause()
-        return
-      }
       el.currentTime = 0
-      void el.play().then(() => {
-        // #region agent log
-        fetch('http://127.0.0.1:7631/ingest/6127e0e1-bb22-4c3e-a1d4-6da855fa1c05', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Debug-Session-Id': '6e0570',
-          },
-          body: JSON.stringify({
-            sessionId: '6e0570',
-            runId: 'post-fix',
-            hypothesisId: 'H5',
-            location: 'ArchimedesCompanion.tsx:audio',
-            message: 'play() resolved',
-            data: {
-              audioSrc: src,
-              audioEnabled,
-              readyState: el.readyState,
-              revision: insightRev,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {})
-        // #endregion
-      }).catch((err: unknown) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7631/ingest/6127e0e1-bb22-4c3e-a1d4-6da855fa1c05', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Debug-Session-Id': '6e0570',
-          },
-          body: JSON.stringify({
-            sessionId: '6e0570',
-            runId: 'post-fix',
-            hypothesisId: 'H5',
-            location: 'ArchimedesCompanion.tsx:audio',
-            message: 'play() rejected',
-            data: {
-              audioSrc: src,
-              audioEnabled,
-              err: err instanceof Error ? err.message : String(err),
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {})
-        // #endregion
+      void el.play().catch(() => {
+        /* autoplay / decode blocked */
       })
     }
 
@@ -136,7 +75,12 @@ export function ArchimedesCompanion() {
       el.removeEventListener('canplay', onCanPlay)
       el.pause()
     }
-  }, [companion.audioSrc, companion.insightRevision, audioEnabled])
+  }, [
+    companion.audioSrc,
+    companion.insightRevision,
+    companion.audioSessionId,
+    audioEnabled,
+  ])
 
   return (
     <div className="archimedes-companion" aria-live="polite">

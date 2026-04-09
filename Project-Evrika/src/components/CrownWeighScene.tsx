@@ -1,9 +1,9 @@
-import type { FC } from 'react'
+import type { AnimationEvent, FC } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SceneId } from './LandingPage'
 import crownSvg from '../assets/crown.svg'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
-import { DEFAULT_LESSON_PROGRESS, useLessonHub } from '../context/LessonHubContext'
+import { useLessonHub } from '../context/LessonHubContext'
 
 type PanSide = 'left' | 'right'
 export type ScaleItemId =
@@ -138,12 +138,30 @@ const CROWN_MASS_G = 2000
 const LUMP_MASS_G = 2000
 /** Plays once when crown and lump sit on opposite pans and the beam levels (equal-weight clue). */
 const VOICE_CROWN_VS_LUMP_SRC = '/audio/archimedes-crown-match.mp3'
+
+/**
+ * When true: lump VO never runs until `scale_conclusion2` has fully ended in this session (or was
+ * already completed in saved progress). After crown audio ends while vs-lump is balanced, the player
+ * must break that balance once and re-level before lump VO can fire.
+ */
+const GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE = true
 /** Plays once when the crown is physically balanced against known masses (beam level, correct counterweight). */
 const VOICE_CROWN_BALANCED_SRC = '/audio/scale_conclusion2.mp3'
 const INSIGHT_TEXT_BALANCE =
   "Hmm, it seems like the blacksmith made the golden crown weigh exactly the same as the gold given to him by the king. There should be another way to solve this."
 const INSIGHT_TEXT_CROWN_ANSWER =
   "The crown has weight. That much is certain. But a dishonest goldsmith knows how to match a number on a scale. Mass is a clue, not a conclusion. The secret of what lies inside the crown still waits to be uncovered."
+
+function companionEndedPathMatchesInsight(pathname: string, appSrc: string) {
+  if (!pathname || !appSrc) return false
+  const tail = appSrc.replace(/^\//, '')
+  return (
+    pathname === appSrc ||
+    pathname.endsWith(appSrc) ||
+    pathname.endsWith(tail) ||
+    pathname.includes(tail)
+  )
+}
 
 const MASS_KG: Record<ScaleItemId, number> = {
   crown: 2.0,
@@ -234,6 +252,8 @@ interface CrownWeighSceneProps {
 
 type WeighMissionPhase = 'crown' | 'lump' | 'done'
 
+type MissionCheckCelebrate = 'crown' | 'optional' | 'lump' | null
+
 function rotatePoint(
   centerX: number,
   centerY: number,
@@ -298,7 +318,13 @@ function sumPanPhysicsMass(
 }
 
 const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) => {
-  const { progress, patchProgress, triggerInsight } = useLessonHub()
+  const {
+    progress,
+    patchProgress,
+    triggerInsight,
+    insightPlaybackGeneration,
+    lastCompanionInsightEndedSrc,
+  } = useLessonHub()
   const progressWeighRef = useRef(progress.weigh)
   progressWeighRef.current = progress.weigh
 
@@ -314,6 +340,31 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
   /** Single source of truth with hub progress (avoids local vs localStorage desync on room remount). */
   const weighPhase: WeighMissionPhase = progress.weigh.weighPhase
   const crownWeighSceneRef = useRef<HTMLDivElement>(null)
+  const [celebrateCheck, setCelebrateCheck] = useState<MissionCheckCelebrate>(null)
+  const prevPlayedBalanceInsightRef = useRef(progress.weigh.playedBalanceInsight)
+  /** Blocks duplicate crown-answer trigger before progress.playedCrownAnswerInsight commits. */
+  const crownAnswerInsightGateRef = useRef(false)
+  /** True after crown-answer insight queued until scale_conclusion2 fires a valid `ended`. */
+  const pendingCrownAnswerAudioRef = useRef(false)
+  /** True after balance (crown vs lump) insight queued until archimedes-crown-match fires a valid `ended`. */
+  const pendingBalanceAudioRef = useRef(false)
+  /**
+   * True only after `scale_conclusion2` fires `ended`, or on first mount if crown answer was already
+   * in saved progress (never flip true from a fresh `playedCrownAnswerInsight` patch — that was causing lump VO during crown audio).
+   */
+  const scaleConclusion2PlaybackCompleteRef = useRef(false)
+  /** From first render only — distinguishes "returning player" vs crown answer earned this session. */
+  const initialPlayedCrownAnswerInsightRef = useRef(
+    progress.weigh.playedCrownAnswerInsight,
+  )
+  /**
+   * When true, vs-lump insight is blocked until `hasCrownVersusLumpBalance` becomes false (player moves the scale).
+   * Set when crown answer audio ends while already vs-balanced, or on restore when save matches that situation.
+   */
+  const lumpVoRequiresBreakVersusBalanceRef = useRef(false)
+  const restoreLumpRearmAppliedRef = useRef(false)
+  const prevInsightPlaybackGenRef = useRef<number | null>(null)
+  const prevWeighPhaseCelebrateRef = useRef<WeighMissionPhase>(weighPhase)
   const [physicsSnapshot, setPhysicsSnapshot] = useState<PhysicsSnapshot>({
     beamAngle: 0,
     leftPan: {
@@ -381,7 +432,11 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     lumpCounterPan === 'left' ? leftPanItems : lumpCounterPan === 'right' ? rightPanItems : []
   const lumpCounterMass =
     lumpCounterPan === 'left' ? leftMass : lumpCounterPan === 'right' ? rightMass : 0
+  /** Tight: mission “submit” checks (crown/lump vs known masses). */
   const beamIsLevel = Math.abs(physicsSnapshot.beamAngle) < 0.045
+  /** Looser: optional crown-vs-lump equal-weight clue — physics often hovers past 0.045 rad briefly. */
+  const beamLevelForVersusClue =
+    Math.abs(physicsSnapshot.beamAngle) < 0.12
   const measuredMassMatchesCrown = Math.abs(counterMass - MASS_KG.crown) < 0.001
   const measuredMassMatchesLump = Math.abs(lumpCounterMass - MASS_KG.goldLump) < 0.001
   const hasSolvedMeasurement =
@@ -410,14 +465,22 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     counterPan !== null &&
     counterPanItems.length > 0 &&
     counterPanItems.every((item) => item.type !== 'crown')
-  /** Lump phase: show balance line, pan colors, and gram readout when the lump is on one side and the other has at least one item that is not the lump (crown may still be on the scale from the prior step). */
+  /** Lump phase: show line, pan colors, and gram total under the opposite pan as soon as the lump is placed.
+   * Empty opposite pan → readout "0 g" and unbalanced styling until weights are added (no longer gated on counter.length > 0). */
   const lumpBalanceUiActive =
     weighPhase === 'lump' &&
     goldLumpPan !== null &&
     lumpCounterPan !== null &&
-    lumpCounterPanItems.length > 0 &&
     lumpCounterPanItems.every((item) => item.type !== 'goldLump')
   const showLumpCounterReadout = lumpBalanceUiActive
+  const calibrationOnScale = placedItems.some(
+    (item) =>
+      item.type === 'goldBar' ||
+      item.type === 'silverBar' ||
+      item.type === 'mass100' ||
+      item.type === 'mass200' ||
+      item.type === 'mass300',
+  )
   const versusOpposedSetup = useMemo(() => {
     const l = placedItems.filter((i) => i.pan === 'left').map((i) => i.type)
     const r = placedItems.filter((i) => i.pan === 'right').map((i) => i.type)
@@ -434,7 +497,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
   }, [placedItems])
   const hasCrownVersusLumpBalance =
     versusOpposedSetup &&
-    beamIsLevel &&
+    beamLevelForVersusClue &&
     Math.abs(leftMass - rightMass) < 0.002
   const versusPanState = !versusOpposedSetup
     ? 'idle'
@@ -453,9 +516,13 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
       : 'unbalanced'
   const activePanBalanceState =
     weighPhase === 'lump' ? lumpScaleBalanceState : scaleBalanceState
-  const panStateForColor = versusOpposedSetup
-    ? versusPanState
-    : activePanBalanceState
+  /** During lump phase, if any known mass is on the scale, use lump-vs-weights coloring — not the optional crown-vs-lump-only cue. */
+  const panStateForColor =
+    weighPhase === 'lump' && calibrationOnScale
+      ? lumpScaleBalanceState
+      : versusOpposedSetup
+        ? versusPanState
+        : activePanBalanceState
   const showLevelGuide =
     (weighPhase === 'crown' && showCrownCounterReadout) ||
     (weighPhase === 'lump' && showLumpCounterReadout) ||
@@ -463,70 +530,114 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
   const checklistCrownDone =
     weighPhase === 'lump' || weighPhase === 'done'
   const checklistLumpDone = weighPhase === 'done'
-  const checklistBalanceClueDone = hasCrownVersusLumpBalance
+  /** Once the optional clue is discovered, stay checked (clearing pans must not uncheck). */
+  const checklistBalanceClueDone = progress.weigh.playedBalanceInsight
 
-  // #region agent log
-  const lumpDiagSigRef = useRef('')
-  const lumpDiagLastRef = useRef(0)
   useEffect(() => {
-    const leftT = leftPanItems.map((i) => i.type).join(',')
-    const rightT = rightPanItems.map((i) => i.type).join(',')
-    const sig = `${weighPhase}|${progress.weigh.weighPhase}|${lumpBalanceUiActive}|${showLevelGuide}|${goldLumpPan}|${lumpCounterPan}|${leftT}|${rightT}`
-    const now = Date.now()
-    const phaseMismatch = progress.weigh.weighPhase !== weighPhase
-    const lumpRelevant = weighPhase === 'lump' || progress.weigh.weighPhase === 'lump'
-    if (!lumpRelevant && !phaseMismatch) return
-    if (now - lumpDiagLastRef.current < 450 && sig === lumpDiagSigRef.current) return
-    lumpDiagSigRef.current = sig
-    lumpDiagLastRef.current = now
-    fetch('http://127.0.0.1:7631/ingest/6127e0e1-bb22-4c3e-a1d4-6da855fa1c05', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '6e0570',
-      },
-      body: JSON.stringify({
-        sessionId: '6e0570',
-        runId: 'post-fix',
-        hypothesisId: 'H1-H3',
-        location: 'CrownWeighScene.tsx:lumpDiag',
-        message: 'weigh/lump UI snapshot',
-        data: {
-          weighPhase,
-          progressWeighPhase: progress.weigh.weighPhase,
-          phaseMismatch,
-          runIdNote: 'post-fix-weighPhase-source',
-          goldLumpPan,
-          lumpCounterPan,
-          lumpBalanceUiActive,
-          showLevelGuide,
-          versusOpposedSetup,
-          panStateForColor,
-          lumpScaleBalanceState,
-          scaleBalanceState,
-          leftTypes: leftT,
-          rightTypes: rightT,
-          beamIsLevel,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
+    if (progress.weigh.playedCrownAnswerInsight) crownAnswerInsightGateRef.current = true
+  }, [progress.weigh.playedCrownAnswerInsight])
+
+  useEffect(() => {
+    if (initialPlayedCrownAnswerInsightRef.current) {
+      scaleConclusion2PlaybackCompleteRef.current = true
+      pendingCrownAnswerAudioRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE) return
+    if (progress.weigh.playedCrownAnswerInsight) {
+      scaleConclusion2PlaybackCompleteRef.current = true
+      pendingCrownAnswerAudioRef.current = false
+    }
+  }, [progress.weigh.playedCrownAnswerInsight])
+
+  useEffect(() => {
+    if (progress.weigh.playedBalanceInsight) {
+      pendingBalanceAudioRef.current = false
+    }
+  }, [progress.weigh.playedBalanceInsight])
+
+  /** Saved game: crown answer was already heard; optional lump VO not done; layout loads already vs-balanced → require a wiggle. */
+  useEffect(() => {
+    if (!GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE) return
+    if (restoreLumpRearmAppliedRef.current) return
+    if (!initialPlayedCrownAnswerInsightRef.current) return
+    if (progress.weigh.playedBalanceInsight) return
+    if (!hasCrownVersusLumpBalance) return
+    restoreLumpRearmAppliedRef.current = true
+    lumpVoRequiresBreakVersusBalanceRef.current = true
+  }, [hasCrownVersusLumpBalance, progress.weigh.playedBalanceInsight])
+
+  /** After crown audio ends while balanced, or restore above: clear gate only when player leaves vs-lump balance. */
+  useEffect(() => {
+    if (!GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE) return
+    if (!hasCrownVersusLumpBalance && lumpVoRequiresBreakVersusBalanceRef.current) {
+      lumpVoRequiresBreakVersusBalanceRef.current = false
+    }
+  }, [hasCrownVersusLumpBalance])
+
+  useEffect(() => {
+    if (prevInsightPlaybackGenRef.current === null) {
+      prevInsightPlaybackGenRef.current = insightPlaybackGeneration
+      return
+    }
+    if (insightPlaybackGeneration === prevInsightPlaybackGenRef.current) return
+    prevInsightPlaybackGenRef.current = insightPlaybackGeneration
+
+    const path = lastCompanionInsightEndedSrc
+    const crownAnswerEnded = companionEndedPathMatchesInsight(
+      path,
+      VOICE_CROWN_BALANCED_SRC,
+    )
+    const balanceClueEnded = companionEndedPathMatchesInsight(
+      path,
+      VOICE_CROWN_VS_LUMP_SRC,
+    )
+
+    if (crownAnswerEnded) {
+      pendingCrownAnswerAudioRef.current = false
+      scaleConclusion2PlaybackCompleteRef.current = true
+      if (GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE) {
+        if (hasCrownVersusLumpBalance) {
+          lumpVoRequiresBreakVersusBalanceRef.current = true
+        } else {
+          lumpVoRequiresBreakVersusBalanceRef.current = false
+        }
+      }
+    }
+    if (balanceClueEnded) {
+      pendingBalanceAudioRef.current = false
+    }
   }, [
-    weighPhase,
-    progress.weigh.weighPhase,
-    lumpBalanceUiActive,
-    showLevelGuide,
-    goldLumpPan,
-    lumpCounterPan,
-    versusOpposedSetup,
-    panStateForColor,
-    lumpScaleBalanceState,
-    scaleBalanceState,
-    leftPanItems,
-    rightPanItems,
-    beamIsLevel,
+    insightPlaybackGeneration,
+    lastCompanionInsightEndedSrc,
+    hasCrownVersusLumpBalance,
   ])
-  // #endregion
+
+  useEffect(() => {
+    const prev = prevWeighPhaseCelebrateRef.current
+    if (prev === 'crown' && (weighPhase === 'lump' || weighPhase === 'done')) {
+      setCelebrateCheck('crown')
+    } else if (prev === 'lump' && weighPhase === 'done') {
+      setCelebrateCheck('lump')
+    }
+    prevWeighPhaseCelebrateRef.current = weighPhase
+  }, [weighPhase])
+
+  useEffect(() => {
+    const prev = prevPlayedBalanceInsightRef.current
+    if (progress.weigh.playedBalanceInsight && !prev) {
+      setCelebrateCheck('optional')
+    }
+    prevPlayedBalanceInsightRef.current = progress.weigh.playedBalanceInsight
+  }, [progress.weigh.playedBalanceInsight])
+
+  const handleMissionCheckAnimEnd = useCallback((e: AnimationEvent<HTMLSpanElement>) => {
+    if (e.animationName === 'weigh-mission-check-pop-in') {
+      setCelebrateCheck(null)
+    }
+  }, [])
 
   const saveWeighLayout = useCallback(() => {
     const rt = runtimeRef.current
@@ -545,22 +656,18 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
   }, [patchProgress])
 
   useEffect(() => {
-    if (!hasCrownVersusLumpBalance || progress.weigh.playedBalanceInsight) return
-    patchProgress({ weigh: { playedBalanceInsight: true } })
-    triggerInsight({
-      kind: 'balance',
-      transcript: INSIGHT_TEXT_BALANCE,
-      audioSrc: VOICE_CROWN_VS_LUMP_SRC,
-    })
-  }, [
-    hasCrownVersusLumpBalance,
-    progress.weigh.playedBalanceInsight,
-    patchProgress,
-    triggerInsight,
-  ])
-
-  useEffect(() => {
-    if (!hasSolvedMeasurement || progress.weigh.playedCrownAnswerInsight) return
+    if (
+      !hasSolvedMeasurement ||
+      progress.weigh.playedCrownAnswerInsight ||
+      crownAnswerInsightGateRef.current
+    ) {
+      return
+    }
+    if (pendingBalanceAudioRef.current) {
+      return
+    }
+    crownAnswerInsightGateRef.current = true
+    pendingCrownAnswerAudioRef.current = true
     patchProgress({ weigh: { playedCrownAnswerInsight: true } })
     triggerInsight({
       kind: 'crownAnswer',
@@ -570,6 +677,39 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
   }, [
     hasSolvedMeasurement,
     progress.weigh.playedCrownAnswerInsight,
+    patchProgress,
+    triggerInsight,
+  ])
+
+  useEffect(() => {
+    if (!hasCrownVersusLumpBalance || progress.weigh.playedBalanceInsight) return
+    if (
+      GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE &&
+      !scaleConclusion2PlaybackCompleteRef.current
+    ) {
+      return
+    }
+    if (
+      GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE &&
+      lumpVoRequiresBreakVersusBalanceRef.current
+    ) {
+      return
+    }
+    if (hasSolvedMeasurement && pendingCrownAnswerAudioRef.current) {
+      return
+    }
+    pendingBalanceAudioRef.current = true
+    patchProgress({ weigh: { playedBalanceInsight: true } })
+    triggerInsight({
+      kind: 'balance',
+      transcript: INSIGHT_TEXT_BALANCE,
+      audioSrc: VOICE_CROWN_VS_LUMP_SRC,
+    })
+  }, [
+    hasCrownVersusLumpBalance,
+    hasSolvedMeasurement,
+    progress.weigh.playedBalanceInsight,
+    insightPlaybackGeneration,
     patchProgress,
     triggerInsight,
   ])
@@ -1010,13 +1150,6 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     saveWeighLayout()
   }, [saveWeighLayout])
 
-  const resetScaleToStart = useCallback(() => {
-    clearPans()
-    setMassGuess('')
-    setMassCheckFeedback('')
-    patchProgress({ weigh: { ...DEFAULT_LESSON_PROGRESS.weigh } })
-  }, [clearPans, patchProgress])
-
   function handleDragStart(e: React.DragEvent, id: ScaleItemId) {
     if (id === 'crown' && !crownInPool) {
       e.preventDefault()
@@ -1126,7 +1259,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
         </div>
       </div>
       <p className="helper-text scale-toolset-hint">
-        Drag items into a bowl. Click an item inside a bowl to remove it.
+        Drag items into a bowl. Click an item inside a bowl to remove it. Use the circular reset control under the scale to clear both pans and level the beam.
       </p>
       <div className="scale-toolset-items">
         {(
@@ -1158,15 +1291,6 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
           )
         })}
       </div>
-      <div className="scale-toolset-actions">
-        <button
-          type="button"
-          className="link-button"
-          onClick={clearPans}
-        >
-          Clear pans
-        </button>
-      </div>
     </div>
   )
 
@@ -1191,8 +1315,9 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
               <li className="weigh-mission-checklist-item">
                 {checklistCrownDone ? (
                   <span
-                    className="weigh-mission-check weigh-mission-check--done"
+                    className={`weigh-mission-check weigh-mission-check--done${celebrateCheck === 'crown' ? ' weigh-mission-check--celebrate-in' : ''}`}
                     aria-hidden
+                    onAnimationEnd={handleMissionCheckAnimEnd}
                   >
                     ✓
                   </span>
@@ -1209,8 +1334,9 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
               <li className="weigh-mission-checklist-item weigh-mission-checklist-item--optional">
                 {checklistBalanceClueDone ? (
                   <span
-                    className="weigh-mission-check weigh-mission-check--done"
+                    className={`weigh-mission-check weigh-mission-check--done${celebrateCheck === 'optional' ? ' weigh-mission-check--celebrate-in' : ''}`}
                     aria-hidden
+                    onAnimationEnd={handleMissionCheckAnimEnd}
                   >
                     ✓
                   </span>
@@ -1227,8 +1353,9 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
               <li className="weigh-mission-checklist-item">
                 {checklistLumpDone ? (
                   <span
-                    className="weigh-mission-check weigh-mission-check--done"
+                    className={`weigh-mission-check weigh-mission-check--done${celebrateCheck === 'lump' ? ' weigh-mission-check--celebrate-in' : ''}`}
                     aria-hidden
+                    onAnimationEnd={handleMissionCheckAnimEnd}
                   >
                     ✓
                   </span>
@@ -1469,10 +1596,10 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
             <button
               type="button"
               className="crown-scale-reset-button"
-              onClick={resetScaleToStart}
+              onClick={clearPans}
               disabled={!matterReady}
-              aria-label="Reset scale: clear both bowls, level the beam, and restart the weighing mission"
-              title="Reset scale — clear pans, level beam, start the mission over"
+              aria-label="Clear both bowls and level the beam"
+              title="Clear scale — empty both pans and level the beam (mission progress is kept)"
             >
               <svg
                 className="crown-scale-reset-button-icon"

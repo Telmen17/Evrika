@@ -1,6 +1,5 @@
 import type { FC } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import type { SceneId } from './LandingPage'
 import archimedesImg from '../assets/archimedes.png'
@@ -85,8 +84,6 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
   const [index, setIndex] = useState(0)
   const beat = beats[index]
   const visibleActors = useMemo(() => new Set(beat.visibleActors), [beat.visibleActors])
-  const audioEnabled = useOptionalAudioEnabled()
-
   const onIntroClipEnded = useCallback(() => {
     setIndex((prev) => {
       if (prev >= beats.length - 1) return prev
@@ -203,9 +200,13 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
         <div
           className="journey-progress-wrap"
           title={
-            isLast
-              ? 'Narration progress for this scene'
-              : 'Bar tracks voice — mute only affects sound, not timing. Skip with arrows.'
+            duration > 0 && Number.isFinite(duration)
+              ? `Narration: ${Math.round(currentTime)} / ${Math.round(duration)} s${
+                  isLast ? ' — when complete, use → to enter the workshop.' : ''
+                }`
+              : isLast
+                ? 'Narration progress — when complete, use → to enter the workshop.'
+                : 'Narration progress — bar follows voice timing; mute is volume only.'
           }
         >
           <div
@@ -226,15 +227,12 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
             <div
               className="journey-progress-fill"
               style={{ transform: `scaleX(${timeline01})` }}
-            />
+            >
+              {timeline01 > 0.02 ? (
+                <span className="journey-progress-fill-gleam" aria-hidden />
+              ) : null}
+            </div>
           </div>
-          <span className="journey-progress-caption">
-            {isLast
-              ? 'When the bar finishes, tap → to enter the workshop'
-              : audioEnabled
-                ? 'Bar follows the voice — mute is volume only'
-                : 'Sound off — bar still follows the narration timing'}
-          </span>
         </div>
         {isLast ? (
           <div className="journey-final-cta">
