@@ -775,6 +775,11 @@ body.lesson-active {
   background: radial-gradient(circle at 30% 20%, #f7e4b9, #d7b77c 60%, #3b2414 100%);
 }
 
+/* Scale readouts sit just below pans — allow them to paint past the canvas edge */
+.crown-weigh-panel.experiment-canvas {
+  overflow: visible;
+}
+
 /* Crown weighing scene – physics-driven scale with stand, rod, strings, pans */
 
 .crown-weigh-scene {
@@ -1524,6 +1529,7 @@ body.lesson-active {
   flex-direction: column;
   align-items: center;
   gap: 0.65rem;
+  padding-bottom: 0.5rem;
 }
 
 .crown-scale-reset-button {
@@ -1596,7 +1602,7 @@ body.lesson-active {
 
 .crown-scale-stage {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 18px;
   border: 1px solid rgba(146, 92, 28, 0.35);
   background:
@@ -1667,7 +1673,7 @@ body.lesson-active {
   height: 0;
   border-top: 3px dashed rgba(146, 92, 28, 0.45);
   transform: translate(-50%, -50%);
-  z-index: 2;
+  z-index: 8;
   pointer-events: none;
   opacity: 0.95;
 }
@@ -1814,6 +1820,7 @@ body.lesson-active {
   text-align: center;
   box-shadow: 0 6px 14px rgba(82, 50, 14, 0.12);
   pointer-events: none;
+  z-index: 9;
 }
 
 /* Crown melting scene */
@@ -5520,7 +5527,8 @@ body.lesson-active {
 /* Weigh room: fill hub viewport; scroll only the left column (wide layouts). */
 @media (min-width: 961px) {
   .hub-room-content:has(> .crown-weigh-scene) {
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     align-items: stretch;
     min-height: 0;
   }
@@ -5528,7 +5536,7 @@ body.lesson-active {
   .hub-room-content > .crown-weigh-scene {
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
     padding-top: 0.35rem;
   }
 
@@ -5553,8 +5561,9 @@ body.lesson-active {
   .hub-room-content > .crown-weigh-scene .crown-weigh-panel {
     min-height: 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    padding-bottom: 1.75rem;
   }
 }
 

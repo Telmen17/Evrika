@@ -138,8 +138,8 @@ const CROWN_MASS_G = 2000
 const LUMP_MASS_G = 2000
 /** Plays once when crown and lump sit on opposite pans and the beam levels (equal-weight clue). */
 const VOICE_CROWN_VS_LUMP_SRC = '/audio/archimedes-crown-match.mp3'
-/** Plays once when the player submits the correct crown mass in the input. */
-const VOICE_CROWN_MASS_ENTERED_SRC = '/audio/scale_conclusion-2.mp3'
+/** Plays once when the crown is physically balanced against known masses (beam level, correct counterweight). */
+const VOICE_CROWN_BALANCED_SRC = '/audio/scale_conclusion2.mp3'
 const INSIGHT_TEXT_BALANCE =
   "Hmm, it seems like the blacksmith made the golden crown weigh exactly the same as the gold given to him by the king. There should be another way to solve this."
 const INSIGHT_TEXT_CROWN_ANSWER =
@@ -311,9 +311,8 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
   const [massCheckFeedback, setMassCheckFeedback] = useState(
     () => progress.weigh.massCheckFeedback,
   )
-  const [weighPhase, setWeighPhase] = useState<WeighMissionPhase>(
-    () => progress.weigh.weighPhase,
-  )
+  /** Single source of truth with hub progress (avoids local vs localStorage desync on room remount). */
+  const weighPhase: WeighMissionPhase = progress.weigh.weighPhase
   const crownWeighSceneRef = useRef<HTMLDivElement>(null)
   const [physicsSnapshot, setPhysicsSnapshot] = useState<PhysicsSnapshot>({
     beamAngle: 0,
@@ -404,13 +403,21 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     counterPan !== null &&
     counterPanItems.length > 0 &&
     counterPanItems.every((item) => item.type !== 'crown')
-  const canRevealLumpCounter =
+  /** Gram total under the known-mass bowl — show as soon as that side has weights (even if crown pan is not yet “alone”). */
+  const showCrownCounterReadout =
+    weighPhase === 'crown' &&
+    crownPan !== null &&
+    counterPan !== null &&
+    counterPanItems.length > 0 &&
+    counterPanItems.every((item) => item.type !== 'crown')
+  /** Lump phase: show balance line, pan colors, and gram readout when the lump is on one side and the other has at least one item that is not the lump (crown may still be on the scale from the prior step). */
+  const lumpBalanceUiActive =
     weighPhase === 'lump' &&
     goldLumpPan !== null &&
-    lumpIsAlone &&
     lumpCounterPan !== null &&
     lumpCounterPanItems.length > 0 &&
-    lumpCounterPanItems.every((item) => item.type !== 'goldLump' && item.type !== 'crown')
+    lumpCounterPanItems.every((item) => item.type !== 'goldLump')
+  const showLumpCounterReadout = lumpBalanceUiActive
   const versusOpposedSetup = useMemo(() => {
     const l = placedItems.filter((i) => i.pan === 'left').map((i) => i.type)
     const r = placedItems.filter((i) => i.pan === 'right').map((i) => i.type)
@@ -439,7 +446,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     : hasSolvedMeasurement
       ? 'balanced'
       : 'unbalanced'
-  const lumpScaleBalanceState = !canRevealLumpCounter
+  const lumpScaleBalanceState = !lumpBalanceUiActive
     ? 'idle'
     : hasSolvedLumpMeasurement
       ? 'balanced'
@@ -450,13 +457,76 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     ? versusPanState
     : activePanBalanceState
   const showLevelGuide =
-    (weighPhase === 'crown' && canRevealCounterMass) ||
-    (weighPhase === 'lump' && canRevealLumpCounter) ||
+    (weighPhase === 'crown' && showCrownCounterReadout) ||
+    (weighPhase === 'lump' && showLumpCounterReadout) ||
     versusOpposedSetup
   const checklistCrownDone =
     weighPhase === 'lump' || weighPhase === 'done'
   const checklistLumpDone = weighPhase === 'done'
   const checklistBalanceClueDone = hasCrownVersusLumpBalance
+
+  // #region agent log
+  const lumpDiagSigRef = useRef('')
+  const lumpDiagLastRef = useRef(0)
+  useEffect(() => {
+    const leftT = leftPanItems.map((i) => i.type).join(',')
+    const rightT = rightPanItems.map((i) => i.type).join(',')
+    const sig = `${weighPhase}|${progress.weigh.weighPhase}|${lumpBalanceUiActive}|${showLevelGuide}|${goldLumpPan}|${lumpCounterPan}|${leftT}|${rightT}`
+    const now = Date.now()
+    const phaseMismatch = progress.weigh.weighPhase !== weighPhase
+    const lumpRelevant = weighPhase === 'lump' || progress.weigh.weighPhase === 'lump'
+    if (!lumpRelevant && !phaseMismatch) return
+    if (now - lumpDiagLastRef.current < 450 && sig === lumpDiagSigRef.current) return
+    lumpDiagSigRef.current = sig
+    lumpDiagLastRef.current = now
+    fetch('http://127.0.0.1:7631/ingest/6127e0e1-bb22-4c3e-a1d4-6da855fa1c05', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '6e0570',
+      },
+      body: JSON.stringify({
+        sessionId: '6e0570',
+        runId: 'post-fix',
+        hypothesisId: 'H1-H3',
+        location: 'CrownWeighScene.tsx:lumpDiag',
+        message: 'weigh/lump UI snapshot',
+        data: {
+          weighPhase,
+          progressWeighPhase: progress.weigh.weighPhase,
+          phaseMismatch,
+          runIdNote: 'post-fix-weighPhase-source',
+          goldLumpPan,
+          lumpCounterPan,
+          lumpBalanceUiActive,
+          showLevelGuide,
+          versusOpposedSetup,
+          panStateForColor,
+          lumpScaleBalanceState,
+          scaleBalanceState,
+          leftTypes: leftT,
+          rightTypes: rightT,
+          beamIsLevel,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+  }, [
+    weighPhase,
+    progress.weigh.weighPhase,
+    lumpBalanceUiActive,
+    showLevelGuide,
+    goldLumpPan,
+    lumpCounterPan,
+    versusOpposedSetup,
+    panStateForColor,
+    lumpScaleBalanceState,
+    scaleBalanceState,
+    leftPanItems,
+    rightPanItems,
+    beamIsLevel,
+  ])
+  // #endregion
 
   const saveWeighLayout = useCallback(() => {
     const rt = runtimeRef.current
@@ -490,8 +560,19 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
   ])
 
   useEffect(() => {
-    patchProgress({ weigh: { weighPhase } })
-  }, [weighPhase, patchProgress])
+    if (!hasSolvedMeasurement || progress.weigh.playedCrownAnswerInsight) return
+    patchProgress({ weigh: { playedCrownAnswerInsight: true } })
+    triggerInsight({
+      kind: 'crownAnswer',
+      transcript: INSIGHT_TEXT_CROWN_ANSWER,
+      audioSrc: VOICE_CROWN_BALANCED_SRC,
+    })
+  }, [
+    hasSolvedMeasurement,
+    progress.weigh.playedCrownAnswerInsight,
+    patchProgress,
+    triggerInsight,
+  ])
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -519,16 +600,8 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
         return
       }
       if (Math.abs(parsed - CROWN_MASS_G) < 0.5) {
-        if (!progress.weigh.playedCrownAnswerInsight) {
-          patchProgress({ weigh: { playedCrownAnswerInsight: true } })
-          triggerInsight({
-            kind: 'crownAnswer',
-            transcript: INSIGHT_TEXT_CROWN_ANSWER,
-            audioSrc: VOICE_CROWN_MASS_ENTERED_SRC,
-          })
-        }
         setMassGuess('')
-        setWeighPhase('lump')
+        patchProgress({ weigh: { weighPhase: 'lump' } })
         setMassCheckFeedback('Correct. Now weigh the unlabeled lump of gold the same way.')
         return
       }
@@ -543,7 +616,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
       }
       if (Math.abs(parsed - LUMP_MASS_G) < 0.5) {
         setMassGuess('')
-        setWeighPhase('done')
+        patchProgress({ weigh: { weighPhase: 'done' } })
         setMassCheckFeedback('Correct. You can explore other rooms from the bar below.')
         return
       }
@@ -939,7 +1012,6 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
 
   const resetScaleToStart = useCallback(() => {
     clearPans()
-    setWeighPhase('crown')
     setMassGuess('')
     setMassCheckFeedback('')
     patchProgress({ weigh: { ...DEFAULT_LESSON_PROGRESS.weigh } })
@@ -1349,7 +1421,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                     {renderPanItems('right')}
                   </div>
                 </div>
-                {weighPhase === 'crown' && canRevealCounterMass && counterPan === 'left' ? (
+                {weighPhase === 'crown' && showCrownCounterReadout && counterPan === 'left' ? (
                   <div
                     className="crown-scale-counter-total"
                     style={{
@@ -1360,7 +1432,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                     {(leftMass * 1000).toFixed(0)} g
                   </div>
                 ) : null}
-                {weighPhase === 'crown' && canRevealCounterMass && counterPan === 'right' ? (
+                {weighPhase === 'crown' && showCrownCounterReadout && counterPan === 'right' ? (
                   <div
                     className="crown-scale-counter-total"
                     style={{
@@ -1371,7 +1443,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                     {(rightMass * 1000).toFixed(0)} g
                   </div>
                 ) : null}
-                {weighPhase === 'lump' && canRevealLumpCounter && lumpCounterPan === 'left' ? (
+                {weighPhase === 'lump' && showLumpCounterReadout && lumpCounterPan === 'left' ? (
                   <div
                     className="crown-scale-counter-total"
                     style={{
@@ -1382,7 +1454,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                     {(leftMass * 1000).toFixed(0)} g
                   </div>
                 ) : null}
-                {weighPhase === 'lump' && canRevealLumpCounter && lumpCounterPan === 'right' ? (
+                {weighPhase === 'lump' && showLumpCounterReadout && lumpCounterPan === 'right' ? (
                   <div
                     className="crown-scale-counter-total"
                     style={{

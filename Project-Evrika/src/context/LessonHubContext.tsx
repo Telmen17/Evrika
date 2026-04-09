@@ -169,6 +169,8 @@ export interface CompanionState {
   transcript: string
   audioSrc: string | null
   insightLabel: string
+  /** Bumps on each triggerInsight so the same audio URL can play again. */
+  insightRevision: number
 }
 
 const DEFAULT_COMPANION: CompanionState = {
@@ -177,6 +179,7 @@ const DEFAULT_COMPANION: CompanionState = {
   transcript: '',
   audioSrc: null,
   insightLabel: 'Archimedes',
+  insightRevision: 0,
 }
 
 interface LessonHubContextValue {
@@ -238,13 +241,14 @@ export const LessonHubProvider: FC<{ children: ReactNode }> = ({ children }) => 
       label?: string
       autoOpen?: boolean
     }) => {
-      setCompanion({
+      setCompanion((c) => ({
         bubbleOpen: opts.autoOpen !== false,
         insightKind: opts.kind,
         transcript: opts.transcript,
         audioSrc: opts.audioSrc,
         insightLabel: opts.label ?? 'Archimedes',
-      })
+        insightRevision: (c.insightRevision ?? 0) + 1,
+      }))
     },
     [],
   )
