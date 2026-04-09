@@ -3050,7 +3050,9 @@ body.lesson-active {
   top: 0;
   bottom: 0;
   width: 100%;
+  transform: scaleX(0);
   transform-origin: left center;
+  will-change: transform;
   background: linear-gradient(90deg, #b8860b, #e8c547);
   border-radius: 999px;
   box-shadow: 0 0 10px rgba(184, 134, 11, 0.45);

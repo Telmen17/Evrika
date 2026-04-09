@@ -1,5 +1,12 @@
 import type { FC } from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import type { SceneId } from './LandingPage'
 import archimedesImg from '../assets/archimedes.png'
@@ -80,15 +87,73 @@ const beats: StoryBeat[] = [
   },
 ]
 
+/** Quiet lead before narration + tail after it ends (progress bar and auto-advance pacing). */
+const INTRO_LEAD_S = 1
+const INTRO_TAIL_S = 1
+/** Brief delay so layout paints, then full lead second for reading before voice. */
+const INTRO_PLAY_DELAY_MS = 220 + Math.round(INTRO_LEAD_S * 1000)
+
+interface IntroProgressParams {
+  sceneAnchorMs: number
+  duration: number
+  currentTime: number
+  tailStartMs: number | null
+}
+
+function computeStoryIntroTimeline01(nowMs: number, p: IntroProgressParams): number {
+  const d = p.duration
+  if (!(d > 0 && Number.isFinite(d))) return 0
+  const spanS = INTRO_LEAD_S + d + INTRO_TAIL_S
+  const elapsedMs = nowMs - p.sceneAnchorMs
+  if (p.tailStartMs != null) {
+    const tailElapsedS = (nowMs - p.tailStartMs) / 1000
+    const tailPart = Math.min(INTRO_TAIL_S, Math.max(0, tailElapsedS))
+    return Math.min(1, (INTRO_LEAD_S + d + tailPart) / spanS)
+  }
+  let virtualS: number
+  if (elapsedMs < INTRO_PLAY_DELAY_MS) {
+    virtualS = (elapsedMs / INTRO_PLAY_DELAY_MS) * INTRO_LEAD_S
+  } else {
+    virtualS = INTRO_LEAD_S + Math.min(Math.max(0, p.currentTime), d)
+  }
+  return Math.min(1, virtualS / spanS)
+}
+
 const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
   const [index, setIndex] = useState(0)
   const beat = beats[index]
   const visibleActors = useMemo(() => new Set(beat.visibleActors), [beat.visibleActors])
+
+  const [sceneAnchorMs, setSceneAnchorMs] = useState(() => Date.now())
+  const [tailStartMs, setTailStartMs] = useState<number | null>(null)
+  /** Bumps during lead/tail so tooltip and aria refresh while audio time is flat. */
+  const [a11yPulse, setA11yPulse] = useState(0)
+  const advanceTimeoutRef = useRef(0)
+  const introProgressParamsRef = useRef<IntroProgressParams>({
+    sceneAnchorMs: Date.now(),
+    duration: 0,
+    currentTime: 0,
+    tailStartMs: null,
+  })
+  const progressFillRef = useRef<HTMLDivElement>(null)
+  const progressGleamRef = useRef<HTMLSpanElement>(null)
+
+  const clearBeatSchedulers = useCallback(() => {
+    window.clearTimeout(advanceTimeoutRef.current)
+    advanceTimeoutRef.current = 0
+    setTailStartMs(null)
+  }, [])
+
   const onIntroClipEnded = useCallback(() => {
-    setIndex((prev) => {
-      if (prev >= beats.length - 1) return prev
-      return prev + 1
-    })
+    setTailStartMs(Date.now())
+    window.clearTimeout(advanceTimeoutRef.current)
+    advanceTimeoutRef.current = window.setTimeout(() => {
+      advanceTimeoutRef.current = 0
+      setIndex((prev) => {
+        if (prev >= beats.length - 1) return prev
+        return prev + 1
+      })
+    }, INTRO_TAIL_S * 1000)
   }, [])
 
   const { play, currentTime, duration } = useAudioPlayer(beat.audioSrc, {
@@ -96,22 +161,91 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
   })
 
   useEffect(() => {
+    setSceneAnchorMs(Date.now())
+    clearBeatSchedulers()
+  }, [beat.audioSrc, clearBeatSchedulers])
+
+  introProgressParamsRef.current = {
+    sceneAnchorMs,
+    duration,
+    currentTime,
+    tailStartMs,
+  }
+
+  useLayoutEffect(() => {
+    const fill = progressFillRef.current
+    if (fill) fill.style.transform = 'scaleX(0)'
+    const gleam = progressGleamRef.current
+    if (gleam) gleam.style.opacity = '0'
+  }, [beat.audioSrc])
+
+  useEffect(() => {
+    let raf = 0
+    const tick = () => {
+      const t = computeStoryIntroTimeline01(
+        Date.now(),
+        introProgressParamsRef.current,
+      )
+      const fill = progressFillRef.current
+      if (fill) {
+        fill.style.transform = `scaleX(${t})`
+      }
+      const gleam = progressGleamRef.current
+      if (gleam) {
+        gleam.style.opacity = t > 0.02 ? '1' : '0'
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  useEffect(() => {
+    const id = window.setInterval(() => setA11yPulse((n) => n + 1), 100)
+    return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(advanceTimeoutRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
     const t = window.setTimeout(() => {
       play()
-    }, 220)
-    return () => clearTimeout(t)
+    }, INTRO_PLAY_DELAY_MS)
+    return () => window.clearTimeout(t)
   }, [beat.audioSrc, play])
 
-  const timeline01 =
+  /**
+   * Mirrors computeStoryIntroTimeline01 for tooltip / aria (React); the visible bar uses the same
+   * math in rAF every frame so motion stays smooth without full scene re-renders.
+   */
+  const timeline01 = useMemo(
+    () =>
+      computeStoryIntroTimeline01(Date.now(), {
+        sceneAnchorMs,
+        duration,
+        currentTime,
+        tailStartMs,
+      }),
+    [a11yPulse, sceneAnchorMs, currentTime, duration, tailStartMs],
+  )
+
+  const displaySpanS =
     duration > 0 && Number.isFinite(duration)
-      ? Math.min(1, currentTime / duration)
+      ? INTRO_LEAD_S + duration + INTRO_TAIL_S
       : 0
+  const displayElapsedS = timeline01 * displaySpanS
 
   const goNext = () => {
+    clearBeatSchedulers()
     setIndex((prev) => Math.min(prev + 1, beats.length - 1))
   }
 
   const goPrev = () => {
+    clearBeatSchedulers()
     setIndex((prev) => Math.max(prev - 1, 0))
   }
 
@@ -200,13 +334,13 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
         <div
           className="journey-progress-wrap"
           title={
-            duration > 0 && Number.isFinite(duration)
-              ? `Narration: ${Math.round(currentTime)} / ${Math.round(duration)} s${
+            displaySpanS > 0
+              ? `Scene pacing: ~${Math.round(displayElapsedS)} / ${Math.round(displaySpanS)} s (includes ${INTRO_LEAD_S}s before and ${INTRO_TAIL_S}s after narration)${
                   isLast ? ' — when complete, use → to enter the workshop.' : ''
                 }`
               : isLast
                 ? 'Narration progress — when complete, use → to enter the workshop.'
-                : 'Narration progress — bar follows voice timing; mute is volume only.'
+                : 'Narration progress — includes quiet time before and after the voice; mute is volume only.'
           }
         >
           <div
@@ -216,21 +350,21 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
             aria-valuemax={100}
             aria-valuenow={Math.round(timeline01 * 100)}
             aria-valuetext={
-              duration > 0 && Number.isFinite(duration)
-                ? `${Math.round(currentTime)} of ${Math.round(duration)} seconds`
+              displaySpanS > 0
+                ? `About ${Math.round(displayElapsedS)} of ${Math.round(displaySpanS)} seconds for this scene, including time to read before and after narration`
                 : isLast
                   ? 'Final scene narration'
                   : 'Narration progress'
             }
             aria-label="Narration progress for this scene"
           >
-            <div
-              className="journey-progress-fill"
-              style={{ transform: `scaleX(${timeline01})` }}
-            >
-              {timeline01 > 0.02 ? (
-                <span className="journey-progress-fill-gleam" aria-hidden />
-              ) : null}
+            <div className="journey-progress-fill" ref={progressFillRef}>
+              <span
+                ref={progressGleamRef}
+                className="journey-progress-fill-gleam"
+                style={{ opacity: 0 }}
+                aria-hidden
+              />
             </div>
           </div>
         </div>
