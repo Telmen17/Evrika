@@ -10,9 +10,9 @@ interface DisplacementLabSceneProps {
   onNavigate: (scene: SceneId) => void
 }
 
-const DISPLACEMENT_CROWN_ML = 54
-const DISPLACEMENT_GOLD_ML = 36
-/** Shared cup scale: both objects can end up in one tank → up to 54 + 36 mL overflow */
+const DISPLACEMENT_CROWN_ML = 129.66
+const DISPLACEMENT_GOLD_ML = 103.52
+/** Shared cup scale: both objects can end up in one tank → up to 129.66 + 103.52 mL overflow */
 const COLLECTION_CUP_MAX_ML = DISPLACEMENT_CROWN_ML + DISPLACEMENT_GOLD_ML
 
 const LAB_W = 800
@@ -28,7 +28,13 @@ const GOLD_TEXTURE_W = 475
 const GOLD_TEXTURE_H = 525
 
 /** Beaker height in CSS px — must match `.displacement-lab-hud-beaker` */
-const HUD_BEAKER_H = 82
+const HUD_BEAKER_H = 52
+/** Rough “mL of column” used to map collected overflow → lower resting surface when object is removed. */
+const NOTIONAL_TANK_COLUMN_ML = 240
+
+function mlToTankLevel01(ml: number) {
+  return Math.min(0.22, (ml / NOTIONAL_TANK_COLUMN_ML) * 0.22)
+}
 
 function tankLayout(cx: number, collectPad: number) {
   const innerW = 118
@@ -58,7 +64,7 @@ function tankLayout(cx: number, collectPad: number) {
     collectX,
     collectTop,
     collectW: 48,
-    collectH: 56,
+    collectH: HUD_BEAKER_H,
   }
 }
 
@@ -106,32 +112,10 @@ function submergedVolumeFractionInTank(
   return Math.min(1, overlap / h)
 }
 
-/** Visual + pour intensity 0–1 for stream (both objects may share a tank) */
-function tankOverflowIntensity(
-  crown: { bounds: { min: { x: number; y: number }; max: { x: number; y: number } } } | null,
-  gold: { bounds: { min: { x: number; y: number }; max: { x: number; y: number } } } | null,
-  spec: TankSpec,
-  waterSurfaceY: number,
-): number {
-  let acc = 0
-  if (crown) acc += submergedVolumeFractionInTank(crown.bounds, spec, waterSurfaceY)
-  if (gold) acc += submergedVolumeFractionInTank(gold.bounds, spec, waterSurfaceY)
-  return Math.min(1, acc)
-}
-
-/**
- * Max overflow (mL) this tank can produce for objects currently inside the chamber.
- * Crown alone → 54; gold alone → 36; both → 90.
- */
-function tankCollectionCap(
-  spec: TankSpec,
-  crown: { bounds: { min: { x: number; y: number }; max: { x: number; y: number } } } | null,
-  gold: { bounds: { min: { x: number; y: number }; max: { x: number; y: number } } } | null,
-): number {
-  let cap = 0
-  if (crown && bodyOverlapsTankInner(crown.bounds, spec)) cap += DISPLACEMENT_CROWN_ML
-  if (gold && bodyOverlapsTankInner(gold.bounds, spec)) cap += DISPLACEMENT_GOLD_ML
-  return cap
+/** Visual pour intensity from how far the visible water surface sits above the spout. */
+function overflowSprayIntensity(water01: number) {
+  const excess01 = Math.max(0, water01 - INITIAL_TANK_WATER_01)
+  return Math.min(1, excess01 / 0.05)
 }
 
 function drawTankWalls(
@@ -198,17 +182,26 @@ function drawWaterRegion(ctx: CanvasRenderingContext2D, spec: TankSpec, waterSur
   ctx.restore()
 }
 
-/** Quadratic Bezier point B(t) for P0, P1, P2 */
-function quadPoint(
+/** Cubic Bezier point B(t) for P0, P1, P2, P3 */
+function cubicPoint(
   t: number,
   p0: { x: number; y: number },
   p1: { x: number; y: number },
   p2: { x: number; y: number },
+  p3: { x: number; y: number },
 ) {
   const u = 1 - t
   return {
-    x: u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
-    y: u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y,
+    x:
+      u * u * u * p0.x +
+      3 * u * u * t * p1.x +
+      3 * u * t * t * p2.x +
+      t * t * t * p3.x,
+    y:
+      u * u * u * p0.y +
+      3 * u * u * t * p1.y +
+      3 * u * t * t * p2.y +
+      t * t * t * p3.y,
   }
 }
 
@@ -229,11 +222,17 @@ function drawPourStream(
   const sy = nozzleY + 3
   const ex = collectX
   const ey = collectTop + 16
-  const cpx = (sx + ex) / 2
-  const cpy = Math.min(sy, ey) - 38 + Math.sin(timeMs * 0.006) * 2.5
+  const dx = ex - sx
+  const drop = ey - sy
+  /** Start almost flat from the lip, then let gravity pull the stream down. */
+  const cp1x = sx + dx * 0.34
+  const cp1y = sy + Math.sin(timeMs * 0.004) * 0.9
+  const cp2x = sx + dx * 0.78
+  const cp2y = sy + drop * 0.22 + 6 + Math.sin(timeMs * 0.0035 + 0.8) * 0.8
   const p0 = { x: sx, y: sy }
-  const p1 = { x: cpx, y: cpy }
-  const p2 = { x: ex, y: ey }
+  const p1 = { x: cp1x, y: cp1y }
+  const p2 = { x: cp2x, y: cp2y }
+  const p3 = { x: ex, y: ey }
 
   const fillRemain = Math.max(0, 1 - collectedMl / capMl)
   const flow = drip * (0.55 + 0.45 * fillRemain)
@@ -246,7 +245,14 @@ function drawPourStream(
     const o = layer * 1.15
     ctx.beginPath()
     ctx.moveTo(sx + o * 0.4, sy)
-    ctx.quadraticCurveTo(cpx + o * 0.5, cpy + o * 0.3, ex + o * 0.35, ey)
+    ctx.bezierCurveTo(
+      cp1x + o * 0.45,
+      cp1y + o * 0.08,
+      cp2x + o * 0.32,
+      cp2y + o * 0.2,
+      ex + o * 0.2,
+      ey,
+    )
     const lw = 5.2 - Math.abs(layer) * 1.1
     ctx.strokeStyle = `rgba(35, 125, 215, ${0.22 + 0.38 * flow * (1 - Math.abs(layer) * 0.12)})`
     ctx.lineWidth = lw
@@ -255,7 +261,7 @@ function drawPourStream(
 
   ctx.beginPath()
   ctx.moveTo(sx, sy)
-  ctx.quadraticCurveTo(cpx, cpy, ex, ey)
+  ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey)
   ctx.strokeStyle = `rgba(140, 210, 255, ${0.35 + 0.35 * flow})`
   ctx.lineWidth = 1.6
   ctx.stroke()
@@ -264,7 +270,7 @@ function drawPourStream(
   const phase = (timeMs * 0.0018) % 1
   for (let k = 0; k < n; k++) {
     const t = (k / n + phase) % 1
-    const p = quadPoint(t, p0, p1, p2)
+    const p = cubicPoint(t, p0, p1, p2, p3)
     const r = 1.1 + 0.45 * Math.sin(timeMs * 0.022 + k * 0.7)
     ctx.beginPath()
     ctx.arc(p.x, p.y, r, 0, Math.PI * 2)
@@ -288,14 +294,6 @@ function paintBackgroundLayer(
     leftCollected: number
     rightCollected: number
   },
-  crown: {
-    bounds: { min: { x: number; y: number }; max: { x: number; y: number } }
-    position: { x: number; y: number }
-  } | null,
-  gold: {
-    bounds: { min: { x: number; y: number }; max: { x: number; y: number } }
-    position: { x: number; y: number }
-  } | null,
 ) {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
@@ -318,13 +316,11 @@ function paintBackgroundLayer(
   drawWaterRegion(ctx, TANK_L, surfL)
   drawWaterRegion(ctx, TANK_R, surfR)
 
-  const dripL = tankOverflowIntensity(crown, gold, TANK_L, surfL)
-  const dripR = tankOverflowIntensity(crown, gold, TANK_R, surfR)
-  const capL = tankCollectionCap(TANK_L, crown, gold)
-  const capR = tankCollectionCap(TANK_R, crown, gold)
+  const dripL = overflowSprayIntensity(sim.leftMainWater)
+  const dripR = overflowSprayIntensity(sim.rightMainWater)
   const t = typeof performance !== 'undefined' ? performance.now() : Date.now()
-  drawPourStream(ctx, TANK_L, dripL, sim.leftCollected, capL, t)
-  drawPourStream(ctx, TANK_R, dripR, sim.rightCollected, capR, t)
+  drawPourStream(ctx, TANK_L, dripL, sim.leftCollected, COLLECTION_CUP_MAX_ML, t)
+  drawPourStream(ctx, TANK_R, dripR, sim.rightCollected, COLLECTION_CUP_MAX_ML, t)
 }
 
 const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNavigate }) => {
@@ -343,8 +339,6 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
   const [resetKey, setResetKey] = useState(0)
   const [leftCollected, setLeftCollected] = useState(0)
   const [rightCollected, setRightCollected] = useState(0)
-  const [leftMainWater, setLeftMainWater] = useState(INITIAL_TANK_WATER_01)
-  const [rightMainWater, setRightMainWater] = useState(INITIAL_TANK_WATER_01)
   const [hasCompared, setHasCompared] = useState(() => progress.overflow.hasCompared)
 
   useEffect(() => {
@@ -372,9 +366,6 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
     }
     setLeftCollected(0)
     setRightCollected(0)
-    setLeftMainWater(INITIAL_TANK_WATER_01)
-    setRightMainWater(INITIAL_TANK_WATER_01)
-
     const Matter = (window as any).Matter
     const {
       Engine,
@@ -540,41 +531,43 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
         if (crownBody) subC = submergedVolumeFractionInTank(crownBody.bounds, spec, waterSurfaceY)
         if (goldBody) subG = submergedVolumeFractionInTank(goldBody.bounds, spec, waterSurfaceY)
 
-        const volRate = subC * DISPLACEMENT_CROWN_ML + subG * DISPLACEMENT_GOLD_ML
+        const displacedMl = subC * DISPLACEMENT_CROWN_ML + subG * DISPLACEMENT_GOLD_ML
         const anySub = subC > 0.05 || subG > 0.05
-        const capMl = tankCollectionCap(spec, crownBody, goldBody)
+        const collected = sim[colKey]
+        const resting01 = INITIAL_TANK_WATER_01 - mlToTankLevel01(collected)
+        const target01 = resting01 + mlToTankLevel01(displacedMl)
+        const delta01 = target01 - water01
 
-        if (anySub && volRate > 0.001 && capMl > 0) {
-          sim[colKey] = Math.min(capMl, sim[colKey] + volRate * dt * 0.00034)
+        if (delta01 > 0) {
+          water01 += delta01 * 0.34
+        } else {
+          water01 += delta01 * (anySub ? 0.055 : 0.22)
         }
 
-        const displacementWeight = capMl > 0 ? volRate / capMl : 0
-        const target01 = anySub
-          ? INITIAL_TANK_WATER_01 + displacementWeight * 0.068
-          : INITIAL_TANK_WATER_01
-        const lerpT = anySub ? 0.17 : 0.11
-        water01 += (target01 - water01) * lerpT
-        water01 = Math.min(0.965, Math.max(INITIAL_TANK_WATER_01 - 0.048, water01))
+        const excess01 = Math.max(0, water01 - INITIAL_TANK_WATER_01)
+        if (excess01 > 0.0005 && sim[colKey] < COLLECTION_CUP_MAX_ML) {
+          const drainMl = dt * (0.006 + excess01 * 0.42)
+          sim[colKey] = Math.min(COLLECTION_CUP_MAX_ML, sim[colKey] + drainMl)
+        }
+
+        const floor01 = Math.max(0.14, resting01 - 0.02)
+        water01 = Math.min(0.965, Math.max(floor01, water01))
         sim[mainKey] = water01
       }
 
       stepTank(TANK_L, 'left', c, g)
       stepTank(TANK_R, 'right', c, g)
 
-      paintBackgroundLayer(bgEl, simRef.current, crownRef.current, goldRef.current)
+      paintBackgroundLayer(bgEl, simRef.current)
 
       frame++
-      if (frame % 2 === 0) {
-        setLeftCollected(simRef.current.leftCollected)
-        setRightCollected(simRef.current.rightCollected)
-        setLeftMainWater(simRef.current.leftMainWater)
-        setRightMainWater(simRef.current.rightMainWater)
-      }
+      setLeftCollected(simRef.current.leftCollected)
+      setRightCollected(simRef.current.rightCollected)
     }
 
     Events.on(engine, 'afterUpdate', tick)
 
-    paintBackgroundLayer(bgEl, simRef.current, crownRef.current, goldRef.current)
+    paintBackgroundLayer(bgEl, simRef.current)
 
     return () => {
       Events.off(engine, 'afterUpdate', tick)
@@ -648,22 +641,20 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
             <div className="displacement-lab-hud-panels" aria-live="polite">
               <div className="displacement-lab-hud displacement-lab-hud--left">
                 <p className="displacement-lab-hud-kicker">Collected</p>
-                <p className="displacement-lab-hud-sub">Can {(leftMainWater * 100).toFixed(0)}%</p>
                 <div
                   className="displacement-lab-hud-beaker"
                   style={{ '--fill': beakerFill(leftCollected) } as CSSProperties}
                 >
-                  <span className="displacement-lab-hud-ml">{leftCollected.toFixed(0)} mL</span>
+                  <span className="displacement-lab-hud-ml">{leftCollected.toFixed(2)} mL</span>
                 </div>
               </div>
               <div className="displacement-lab-hud displacement-lab-hud--right">
                 <p className="displacement-lab-hud-kicker">Collected</p>
-                <p className="displacement-lab-hud-sub">Can {(rightMainWater * 100).toFixed(0)}%</p>
                 <div
                   className="displacement-lab-hud-beaker"
                   style={{ '--fill': beakerFill(rightCollected) } as CSSProperties}
                 >
-                  <span className="displacement-lab-hud-ml">{rightCollected.toFixed(0)} mL</span>
+                  <span className="displacement-lab-hud-ml">{rightCollected.toFixed(2)} mL</span>
                 </div>
               </div>
             </div>
@@ -677,8 +668,10 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
         {hasCompared ? (
           <div className="displacement-lab-conclusion scene-text">
             <p>
-              The crown side collected <strong>more</strong> overflow than the gold of equal mass —
-              the crown displaces more water, so it is <strong>less dense</strong> than pure gold.
+              The water surface stays pinned to the spout while an object is submerged, then drops
+              below it once the displaced overflow has escaped. In this calibrated setup, the crown
+              displaced <strong>{leftCollected.toFixed(2)} mL</strong> and the gold nugget displaced{' '}
+              <strong>{rightCollected.toFixed(2)} mL</strong>.
             </p>
           </div>
         ) : null}

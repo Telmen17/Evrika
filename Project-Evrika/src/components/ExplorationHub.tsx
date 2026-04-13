@@ -148,7 +148,7 @@ interface ExplorationHubProps {
 
 function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
   const { resetProgress } = useLessonHub()
-  const [activeRoom, setActiveRoom] = useState<RoomId>('weigh')
+  const [activeRoom, setActiveRoom] = useState<RoomId>('archimedes')
   const [transitionKey, setTransitionKey] = useState(0)
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -161,7 +161,7 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
       return
     }
     resetProgress()
-    setActiveRoom('weigh')
+    setActiveRoom('archimedes')
     setTransitionKey((k) => k + 1)
   }, [resetProgress])
 

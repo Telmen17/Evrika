@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import papyrusPng from '../assets/papyrus.webp'
 import scrollPng from '../assets/scroll.png'
 import type { SceneId } from './LandingPage'
 import { useLessonHub } from '../context/LessonHubContext'
@@ -7,6 +8,21 @@ import { ProofScrollWithLock } from './ProofScrollWithLock'
 
 interface ArchimedesRoomSceneProps {
   onNavigate: (scene: SceneId) => void
+}
+
+const REQUIRED_MASS_G = 2000
+const REQUIRED_CROWN_VOLUME_ML = 129.66
+const REQUIRED_GOLD_VOLUME_ML = 103.52
+const EXACT_MATCH_EPSILON = 0.005
+
+function parseDecimalValue(raw: string) {
+  const value = parseFloat(raw.replace(',', '.').trim())
+  return Number.isFinite(value) ? value : null
+}
+
+function matchesRequiredValue(raw: string, target: number) {
+  const value = parseDecimalValue(raw)
+  return value !== null && Math.abs(value - target) <= EXACT_MATCH_EPSILON
 }
 
 const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
@@ -21,19 +37,20 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
     [patchProgress],
   )
 
+  const crownMass = useMemo(() => parseDecimalValue(a.crownMassG), [a.crownMassG])
+  const crownVolume = useMemo(() => parseDecimalValue(a.crownVolumeMl), [a.crownVolumeMl])
+  const lumpMass = useMemo(() => parseDecimalValue(a.lumpMassG), [a.lumpMassG])
+  const lumpVolume = useMemo(() => parseDecimalValue(a.lumpVolumeMl), [a.lumpVolumeMl])
+
   const crownDensity = useMemo(() => {
-    const m = parseFloat(a.crownMassG.replace(',', '.'))
-    const v = parseFloat(a.crownVolumeMl.replace(',', '.'))
-    if (!Number.isFinite(m) || !Number.isFinite(v) || v === 0) return null
-    return m / v
-  }, [a.crownMassG, a.crownVolumeMl])
+    if (crownMass === null || crownVolume === null || crownVolume === 0) return null
+    return crownMass / crownVolume
+  }, [crownMass, crownVolume])
 
   const lumpDensity = useMemo(() => {
-    const m = parseFloat(a.lumpMassG.replace(',', '.'))
-    const v = parseFloat(a.lumpVolumeMl.replace(',', '.'))
-    if (!Number.isFinite(m) || !Number.isFinite(v) || v === 0) return null
-    return m / v
-  }, [a.lumpMassG, a.lumpVolumeMl])
+    if (lumpMass === null || lumpVolume === null || lumpVolume === 0) return null
+    return lumpMass / lumpVolume
+  }, [lumpMass, lumpVolume])
 
   const filled =
     a.crownMassG.trim() &&
@@ -41,162 +58,226 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
     a.lumpMassG.trim() &&
     a.lumpVolumeMl.trim()
 
+  const crownMassOk = matchesRequiredValue(a.crownMassG, REQUIRED_MASS_G)
+  const crownVolumeOk = matchesRequiredValue(a.crownVolumeMl, REQUIRED_CROWN_VOLUME_ML)
+  const lumpMassOk = matchesRequiredValue(a.lumpMassG, REQUIRED_MASS_G)
+  const lumpVolumeOk = matchesRequiredValue(a.lumpVolumeMl, REQUIRED_GOLD_VOLUME_ML)
+  const exactValuesEntered = crownMassOk && crownVolumeOk && lumpMassOk && lumpVolumeOk
+
   const [sealUnlockPhase, setSealUnlockPhase] = useState<
     'idle' | 'playing' | 'done'
-  >(() => (filled ? 'done' : 'idle'))
-  const prevFilledRef = useRef(filled)
+  >(() => (a.proofUnlocked || exactValuesEntered ? 'done' : 'idle'))
+  const [proofMotion, setProofMotion] = useState<'idle' | 'hover' | 'press'>('idle')
+  const prevExactRef = useRef(exactValuesEntered)
+  const proofActionsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (a.proofUnlocked) return
-    if (filled && !prevFilledRef.current) {
+    if (a.proofUnlocked && !exactValuesEntered) {
+      patchProgress({ archimedes: { proofUnlocked: false } })
+    }
+  }, [a.proofUnlocked, exactValuesEntered, patchProgress])
+
+  useEffect(() => {
+    if (a.proofUnlocked) {
+      setSealUnlockPhase('done')
+      prevExactRef.current = exactValuesEntered
+      return
+    }
+    if (exactValuesEntered && !prevExactRef.current) {
       setSealUnlockPhase('playing')
     }
-    if (!filled) {
+    if (!exactValuesEntered) {
       setSealUnlockPhase('idle')
     }
-    prevFilledRef.current = filled
-  }, [filled, a.proofUnlocked])
+    prevExactRef.current = exactValuesEntered
+  }, [exactValuesEntered, a.proofUnlocked])
 
   const onSealUnlockVideoEnded = useCallback(() => {
     setSealUnlockPhase('done')
   }, [])
 
   const tryUnlockProof = useCallback(() => {
-    if (!filled || a.proofUnlocked) return
+    if (!exactValuesEntered || a.proofUnlocked) return
     patchProgress({
       archimedes: { proofUnlocked: true },
     })
-  }, [a.proofUnlocked, filled, patchProgress])
+  }, [a.proofUnlocked, exactValuesEntered, patchProgress])
+
+  const handleProofHover = useCallback(() => {
+    setProofMotion('hover')
+  }, [])
+
+  const handleProofLeave = useCallback(() => {
+    setProofMotion('idle')
+  }, [])
+
+  const handleProofPress = useCallback(() => {
+    setProofMotion('press')
+  }, [])
 
   return (
     <div className="scene archimedes-room-scene">
       <header className="scene-header hub-scene-header archimedes-room-header">
-        <h2>Archimedes&apos; study — density proof</h2>
+        <h2>Archimedes&apos; Room</h2>
       </header>
 
       <section className="scene-body archimedes-room-body">
-        <p className="scene-text archimedes-room-lede">
-          Record masses and volumes you measured elsewhere. Density is{' '}
-          <strong>ρ = m / V</strong> (mass divided by volume). When both rows are filled, you can
-          draft the proof scroll for the throne room.
-        </p>
-
-        <div className="archimedes-density-grid">
-          <article className="archimedes-density-card">
-            <h3>Crown</h3>
-            <p className="helper-text">ρ<sub>crown</sub> = m<sub>crown</sub> / V<sub>crown</sub></p>
-            <label className="archimedes-field">
-              <span>m (g)</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                value={a.crownMassG}
-                onChange={(e) => setField({ crownMassG: e.target.value })}
-                aria-label="Crown mass in grams"
-              />
-            </label>
-            <label className="archimedes-field">
-              <span>V (mL)</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                value={a.crownVolumeMl}
-                onChange={(e) => setField({ crownVolumeMl: e.target.value })}
-                aria-label="Crown volume in milliliters"
-              />
-            </label>
-            <p className="archimedes-density-result">
-              {crownDensity !== null
-                ? `ρ ≈ ${crownDensity.toFixed(4)} g/mL`
-                : 'Enter mass and volume to see density.'}
-            </p>
-          </article>
-
-          <article className="archimedes-density-card">
-            <h3>Lump of royal gold</h3>
-            <p className="helper-text">ρ<sub>gold</sub> = m<sub>gold</sub> / V<sub>gold</sub></p>
-            <label className="archimedes-field">
-              <span>m (g)</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                value={a.lumpMassG}
-                onChange={(e) => setField({ lumpMassG: e.target.value })}
-                aria-label="Gold lump mass in grams"
-              />
-            </label>
-            <label className="archimedes-field">
-              <span>V (mL)</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                value={a.lumpVolumeMl}
-                onChange={(e) => setField({ lumpVolumeMl: e.target.value })}
-                aria-label="Gold lump volume in milliliters"
-              />
-            </label>
-            <p className="archimedes-density-result">
-              {lumpDensity !== null
-                ? `ρ ≈ ${lumpDensity.toFixed(4)} g/mL`
-                : 'Enter mass and volume to see density.'}
-            </p>
-          </article>
-        </div>
-
-        <div className="archimedes-proof-actions">
-          {a.proofUnlocked ? (
-            <div className="archimedes-proof-scroll-ready" aria-live="polite">
-              <img
-                src={scrollPng}
-                alt=""
-                className="archimedes-proof-scroll-img archimedes-proof-scroll-img--sealed"
-              />
-              <p className="archimedes-proof-scroll-status">Proof scroll ready</p>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="archimedes-proof-scroll-hit"
-              disabled={!filled || sealUnlockPhase === 'playing'}
-              onClick={tryUnlockProof}
-              aria-busy={sealUnlockPhase === 'playing'}
-              aria-label={
-                filled
-                  ? 'Seal the proof scroll for the throne room'
-                  : 'Fill crown and gold lump mass and volume to seal the proof scroll'
-              }
-            >
-              <ProofScrollWithLock
-                scrollSrc={scrollPng}
-                scrollImgClassName="archimedes-proof-scroll-img"
-                showPadlock={!filled || sealUnlockPhase === 'idle'}
-                playUnlockVideo={sealUnlockPhase === 'playing'}
-                onUnlockVideoEnded={onSealUnlockVideoEnded}
-              />
-              <span className="archimedes-proof-scroll-hintline">
-                {sealUnlockPhase === 'playing'
-                  ? 'Unlocking…'
-                  : filled
-                    ? 'Tap the scroll to seal it'
-                    : 'Fill all fields above to seal'}
+        <div className="archimedes-study-layout">
+          <aside className="archimedes-study-side archimedes-study-side--left">
+            <div className="archimedes-objective-card">
+              <span className="archimedes-objective-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                  <path d="M12 10v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="12" cy="7" r="1.1" fill="currentColor" />
+                </svg>
               </span>
-            </button>
-          )}
-          {a.proofUnlocked ? (
-            <p className="helper-text archimedes-proof-hint">
-              Take the scroll to the Throne Room and present it to the king when you are ready for
-              the ending.
-            </p>
-          ) : (
-            <p className="helper-text archimedes-proof-hint">
-              Framework: you will tune validation and copy later. For now, any non-empty fields
-              unlock the scroll.
-            </p>
-          )}
+              <div className="archimedes-objective-copy">
+                <p className="archimedes-objective-title">Objective</p>
+                <p className="archimedes-objective-text">
+                  Use <strong>ρ = m / V</strong> to prove that the crown is impure.
+                </p>
+              </div>
+            </div>
+          </aside>
+
+          <div className="archimedes-papyrus-stage">
+            <div className="archimedes-papyrus-art" aria-hidden="true">
+              <img src={papyrusPng} alt="" className="archimedes-papyrus-img" />
+            </div>
+            <div className="archimedes-papyrus-overlay">
+              <div className="archimedes-formula-banner">
+                <p className="archimedes-formula-main">
+                  ρ<sub>density</sub> = m<sub>mass</sub> / V<sub>volume</sub>
+                </p>
+                <p className="archimedes-formula-note">density = mass / volume</p>
+              </div>
+
+              <div className="archimedes-density-grid">
+                <article className="archimedes-density-card">
+                  <h3>Crown</h3>
+                  <label className="archimedes-field">
+                    <span>m (g)</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      value={a.crownMassG}
+                      onChange={(e) => setField({ crownMassG: e.target.value })}
+                      aria-label="Crown mass in grams"
+                      data-valid={crownMassOk ? 'true' : 'false'}
+                    />
+                  </label>
+                  <label className="archimedes-field">
+                    <span>V (mL)</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      value={a.crownVolumeMl}
+                      onChange={(e) => setField({ crownVolumeMl: e.target.value })}
+                      aria-label="Crown volume in milliliters"
+                      data-valid={crownVolumeOk ? 'true' : 'false'}
+                    />
+                  </label>
+                  <p className="archimedes-density-result">
+                    {crownDensity !== null ? `ρ ≈ ${crownDensity.toFixed(4)} g/mL` : 'ρ ='}
+                  </p>
+                </article>
+
+                <article className="archimedes-density-card">
+                  <h3>Pure gold</h3>
+                  <label className="archimedes-field">
+                    <span>m (g)</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      value={a.lumpMassG}
+                      onChange={(e) => setField({ lumpMassG: e.target.value })}
+                      aria-label="Gold lump mass in grams"
+                      data-valid={lumpMassOk ? 'true' : 'false'}
+                    />
+                  </label>
+                  <label className="archimedes-field">
+                    <span>V (mL)</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      value={a.lumpVolumeMl}
+                      onChange={(e) => setField({ lumpVolumeMl: e.target.value })}
+                      aria-label="Gold lump volume in milliliters"
+                      data-valid={lumpVolumeOk ? 'true' : 'false'}
+                    />
+                  </label>
+                  <p className="archimedes-density-result">
+                    {lumpDensity !== null ? `ρ ≈ ${lumpDensity.toFixed(4)} g/mL` : 'ρ ='}
+                  </p>
+                </article>
+              </div>
+
+              <div className="archimedes-verdict-panel" aria-live="polite">
+                <p className="archimedes-verdict-text">
+                  {exactValuesEntered
+                    ? 'The crown is less dense than pure gold.'
+                    : filled
+                      ? 'The papyrus is not yet correct.'
+                      : 'Complete the papyrus with the measured values to unlock the scroll.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <aside className="archimedes-study-side archimedes-study-side--right">
+            <div
+              className={`archimedes-proof-actions archimedes-proof-actions--${proofMotion}`}
+              ref={proofActionsRef}
+              onMouseEnter={handleProofHover}
+              onMouseLeave={handleProofLeave}
+              onMouseDown={handleProofPress}
+              onMouseUp={handleProofHover}
+            >
+              {a.proofUnlocked && exactValuesEntered ? (
+                <div className="archimedes-proof-scroll-ready" aria-live="polite">
+                  <img
+                    src={scrollPng}
+                    alt=""
+                    className="archimedes-proof-scroll-img archimedes-proof-scroll-img--sealed"
+                  />
+                  <p className="archimedes-proof-scroll-status">Proof scroll ready</p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="archimedes-proof-scroll-hit"
+                  disabled={!exactValuesEntered || sealUnlockPhase === 'playing'}
+                  onClick={tryUnlockProof}
+                  aria-busy={sealUnlockPhase === 'playing'}
+                  aria-label={
+                    exactValuesEntered
+                      ? 'Seal the proof scroll for the throne room'
+                      : 'Enter the exact measured values to seal the proof scroll'
+                  }
+                >
+                  <ProofScrollWithLock
+                    scrollSrc={scrollPng}
+                    scrollImgClassName="archimedes-proof-scroll-img"
+                    showPadlock={!exactValuesEntered || sealUnlockPhase === 'idle'}
+                    playUnlockVideo={sealUnlockPhase === 'playing'}
+                    onUnlockVideoEnded={onSealUnlockVideoEnded}
+                  />
+                  <span className="archimedes-proof-scroll-hintline">
+                    {sealUnlockPhase === 'playing'
+                      ? 'Unlocking…'
+                      : exactValuesEntered
+                        ? 'Seal the proof'
+                        : 'Scroll locked'}
+                  </span>
+                </button>
+              )}
+            </div>
+          </aside>
         </div>
       </section>
     </div>
