@@ -20,7 +20,6 @@ const ENV_KEY =
     : ''
 
 export const FEEDBACK_CONFIG = {
-  /** Paste your Web3Forms access key here (or use the VITE_WEB3FORMS_KEY env var). */
   accessKey: ENV_KEY || '',
   endpoint: 'https://api.web3forms.com/submit',
   subject: 'New Evrika feedback',
