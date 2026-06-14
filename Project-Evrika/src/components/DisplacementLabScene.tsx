@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLessonHub } from '../context/LessonHubContext'
 import crownSvg from '../assets/crown.svg'
 import goldNuggetPng from '../assets/goldNugget3.png'
+import { assetUrl } from '../lib/assetUrl'
 import type { SceneId } from './LandingPage'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
 
@@ -34,6 +35,12 @@ const NOTIONAL_TANK_COLUMN_ML = 240
 
 function mlToTankLevel01(ml: number) {
   return Math.min(0.22, (ml / NOTIONAL_TANK_COLUMN_ML) * 0.22)
+}
+
+function formatCollectedMl(ml: number) {
+  if (ml >= 100) return ml.toFixed(1)
+  if (ml >= 10) return ml.toFixed(1)
+  return ml.toFixed(2)
 }
 
 function tankLayout(cx: number, collectPad: number) {
@@ -110,12 +117,6 @@ function submergedVolumeFractionInTank(
   const overlap = y1 - y0
   if (overlap <= 0) return 0
   return Math.min(1, overlap / h)
-}
-
-/** Visual pour intensity from how far the visible water surface sits above the spout. */
-function overflowSprayIntensity(water01: number) {
-  const excess01 = Math.max(0, water01 - INITIAL_TANK_WATER_01)
-  return Math.min(1, excess01 / 0.05)
 }
 
 function drawTankWalls(
@@ -291,6 +292,8 @@ function paintBackgroundLayer(
   sim: {
     leftMainWater: number
     rightMainWater: number
+    leftSpray: number
+    rightSpray: number
     leftCollected: number
     rightCollected: number
   },
@@ -316,8 +319,8 @@ function paintBackgroundLayer(
   drawWaterRegion(ctx, TANK_L, surfL)
   drawWaterRegion(ctx, TANK_R, surfR)
 
-  const dripL = overflowSprayIntensity(sim.leftMainWater)
-  const dripR = overflowSprayIntensity(sim.rightMainWater)
+  const dripL = sim.leftSpray
+  const dripR = sim.rightSpray
   const t = typeof performance !== 'undefined' ? performance.now() : Date.now()
   drawPourStream(ctx, TANK_L, dripL, sim.leftCollected, COLLECTION_CUP_MAX_ML, t)
   drawPourStream(ctx, TANK_R, dripR, sim.rightCollected, COLLECTION_CUP_MAX_ML, t)
@@ -330,11 +333,16 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
   const crownRef = useRef<any>(null)
   const goldRef = useRef<any>(null)
   const simRef = useRef({
+    leftSpray: 0,
+    rightSpray: 0,
     leftMainWater: INITIAL_TANK_WATER_01,
     rightMainWater: INITIAL_TANK_WATER_01,
     leftCollected: 0,
     rightCollected: 0,
+    leftDisplacedMl: 0,
+    rightDisplacedMl: 0,
   })
+  const hudDisplayRef = useRef({ left: 0, right: 0 })
   const [matterOk, setMatterOk] = useState(false)
   const [resetKey, setResetKey] = useState(0)
   const [leftCollected, setLeftCollected] = useState(0)
@@ -359,11 +367,16 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
     if (!matterOk || !hostRef.current || !bgCanvasRef.current) return
 
     simRef.current = {
+      leftSpray: 0,
+      rightSpray: 0,
       leftMainWater: INITIAL_TANK_WATER_01,
       rightMainWater: INITIAL_TANK_WATER_01,
       leftCollected: 0,
       rightCollected: 0,
+      leftDisplacedMl: 0,
+      rightDisplacedMl: 0,
     }
+    hudDisplayRef.current = { left: 0, right: 0 }
     setLeftCollected(0)
     setRightCollected(0)
     const Matter = (window as any).Matter
@@ -446,7 +459,7 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
       render: {
         opacity: 1,
         sprite: {
-          texture: String(crownSvg),
+          texture: assetUrl(crownSvg),
           xScale: CROWN_W / CROWN_TEXTURE_PX,
           yScale: CROWN_H / CROWN_TEXTURE_PX,
         },
@@ -464,7 +477,7 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
       render: {
         opacity: 1,
         sprite: {
-          texture: String(goldNuggetPng),
+          texture: assetUrl(goldNuggetPng),
           xScale: GOLD_W / GOLD_TEXTURE_W,
           yScale: GOLD_H / GOLD_TEXTURE_H,
         },
@@ -520,39 +533,68 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
       const dt = Math.min(48, (engine as any).timing?.lastDelta ?? 16)
 
       const stepTank = (spec: TankSpec, key: 'left' | 'right', crownBody: any, goldBody: any) => {
+        const sprayKey = key === 'left' ? 'leftSpray' : 'rightSpray'
         const mainKey = key === 'left' ? 'leftMainWater' : 'rightMainWater'
         const colKey = key === 'left' ? 'leftCollected' : 'rightCollected'
-        let water01 = sim[mainKey]
+        const displacedKey = key === 'left' ? 'leftDisplacedMl' : 'rightDisplacedMl'
+
         const innerH = spec.innerBottom - spec.innerTop
-        const waterSurfaceY = spec.innerBottom - innerH * water01
+        const surfaceY = spec.innerBottom - innerH * sim[mainKey]
 
         let subC = 0
         let subG = 0
-        if (crownBody) subC = submergedVolumeFractionInTank(crownBody.bounds, spec, waterSurfaceY)
-        if (goldBody) subG = submergedVolumeFractionInTank(goldBody.bounds, spec, waterSurfaceY)
+        if (crownBody) subC = submergedVolumeFractionInTank(crownBody.bounds, spec, surfaceY)
+        if (goldBody) subG = submergedVolumeFractionInTank(goldBody.bounds, spec, surfaceY)
 
-        const displacedMl = subC * DISPLACEMENT_CROWN_ML + subG * DISPLACEMENT_GOLD_ML
+        const targetDisplacedMl =
+          subC * DISPLACEMENT_CROWN_ML + subG * DISPLACEMENT_GOLD_ML
         const anySub = subC > 0.05 || subG > 0.05
-        const collected = sim[colKey]
-        const resting01 = INITIAL_TANK_WATER_01 - mlToTankLevel01(collected)
-        const target01 = resting01 + mlToTankLevel01(displacedMl)
-        const delta01 = target01 - water01
+        const dispEase = Math.min(
+          1,
+          (targetDisplacedMl > sim[displacedKey] ? 0.38 : 0.22) * (dt / 16.67),
+        )
+        let displacedMl = sim[displacedKey]
+        displacedMl += (targetDisplacedMl - displacedMl) * dispEase
+        sim[displacedKey] = displacedMl
 
+        const overflowTargetMl = anySub ? targetDisplacedMl : displacedMl
+        let collected = sim[colKey]
+        if (anySub && overflowTargetMl > collected + 0.02) {
+          const pourGap = overflowTargetMl - collected
+          const pourRateMlPerMs = 0.012 + Math.min(pourGap, 140) * 0.00007
+          const pourStep = Math.min(pourGap, dt * pourRateMlPerMs)
+          sim[colKey] = Math.min(COLLECTION_CUP_MAX_ML, collected + pourStep)
+          collected = sim[colKey]
+        }
+
+        const resting01 = INITIAL_TANK_WATER_01 - mlToTankLevel01(collected)
+        const displacement01 = mlToTankLevel01(overflowTargetMl)
+        let target01 = resting01
+        if (anySub && overflowTargetMl > 0.2) {
+          target01 =
+            collected < overflowTargetMl - 0.08
+              ? INITIAL_TANK_WATER_01
+              : Math.min(INITIAL_TANK_WATER_01, resting01 + displacement01)
+        }
+
+        let water01 = sim[mainKey]
+        const delta01 = target01 - water01
         if (delta01 > 0) {
           water01 += delta01 * 0.34
         } else {
           water01 += delta01 * (anySub ? 0.055 : 0.22)
         }
 
-        const excess01 = Math.max(0, water01 - INITIAL_TANK_WATER_01)
-        if (excess01 > 0.0005 && sim[colKey] < COLLECTION_CUP_MAX_ML) {
-          const drainMl = dt * (0.006 + excess01 * 0.42)
-          sim[colKey] = Math.min(COLLECTION_CUP_MAX_ML, sim[colKey] + drainMl)
-        }
-
         const floor01 = Math.max(0.14, resting01 - 0.02)
-        water01 = Math.min(0.965, Math.max(floor01, water01))
+        water01 = Math.min(INITIAL_TANK_WATER_01 + 0.01, Math.max(floor01, water01))
         sim[mainKey] = water01
+
+        const pouring = anySub && collected < overflowTargetMl - 0.05
+        const excess01 = Math.max(0, water01 - INITIAL_TANK_WATER_01)
+        const sprayTarget = pouring
+          ? Math.min(1, 0.35 + excess01 / 0.004)
+          : Math.min(1, excess01 / 0.0045)
+        sim[sprayKey] = sprayTarget > sim[sprayKey] ? sprayTarget : sim[sprayKey] * 0.86
       }
 
       stepTank(TANK_L, 'left', c, g)
@@ -561,8 +603,17 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
       paintBackgroundLayer(bgEl, simRef.current)
 
       frame++
-      setLeftCollected(simRef.current.leftCollected)
-      setRightCollected(simRef.current.rightCollected)
+      const hud = hudDisplayRef.current
+      const shouldRefreshHud =
+        frame % 4 === 0 ||
+        Math.abs(sim.leftCollected - hud.left) >= 0.35 ||
+        Math.abs(sim.rightCollected - hud.right) >= 0.35
+      if (shouldRefreshHud) {
+        hud.left = sim.leftCollected
+        hud.right = sim.rightCollected
+        setLeftCollected(sim.leftCollected)
+        setRightCollected(sim.rightCollected)
+      }
     }
 
     Events.on(engine, 'afterUpdate', tick)
@@ -596,7 +647,10 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
 
   const crownReady = leftCollected >= DISPLACEMENT_CROWN_ML * 0.82
   const goldReady = rightCollected >= DISPLACEMENT_GOLD_ML * 0.82
-  const canCompare = crownReady && goldReady && !hasCompared
+  const combinedReady =
+    Math.max(leftCollected, rightCollected) >=
+    (DISPLACEMENT_CROWN_ML + DISPLACEMENT_GOLD_ML) * 0.82
+  const canCompare = (crownReady && goldReady || combinedReady) && !hasCompared
 
   const beakerFill = (ml: number) =>
     `${Math.min(100, (ml / COLLECTION_CUP_MAX_ML) * 100)}%` as const
@@ -645,7 +699,10 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
                   className="displacement-lab-hud-beaker"
                   style={{ '--fill': beakerFill(leftCollected) } as CSSProperties}
                 >
-                  <span className="displacement-lab-hud-ml">{leftCollected.toFixed(2)} mL</span>
+                  <span className="displacement-lab-hud-ml">
+                    <span className="displacement-lab-hud-num">{formatCollectedMl(leftCollected)}</span>
+                    <span className="displacement-lab-hud-unit"> mL</span>
+                  </span>
                 </div>
               </div>
               <div className="displacement-lab-hud displacement-lab-hud--right">
@@ -654,7 +711,10 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
                   className="displacement-lab-hud-beaker"
                   style={{ '--fill': beakerFill(rightCollected) } as CSSProperties}
                 >
-                  <span className="displacement-lab-hud-ml">{rightCollected.toFixed(2)} mL</span>
+                  <span className="displacement-lab-hud-ml">
+                    <span className="displacement-lab-hud-num">{formatCollectedMl(rightCollected)}</span>
+                    <span className="displacement-lab-hud-unit"> mL</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -670,8 +730,8 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
             <p>
               The water surface stays pinned to the spout while an object is submerged, then drops
               below it once the displaced overflow has escaped. In this calibrated setup, the crown
-              displaced <strong>{leftCollected.toFixed(2)} mL</strong> and the gold nugget displaced{' '}
-              <strong>{rightCollected.toFixed(2)} mL</strong>.
+              displaced <strong>{formatCollectedMl(leftCollected)} mL</strong> and the gold nugget displaced{' '}
+              <strong>{formatCollectedMl(rightCollected)} mL</strong>.
             </p>
           </div>
         ) : null}

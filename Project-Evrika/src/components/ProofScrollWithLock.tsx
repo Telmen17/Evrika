@@ -12,6 +12,9 @@ interface ProofScrollWithLockProps {
   showPadlock: boolean
   playUnlockVideo: boolean
   onUnlockVideoEnded: () => void
+  /** LCP hint: defer the 3MB scroll art unless explicitly high priority */
+  scrollLoading?: 'eager' | 'lazy'
+  scrollFetchPriority?: 'high' | 'low' | 'auto'
 }
 
 /**
@@ -24,6 +27,8 @@ export const ProofScrollWithLock: FC<ProofScrollWithLockProps> = ({
   showPadlock,
   playUnlockVideo,
   onUnlockVideoEnded,
+  scrollLoading = 'lazy',
+  scrollFetchPriority = 'low',
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -37,7 +42,14 @@ export const ProofScrollWithLock: FC<ProofScrollWithLockProps> = ({
 
   return (
     <div className={`proof-scroll-stack ${stackClassName}`.trim()}>
-      <img src={scrollSrc} alt="" className={scrollImgClassName} />
+      <img
+        src={scrollSrc}
+        alt=""
+        className={scrollImgClassName}
+        loading={scrollLoading}
+        decoding="async"
+        fetchPriority={scrollFetchPriority}
+      />
       {showPadlock ? (
         <img src={padlockPng} alt="" className="proof-scroll-padlock" />
       ) : null}
@@ -48,7 +60,7 @@ export const ProofScrollWithLock: FC<ProofScrollWithLockProps> = ({
           src={UNLOCK_VIDEO_SRC}
           muted
           playsInline
-          preload="auto"
+          preload="none"
           onEnded={onUnlockVideoEnded}
           aria-hidden
         />

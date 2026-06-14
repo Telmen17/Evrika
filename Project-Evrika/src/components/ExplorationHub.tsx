@@ -9,6 +9,7 @@ import DisplacementLabScene from './DisplacementLabScene'
 import ArchimedesRoomScene from './ArchimedesRoomScene'
 import StoryFinaleScene from './StoryFinaleScene'
 import { ArchimedesCompanion } from './ArchimedesCompanion'
+import papyrusImg from '../assets/papyrus.webp'
 
 type RoomId =
   | 'weigh'
@@ -177,6 +178,21 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0 })
   }, [activeRoom])
+
+  /** Default room is Archimedes — preload LCP image early (60KB webp). */
+  useEffect(() => {
+    const href = papyrusImg
+    if (document.querySelector(`link[rel="preload"][href="${href}"]`)) return
+    const link = document.createElement('link')
+    link.rel = 'preload'
+    link.as = 'image'
+    link.href = href
+    link.fetchPriority = 'high'
+    document.head.appendChild(link)
+    return () => {
+      link.remove()
+    }
+  }, [])
 
   const hubNavigate = useCallback(
     (scene: SceneId) => {

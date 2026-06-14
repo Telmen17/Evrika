@@ -14,6 +14,7 @@ import blacksmithImg from '../assets/blacksmith-removebg-preview.png'
 import kingSitImg from '../assets/kingSit.png'
 import guardsImg from '../assets/guards.png'
 import crownImg from '../assets/crown.svg'
+import theatreStageImg from '../assets/digital-art-style-theatre-stage.jpg'
 
 interface StoryIntroSceneProps {
   onNavigate: (scene: SceneId) => void
@@ -271,7 +272,7 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
         <div className="scene-image-container">
           <div className="scene-stage-wrap">
             <img
-              src="/digital-art-style-theatre-stage.jpg"
+              src={theatreStageImg}
               alt="Ancient Greek throne room"
               className="scene-image"
             />

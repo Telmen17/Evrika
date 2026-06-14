@@ -4,6 +4,7 @@ import crownSvg from '../assets/crown.svg'
 import goldNugget1 from '../assets/goldNugget1png.png'
 import rockPng from '../assets/rock.png'
 import woodPng from '../assets/wood.png'
+import { assetUrl } from '../lib/assetUrl'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
 import type { SceneId } from './LandingPage'
 import { useLessonHub } from '../context/LessonHubContext'
@@ -118,7 +119,7 @@ const ITEM_SPECS: ItemSpec[] = [
     benchY: 168,
     density: BULK_RHO.crown,
     render: 'sprite',
-    texture: String(crownSvg),
+    texture: assetUrl(crownSvg),
   },
   {
     id: 'gold',
@@ -129,7 +130,7 @@ const ITEM_SPECS: ItemSpec[] = [
     benchY: 168,
     density: BULK_RHO.gold,
     render: 'sprite',
-    texture: String(goldNugget1),
+    texture: assetUrl(goldNugget1),
   },
   {
     id: 'rock',
@@ -140,7 +141,7 @@ const ITEM_SPECS: ItemSpec[] = [
     benchY: 212,
     density: BULK_RHO.rock,
     render: 'sprite',
-    texture: String(rockPng),
+    texture: assetUrl(rockPng),
   },
   {
     id: 'silver',
@@ -163,7 +164,7 @@ const ITEM_SPECS: ItemSpec[] = [
     benchY: 178,
     density: BULK_RHO.wood,
     render: 'sprite',
-    texture: String(woodPng),
+    texture: assetUrl(woodPng),
   },
 ]
 

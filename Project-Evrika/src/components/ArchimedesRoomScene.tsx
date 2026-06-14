@@ -1,6 +1,6 @@
-import type { FC } from 'react'
+import type { CSSProperties, FC } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import papyrusPng from '../assets/papyrus.webp'
+import papyrusImg from '../assets/papyrus.webp'
 import scrollPng from '../assets/scroll.png'
 import type { SceneId } from './LandingPage'
 import { useLessonHub } from '../context/LessonHubContext'
@@ -14,6 +14,9 @@ const REQUIRED_MASS_G = 2000
 const REQUIRED_CROWN_VOLUME_ML = 129.66
 const REQUIRED_GOLD_VOLUME_ML = 103.52
 const EXACT_MATCH_EPSILON = 0.005
+/** Raster papyrus.webp — portrait source; displayed rotated 90° as a horizontal scroll. */
+const PAPYRUS_SRC_W = 1200
+const PAPYRUS_SRC_H = 1793
 
 function parseDecimalValue(raw: string) {
   const value = parseFloat(raw.replace(',', '.').trim())
@@ -141,9 +144,26 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
             </div>
           </aside>
 
-          <div className="archimedes-papyrus-stage">
+          <div
+            className="archimedes-papyrus-stage"
+            style={
+              {
+                '--papyrus-src-w': PAPYRUS_SRC_W,
+                '--papyrus-src-h': PAPYRUS_SRC_H,
+              } as CSSProperties
+            }
+          >
             <div className="archimedes-papyrus-art" aria-hidden="true">
-              <img src={papyrusPng} alt="" className="archimedes-papyrus-img" />
+              <img
+                src={papyrusImg}
+                alt=""
+                className="archimedes-papyrus-img"
+                width={PAPYRUS_SRC_W}
+                height={PAPYRUS_SRC_H}
+                decoding="async"
+                loading="eager"
+                fetchPriority="high"
+              />
             </div>
             <div className="archimedes-papyrus-overlay">
               <div className="archimedes-formula-banner">
@@ -244,6 +264,9 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
                     src={scrollPng}
                     alt=""
                     className="archimedes-proof-scroll-img archimedes-proof-scroll-img--sealed"
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
                   />
                   <p className="archimedes-proof-scroll-status">Proof scroll ready</p>
                 </div>
