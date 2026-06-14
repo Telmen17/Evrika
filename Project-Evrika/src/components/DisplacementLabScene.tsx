@@ -111,9 +111,12 @@ function submergedVolumeFractionInTank(
   if (!bodyOverlapsTankInner(b, spec)) return 0
   const h = b.max.y - b.min.y
   if (h <= 0) return 0
-  const floorY = spec.innerBottom - 2
+  // Submerged fraction = portion of the body below the water surface. An object
+  // resting on the tank floor is still fully submerged, so we must NOT clip the
+  // lower bound at the floor — doing so under-counts displacement at rest and then
+  // jumps up when the object is lifted off the floor (phantom extra overflow).
   const y0 = Math.max(b.min.y, waterSurfaceY)
-  const y1 = Math.min(b.max.y, floorY)
+  const y1 = b.max.y
   const overlap = y1 - y0
   if (overlap <= 0) return 0
   return Math.min(1, overlap / h)
