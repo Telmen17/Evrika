@@ -43,13 +43,25 @@ function App() {
     completeNavigation(scene)
   }
 
-  const startJourney = () => {
+  /** Cinematic cloud sweep, then swap scenes — used for landing→intro and intro→hub. */
+  const navigateWithClouds = (scene: SceneId) => {
     if (transitionPhase !== 'idle') {
       return
     }
-
-    setPendingScene('intro')
+    setPendingScene(scene)
     setTransitionPhase('covering')
+  }
+
+  const startJourney = () => {
+    navigateWithClouds('intro')
+  }
+
+  const navigateFromIntro = (scene: SceneId) => {
+    if (scene === 'hub') {
+      navigateWithClouds('hub')
+    } else {
+      navigate(scene)
+    }
   }
 
   useEffect(() => {
@@ -76,7 +88,7 @@ function App() {
 
   switch (currentScene) {
     case 'intro':
-      content = <StoryIntroScene onNavigate={navigate} />
+      content = <StoryIntroScene onNavigate={navigateFromIntro} />
       break
     case 'hub':
       content = <ExplorationHub onNavigate={navigate} />

@@ -71,6 +71,10 @@ export interface LessonProgress {
     proofPresented: boolean
     beatIndex: number
   }
+  meta: {
+    /** True once the learner has seen (or skipped) the hub onboarding guide. */
+    hubGuideSeen: boolean
+  }
 }
 
 export const DEFAULT_LESSON_PROGRESS: LessonProgress = {
@@ -101,6 +105,7 @@ export const DEFAULT_LESSON_PROGRESS: LessonProgress = {
     proofUnlocked: false,
   },
   throne: { proofPresented: false, beatIndex: 0 },
+  meta: { hubGuideSeen: false },
 }
 
 /** Shallow merge per room; nested slices are partial updates. */
@@ -112,6 +117,7 @@ export type LessonProgressPatch = {
   overflow?: Partial<LessonProgress['overflow']>
   archimedes?: Partial<LessonProgress['archimedes']>
   throne?: Partial<LessonProgress['throne']>
+  meta?: Partial<LessonProgress['meta']>
 }
 
 /** Coerce hub string fields after merge/load so controlled text inputs always get strings (JSON may store numbers). */
@@ -149,6 +155,7 @@ function deepMergeProgress(
   if (patch.archimedes)
     next.archimedes = { ...base.archimedes, ...patch.archimedes }
   if (patch.throne) next.throne = { ...base.throne, ...patch.throne }
+  if (patch.meta) next.meta = { ...base.meta, ...patch.meta }
   return normalizeProgressStrings(next)
 }
 

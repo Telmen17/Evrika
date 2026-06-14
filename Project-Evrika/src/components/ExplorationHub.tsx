@@ -9,6 +9,8 @@ import DisplacementLabScene from './DisplacementLabScene'
 import ArchimedesRoomScene from './ArchimedesRoomScene'
 import StoryFinaleScene from './StoryFinaleScene'
 import { ArchimedesCompanion } from './ArchimedesCompanion'
+import { HubOnboardingGuide } from './HubOnboardingGuide'
+import { EurekaShareCard } from './EurekaShareCard'
 import papyrusImg from '../assets/papyrus.webp'
 
 type RoomId =
@@ -148,9 +150,11 @@ interface ExplorationHubProps {
 }
 
 function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
-  const { resetProgress } = useLessonHub()
+  const { resetProgress, progress, patchProgress } = useLessonHub()
   const [activeRoom, setActiveRoom] = useState<RoomId>('archimedes')
   const [transitionKey, setTransitionKey] = useState(0)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
 
   const handleResetProgress = useCallback(() => {
@@ -178,6 +182,24 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0 })
   }, [activeRoom])
+
+  /** First arrival (or after a progress reset): auto-run the onboarding guide. */
+  const hubGuideSeen = progress.meta.hubGuideSeen
+  useEffect(() => {
+    if (hubGuideSeen) return
+    const t = window.setTimeout(() => setGuideOpen(true), 850)
+    return () => window.clearTimeout(t)
+  }, [hubGuideSeen])
+
+  const closeGuide = useCallback(() => {
+    setGuideOpen(false)
+    patchProgress({ meta: { hubGuideSeen: true } })
+  }, [patchProgress])
+
+  const replayGuide = useCallback(() => {
+    setActiveRoom('archimedes')
+    setGuideOpen(true)
+  }, [])
 
   /** Default room is Archimedes — preload LCP image early (60KB webp). */
   useEffect(() => {
@@ -249,6 +271,24 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
         >
           Story intro
         </button>
+        <button
+          className="hub-intro-button hub-tips-button"
+          type="button"
+          onClick={replayGuide}
+          title="Replay Archimedes' guided tips"
+        >
+          Tips
+        </button>
+        {import.meta.env.DEV ? (
+          <button
+            className="hub-intro-button hub-dev-share-button"
+            type="button"
+            onClick={() => setShareOpen(true)}
+            title="DEV: preview the completion share card"
+          >
+            Share (dev)
+          </button>
+        ) : null}
         <span className="hub-objective-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
@@ -274,6 +314,10 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
       </div>
 
       <ArchimedesCompanion />
+
+      <HubOnboardingGuide open={guideOpen} onClose={closeGuide} />
+
+      <EurekaShareCard open={shareOpen} onClose={() => setShareOpen(false)} />
 
       <nav className="hub-nav-bar" aria-label="Room navigation">
         {ROOMS.map((room) => {

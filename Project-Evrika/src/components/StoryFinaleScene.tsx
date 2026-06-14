@@ -7,6 +7,7 @@ import scrollPng from '../assets/scroll.png'
 import type { SceneId } from './LandingPage'
 import { useLessonHub } from '../context/LessonHubContext'
 import { ProofScrollWithLock } from './ProofScrollWithLock'
+import { EurekaShareCard } from './EurekaShareCard'
 
 interface StoryFinaleSceneProps {
   onNavigate: (scene: SceneId) => void
@@ -51,6 +52,7 @@ const StoryFinaleScene: FC<StoryFinaleSceneProps> = ({ onNavigate }) => {
   const [throneUnlockPhase, setThroneUnlockPhase] = useState<
     'idle' | 'playing' | 'done'
   >(() => (proofUnlocked ? 'playing' : 'idle'))
+  const [shareOpen, setShareOpen] = useState(false)
 
   useEffect(() => {
     if (!proofUnlocked) setThroneUnlockPhase('idle')
@@ -204,12 +206,30 @@ const StoryFinaleScene: FC<StoryFinaleSceneProps> = ({ onNavigate }) => {
               Next
             </button>
           ) : (
-            <button className="primary-button" type="button" onClick={() => onNavigate('landing')}>
-              Return to menu
-            </button>
+            <>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => onNavigate('landing')}
+              >
+                Return to menu
+              </button>
+              <button
+                className="primary-button story-finale-share-cta"
+                type="button"
+                onClick={() => setShareOpen(true)}
+              >
+                <span className="story-finale-share-spark" aria-hidden>
+                  ✦
+                </span>
+                Share your Eureka
+              </button>
+            </>
           )}
         </div>
       </footer>
+
+      <EurekaShareCard open={shareOpen} onClose={() => setShareOpen(false)} />
     </div>
   )
 }
