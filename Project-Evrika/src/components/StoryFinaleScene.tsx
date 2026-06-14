@@ -8,6 +8,7 @@ import type { SceneId } from './LandingPage'
 import { useLessonHub } from '../context/LessonHubContext'
 import { ProofScrollWithLock } from './ProofScrollWithLock'
 import { EurekaShareCard } from './EurekaShareCard'
+import { FeedbackModal } from './FeedbackModal'
 
 interface StoryFinaleSceneProps {
   onNavigate: (scene: SceneId) => void
@@ -53,6 +54,7 @@ const StoryFinaleScene: FC<StoryFinaleSceneProps> = ({ onNavigate }) => {
     'idle' | 'playing' | 'done'
   >(() => (proofUnlocked ? 'playing' : 'idle'))
   const [shareOpen, setShareOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   useEffect(() => {
     if (!proofUnlocked) setThroneUnlockPhase('idle')
@@ -215,6 +217,13 @@ const StoryFinaleScene: FC<StoryFinaleSceneProps> = ({ onNavigate }) => {
                 Return to menu
               </button>
               <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setFeedbackOpen(true)}
+              >
+                Give feedback
+              </button>
+              <button
                 className="primary-button story-finale-share-cta"
                 type="button"
                 onClick={() => setShareOpen(true)}
@@ -230,6 +239,12 @@ const StoryFinaleScene: FC<StoryFinaleSceneProps> = ({ onNavigate }) => {
       </footer>
 
       <EurekaShareCard open={shareOpen} onClose={() => setShareOpen(false)} />
+
+      <FeedbackModal
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        context="lesson-complete"
+      />
     </div>
   )
 }

@@ -11,6 +11,8 @@ import StoryFinaleScene from './StoryFinaleScene'
 import { ArchimedesCompanion } from './ArchimedesCompanion'
 import { HubOnboardingGuide } from './HubOnboardingGuide'
 import { EurekaShareCard } from './EurekaShareCard'
+import { FeedbackModal } from './FeedbackModal'
+import { FeedbackInbox } from './FeedbackInbox'
 import papyrusImg from '../assets/papyrus.webp'
 
 type RoomId =
@@ -155,6 +157,8 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
   const [transitionKey, setTransitionKey] = useState(0)
   const [guideOpen, setGuideOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [inboxOpen, setInboxOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
 
   const handleResetProgress = useCallback(() => {
@@ -280,14 +284,32 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
           Tips
         </button>
         {import.meta.env.DEV ? (
-          <button
-            className="hub-intro-button hub-dev-share-button"
-            type="button"
-            onClick={() => setShareOpen(true)}
-            title="DEV: preview the completion share card"
-          >
-            Share (dev)
-          </button>
+          <>
+            <button
+              className="hub-intro-button hub-dev-share-button"
+              type="button"
+              onClick={() => setShareOpen(true)}
+              title="DEV: preview the completion share card"
+            >
+              Share (dev)
+            </button>
+            <button
+              className="hub-intro-button hub-dev-share-button"
+              type="button"
+              onClick={() => setFeedbackOpen(true)}
+              title="DEV: preview the feedback form"
+            >
+              Feedback (dev)
+            </button>
+            <button
+              className="hub-intro-button hub-dev-share-button"
+              type="button"
+              onClick={() => setInboxOpen(true)}
+              title="DEV: read collected feedback"
+            >
+              Inbox (dev)
+            </button>
+          </>
         ) : null}
         <span className="hub-objective-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
@@ -318,6 +340,16 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
       <HubOnboardingGuide open={guideOpen} onClose={closeGuide} />
 
       <EurekaShareCard open={shareOpen} onClose={() => setShareOpen(false)} />
+
+      <FeedbackModal
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        context="hub"
+      />
+
+      {import.meta.env.DEV ? (
+        <FeedbackInbox open={inboxOpen} onClose={() => setInboxOpen(false)} />
+      ) : null}
 
       <nav className="hub-nav-bar" aria-label="Room navigation">
         {ROOMS.map((room) => {

@@ -70,6 +70,8 @@ function App() {
     } else {
       document.body.classList.remove('lesson-active')
     }
+    /* Hub has its own full chrome (top bar + nav); the leaf frame only collides there. */
+    document.body.classList.toggle('hub-active', currentScene === 'hub')
   }, [currentScene])
 
   useEffect(() => {
