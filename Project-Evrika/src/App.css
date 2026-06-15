@@ -6170,6 +6170,326 @@ body.lesson-active {
   line-height: 1.05;
 }
 
+/* --- Room completion: persistent nav badge --- */
+.hub-nav-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hub-nav-check {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  width: 13px;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #34d96b 0%, #16a34a 70%);
+  color: #fff;
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(8, 60, 25, 0.5);
+  animation: hub-nav-check-pop 0.42s cubic-bezier(0.22, 1.4, 0.5, 1) both;
+}
+
+/* Keep the small badge hidden while the big celebration is flying back to it. */
+.hub-nav-check--pending {
+  opacity: 0;
+  animation: none;
+}
+
+.hub-nav-check-mark {
+  width: 9px;
+  height: 9px;
+}
+
+.hub-nav-item--complete .hub-nav-icon {
+  color: #ffe9a8;
+}
+
+@keyframes hub-nav-check-pop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* --- Room completion: full-screen celebration burst --- */
+.hub-completion-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.hub-completion-burst {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.4rem, 3.2vh, 2.3rem);
+  transform-origin: center;
+  /*
+   * Paced timeline (total 3.6s):
+   *   0.00–0.40s  icon zooms in & settles
+   *   0.40–1.40s  icon holds alone (let the user register the room)
+   *   1.40–1.95s  check stamps + sunlight rays burst out
+   *   1.95–2.90s  full badge holds in the centre (~1s)
+   *   2.90–3.60s  shrinks & flies back to its nav slot
+   */
+  animation: hub-burst-fly 3.6s cubic-bezier(0.45, 0, 0.2, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes hub-burst-fly {
+  0% {
+    transform: translate(0, 0) scale(0.3);
+    opacity: 0;
+  }
+  8% {
+    transform: translate(0, 0) scale(1.14);
+    opacity: 1;
+  }
+  11% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--fly-dx, 0), var(--fly-dy, 0)) scale(0.16);
+    opacity: 0;
+  }
+}
+
+.hub-completion-stage {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hub-completion-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250px;
+  height: 250px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 226, 138, 0.55) 0%,
+    rgba(245, 197, 66, 0.18) 45%,
+    transparent 70%
+  );
+  animation: hub-glow-pulse 3.6s ease-out both;
+  z-index: 0;
+}
+
+@keyframes hub-glow-pulse {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  8% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  36% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  /* Flare in sync with the check stamp (~1.4s) */
+  44% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.14);
+  }
+  80% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.16);
+  }
+}
+
+/* Sunlight rays radiating in every direction, timed with the check. */
+.hub-completion-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 232, 158, 0) 0deg 7deg,
+    rgba(255, 224, 138, 0.55) 7deg 11deg
+  );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 24%,
+    #000 33%,
+    #000 54%,
+    transparent 72%
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 24%,
+    #000 33%,
+    #000 54%,
+    transparent 72%
+  );
+  animation: hub-rays 3.6s ease-out both;
+}
+
+@keyframes hub-rays {
+  0%,
+  36% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.45) rotate(0deg);
+  }
+  /* Burst out with the check */
+  46% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1) rotate(10deg);
+  }
+  80% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(1.06) rotate(34deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.12) rotate(44deg);
+  }
+}
+
+.hub-completion-icon-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 26px;
+  background: linear-gradient(160deg, #6b4f10 0%, #4a3608 100%);
+  border: 2px solid rgba(255, 220, 120, 0.55);
+  box-shadow:
+    0 12px 34px rgba(40, 26, 6, 0.5),
+    inset 0 1px 0 rgba(255, 235, 160, 0.25);
+  color: #ffe9a8;
+}
+
+.hub-completion-icon {
+  width: 70px;
+  height: 70px;
+}
+
+.hub-completion-check {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #3ee27a 0%, #16a34a 72%);
+  color: #fff;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.9),
+    0 4px 12px rgba(8, 60, 25, 0.5);
+  /* Appears ~1.4s in, after the icon has held alone for a beat. */
+  animation: hub-check-stamp 0.55s cubic-bezier(0.2, 1.5, 0.4, 1) 1.4s both;
+}
+
+.hub-completion-check-mark {
+  width: 26px;
+  height: 26px;
+}
+
+@keyframes hub-check-stamp {
+  0% {
+    transform: scale(0) rotate(-25deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.25) rotate(4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+.hub-completion-text {
+  font-family: 'Cinzel', 'Trajan Pro', serif;
+  font-size: clamp(1.4rem, 1rem + 1.7vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #1a1208;
+  text-shadow: 0 1px 3px rgba(255, 244, 214, 0.7);
+  text-align: center;
+  max-width: min(90vw, 28rem);
+  line-height: 1.15;
+  /* Sit above the sunburst rays (z-index 1 inside the positioned stage). */
+  position: relative;
+  z-index: 3;
+  animation: hub-text-fade 3.6s ease both;
+}
+
+@keyframes hub-text-fade {
+  0%,
+  38% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  /* Reveal alongside the check */
+  47% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  92%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-completion-burst,
+  .hub-completion-glow,
+  .hub-completion-rays,
+  .hub-completion-check,
+  .hub-completion-text,
+  .hub-nav-check {
+    animation-duration: 0.01ms !important;
+  }
+}
+
 @media (max-height: 780px) {
   .hub-nav-item--active {
     transform: none;

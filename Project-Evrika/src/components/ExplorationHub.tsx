@@ -1,4 +1,12 @@
-import { type FC, useState, useCallback, useRef, useEffect } from 'react'
+import {
+  type CSSProperties,
+  type FC,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from 'react'
 import type { SceneId } from './LandingPage'
 import { LessonHubProvider, useLessonHub } from '../context/LessonHubContext'
 import CrownWeighScene from './CrownWeighScene'
@@ -135,6 +143,18 @@ const CrownIcon: FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
+const CheckIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M5 13l4 4L19 7"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
 const ROOMS: RoomDef[] = [
   { id: 'weigh', label: 'Weighing Chamber', icon: ScaleIcon },
   { id: 'furnace', label: 'Furnace', icon: FlameIcon },
@@ -145,14 +165,28 @@ const ROOMS: RoomDef[] = [
   { id: 'throne', label: 'Throne Room', icon: CrownIcon },
 ]
 
+/**
+ * Build the celebration heading, e.g. "Furnace Room Complete!". Ensures the word
+ * "Room" appears for every room without producing "Room Room" for labels that
+ * already contain it (Throne Room, Archimedes' room → normalized to "Room").
+ */
+function roomCompleteHeading(label: string): string {
+  const base = /\broom\b/i.test(label)
+    ? label.replace(/\broom\b/i, 'Room')
+    : `${label} Room`
+  return `${base} Complete!`
+}
+
 const OBJECTIVE_TEXT =
   "King Hiero suspects his crown is not pure gold. Explore each room to find a way to test it \u2014 without destroying the crown!"
 
 interface ExplorationHubProps {
   onNavigate: (scene: SceneId) => void
+  /** True when the hub was entered straight from the story intro — replays the guide. */
+  forceGuide?: boolean
 }
 
-function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
+function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubProps) {
   const { resetProgress, progress, patchProgress } = useLessonHub()
   const [activeRoom, setActiveRoom] = useState<RoomId>('archimedes')
   const [transitionKey, setTransitionKey] = useState(0)
@@ -161,6 +195,72 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [inboxOpen, setInboxOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  /** Per-room "all tasks done" flags, derived from saved lesson progress. */
+  const roomCompletion = useMemo<Record<RoomId, boolean>>(
+    () => ({
+      weigh: progress.weigh.weighPhase === 'done',
+      furnace: progress.melt.phase === 'done',
+      waterLab: progress.waterLab.discoverySeen,
+      bath: progress.bath.storyIndex >= 1,
+      overflow: progress.overflow.hasCompared,
+      archimedes: progress.archimedes.proofUnlocked,
+      throne: progress.throne.proofPresented,
+    }),
+    [progress],
+  )
+
+  /** Nav-bar buttons, so a completion celebration can fly back to the right slot. */
+  const navRefs = useRef<Map<RoomId, HTMLButtonElement | null>>(new Map())
+  const [celebration, setCelebration] = useState<{
+    room: RoomId
+    dx: number
+    dy: number
+  } | null>(null)
+  const celebrationQueueRef = useRef<RoomId[]>([])
+  const celebrationActiveRef = useRef(false)
+  const prevCompletionRef = useRef<Record<RoomId, boolean> | null>(null)
+
+  const startNextCelebration = useCallback(() => {
+    if (celebrationActiveRef.current) return
+    const room = celebrationQueueRef.current.shift()
+    if (!room) return
+    celebrationActiveRef.current = true
+    const el = navRefs.current.get(room)
+    let dx = 0
+    let dy = 0
+    if (el) {
+      const r = el.getBoundingClientRect()
+      dx = r.left + r.width / 2 - window.innerWidth / 2
+      dy = r.top + r.height / 2 - window.innerHeight / 2
+    }
+    setCelebration({ room, dx, dy })
+  }, [])
+
+  const handleCelebrationEnd = useCallback(() => {
+    setCelebration(null)
+    celebrationActiveRef.current = false
+    startNextCelebration()
+  }, [startNextCelebration])
+
+  /** Detect rooms that just flipped to complete and queue their celebration. */
+  useEffect(() => {
+    const prev = prevCompletionRef.current
+    prevCompletionRef.current = roomCompletion
+    // First pass (e.g. progress loaded from storage): seed baseline, don't replay.
+    if (!prev) return
+    const newlyDone = ROOMS.filter(
+      (r) => roomCompletion[r.id] && !prev[r.id],
+    ).map((r) => r.id)
+    if (newlyDone.length > 0) {
+      celebrationQueueRef.current.push(...newlyDone)
+      startNextCelebration()
+    }
+  }, [roomCompletion, startNextCelebration])
+
+  const celebratingRoomDef = celebration
+    ? ROOMS.find((r) => r.id === celebration.room) ?? null
+    : null
 
   const handleResetProgress = useCallback(() => {
     if (
@@ -195,6 +295,19 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
     const t = window.setTimeout(() => setGuideOpen(true), 850)
     return () => window.clearTimeout(t)
   }, [hubGuideSeen])
+
+  /*
+   * Arriving from the story intro replays the guide every time, even once it has
+   * been seen before. Runs once per mount so closing it (which marks hubGuideSeen)
+   * can't retrigger an open loop.
+   */
+  const forcedGuideRef = useRef(false)
+  useEffect(() => {
+    if (!forceGuide || forcedGuideRef.current) return
+    forcedGuideRef.current = true
+    const t = window.setTimeout(() => setGuideOpen(true), 850)
+    return () => window.clearTimeout(t)
+  }, [forceGuide])
 
   const closeGuide = useCallback(() => {
     setGuideOpen(false)
@@ -358,20 +471,74 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
         {ROOMS.map((room) => {
           const Icon = room.icon
           const isActive = room.id === activeRoom
+          const isComplete = roomCompletion[room.id]
+          const isFlying = celebration?.room === room.id
           return (
             <button
               key={room.id}
-              className={`hub-nav-item${isActive ? ' hub-nav-item--active' : ''}`}
+              ref={(el) => {
+                navRefs.current.set(room.id, el)
+              }}
+              className={`hub-nav-item${isActive ? ' hub-nav-item--active' : ''}${
+                isComplete ? ' hub-nav-item--complete' : ''
+              }`}
               type="button"
               onClick={() => switchRoom(room.id)}
               aria-current={isActive ? 'page' : undefined}
             >
-              <Icon className="hub-nav-icon" />
+              <span className="hub-nav-icon-wrap">
+                <Icon className="hub-nav-icon" />
+                {isComplete ? (
+                  <span
+                    className={`hub-nav-check${isFlying ? ' hub-nav-check--pending' : ''}`}
+                    aria-label="Room complete"
+                  >
+                    <CheckIcon className="hub-nav-check-mark" />
+                  </span>
+                ) : null}
+              </span>
               <span className="hub-nav-label">{room.label}</span>
             </button>
           )
         })}
       </nav>
+
+      {celebration && celebratingRoomDef ? (
+        <div
+          className="hub-completion-celebration"
+          aria-live="polite"
+          style={
+            {
+              '--fly-dx': `${celebration.dx}px`,
+              '--fly-dy': `${celebration.dy}px`,
+            } as CSSProperties
+          }
+        >
+          <div
+            className="hub-completion-burst"
+            onAnimationEnd={(e) => {
+              if (e.target === e.currentTarget) handleCelebrationEnd()
+            }}
+          >
+            <span className="hub-completion-stage">
+              <span className="hub-completion-glow" aria-hidden />
+              <span className="hub-completion-rays" aria-hidden />
+              <span className="hub-completion-icon-wrap">
+                {(() => {
+                  const Icon = celebratingRoomDef.icon
+                  return <Icon className="hub-completion-icon" />
+                })()}
+                <span className="hub-completion-check" aria-hidden>
+                  <CheckIcon className="hub-completion-check-mark" />
+                </span>
+              </span>
+            </span>
+            <span className="hub-completion-text">
+              {roomCompleteHeading(celebratingRoomDef.label)}
+            </span>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -27,6 +27,8 @@ function App() {
   const [completedScenes, setCompletedScenes] = useState<SceneId[]>([])
   const [transitionPhase, setTransitionPhase] = useState<CloudTransitionPhase>('idle')
   const [pendingScene, setPendingScene] = useState<SceneId | null>(null)
+  /** True when the hub is being entered directly from the story intro (replays the guide). */
+  const [hubFromIntro, setHubFromIntro] = useState(false)
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -40,6 +42,7 @@ function App() {
   }
 
   const navigate = (scene: SceneId) => {
+    setHubFromIntro(false)
     completeNavigation(scene)
   }
 
@@ -58,6 +61,7 @@ function App() {
 
   const navigateFromIntro = (scene: SceneId) => {
     if (scene === 'hub') {
+      setHubFromIntro(true)
       navigateWithClouds('hub')
     } else {
       navigate(scene)
@@ -93,7 +97,7 @@ function App() {
       content = <StoryIntroScene onNavigate={navigateFromIntro} />
       break
     case 'hub':
-      content = <ExplorationHub onNavigate={navigate} />
+      content = <ExplorationHub onNavigate={navigate} forceGuide={hubFromIntro} />
       break
     case 'bathStory':
       content = <StoryBathScene onNavigate={navigate} />
