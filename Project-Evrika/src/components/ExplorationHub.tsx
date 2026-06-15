@@ -9,6 +9,7 @@ import DisplacementLabScene from './DisplacementLabScene'
 import ArchimedesRoomScene from './ArchimedesRoomScene'
 import StoryFinaleScene from './StoryFinaleScene'
 import { ArchimedesCompanion } from './ArchimedesCompanion'
+import { HubAmbientMusic } from './HubAmbientMusic'
 import { HubOnboardingGuide } from './HubOnboardingGuide'
 import { EurekaShareCard } from './EurekaShareCard'
 import { FeedbackModal } from './FeedbackModal'
@@ -336,6 +337,8 @@ function ExplorationHubInner({ onNavigate }: ExplorationHubProps) {
       </div>
 
       <ArchimedesCompanion />
+
+      <HubAmbientMusic />
 
       <HubOnboardingGuide open={guideOpen} onClose={closeGuide} />
 

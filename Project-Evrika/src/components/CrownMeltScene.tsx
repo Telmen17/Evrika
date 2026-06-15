@@ -81,7 +81,7 @@ const QUIZ_FEEDBACK: Record<QuizOptionId, string> = {
 }
 
 /** After the room is complete, tapping furnace / crown / guard plays this reminder. */
-const GUARD_REVISIT_AUDIO_SRC = '/audio/guard-warn2.mp3'
+const GUARD_REVISIT_AUDIO_SRC = '/audio/voicelines/guard-warn2.mp3'
 const GUARD_REVISIT_TRANSCRIPT =
   "Don't try anything funny, you are still forbidden from melting the crown!"
 
@@ -501,7 +501,7 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
                           </p>
                           <audio
                             ref={guardAudioRef}
-                            src="/audio/guard-voice.mp3"
+                            src="/audio/voicelines/guard-voice.mp3"
                             preload="metadata"
                           />
                         </div>

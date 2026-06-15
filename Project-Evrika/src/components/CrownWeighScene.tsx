@@ -137,7 +137,7 @@ function makeGoldLumpIcon() {
 const CROWN_MASS_G = 2000
 const LUMP_MASS_G = 2000
 /** Plays once when crown and lump sit on opposite pans and the beam levels (equal-weight clue). */
-const VOICE_CROWN_VS_LUMP_SRC = '/audio/archimedes-crown-match.mp3'
+const VOICE_CROWN_VS_LUMP_SRC = '/audio/voicelines/archimedes-crown-match.mp3'
 
 /**
  * When true: lump VO never runs until `scale_conclusion2` has fully ended in this session (or was
@@ -146,7 +146,7 @@ const VOICE_CROWN_VS_LUMP_SRC = '/audio/archimedes-crown-match.mp3'
  */
 const GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE = true
 /** Plays once when the crown is physically balanced against known masses (beam level, correct counterweight). */
-const VOICE_CROWN_BALANCED_SRC = '/audio/scale_conclusion2.mp3'
+const VOICE_CROWN_BALANCED_SRC = '/audio/voicelines/scale_conclusion2.mp3'
 const INSIGHT_TEXT_BALANCE =
   "Hmm, it seems like the blacksmith made the golden crown weigh exactly the same as the gold given to him by the king. There should be another way to solve this."
 const INSIGHT_TEXT_CROWN_ANSWER =

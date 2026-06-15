@@ -37,7 +37,7 @@ const beats: StoryBeat[] = [
     title: 'The throne of Syracuse',
     text:
       'In the royal court of Syracuse in ancient Greece, King Hiero sits in state while his guards watch over the hall.',
-    audioSrc: '/audio/intro1.mp3',
+    audioSrc: '/audio/voicelines/intro1.mp3',
     focusActor: 'king',
     visibleActors: ['king', 'guards'],
   },
@@ -46,7 +46,7 @@ const beats: StoryBeat[] = [
     title: 'The crown is presented',
     text:
       'A blacksmith presents the king with a shining crown, a gift meant to honor the gods and the throne.',
-    audioSrc: '/audio/intro2.mp3',
+    audioSrc: '/audio/voicelines/intro2.mp3',
     focusActor: 'crown',
     visibleActors: ['king', 'guards', 'blacksmith', 'crown'],
   },
@@ -55,7 +55,7 @@ const beats: StoryBeat[] = [
     title: 'A troubling suspicion',
     text:
       'The king begins to wonder whether the blacksmith secretly mixed cheaper silver into the gold and kept part of the treasure for himself.',
-    audioSrc: '/audio/intro3.mp3',
+    audioSrc: '/audio/voicelines/intro3.mp3',
     focusActor: 'blacksmith',
     visibleActors: ['king', 'guards', 'blacksmith', 'crown'],
   },
@@ -64,7 +64,7 @@ const beats: StoryBeat[] = [
     title: 'Archimedes is summoned',
     text:
       'Archimedes is called before the king, known throughout Syracuse for his sharp mind and unusual way of thinking.',
-    audioSrc: '/audio/intro4.mp3',
+    audioSrc: '/audio/voicelines/intro4.mp3',
     focusActor: 'archimedes',
     visibleActors: ['king', 'guards', 'archimedes', 'crown'],
   },
@@ -73,7 +73,7 @@ const beats: StoryBeat[] = [
     title: 'The king gives the challenge',
     text:
       'Hiero gives Archimedes a difficult task: prove whether the crown is pure gold without melting it or breaking it apart.',
-    audioSrc: '/audio/intro5.mp3',
+    audioSrc: '/audio/voicelines/intro5.mp3',
     focusActor: 'crown',
     visibleActors: ['king', 'archimedes', 'crown'],
   },
@@ -82,7 +82,7 @@ const beats: StoryBeat[] = [
     title: 'A hard problem remains',
     text:
       'Left alone with the mystery, Archimedes studies the crown and wonders how truth can be uncovered without destroying it.',
-    audioSrc: '/audio/intro6.mp3',
+    audioSrc: '/audio/voicelines/intro6.mp3',
     focusActor: 'archimedes',
     visibleActors: ['archimedes', 'crown'],
   },

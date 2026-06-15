@@ -208,7 +208,7 @@ interface LessonHubContextValue {
   clearCompanionAudio: () => void
   /** Bumps when companion insight audio fires a valid `ended` (serial playback / unlock next insight). */
   insightPlaybackGeneration: number
-  /** Pathname of the clip that ended (e.g. `/audio/scale_conclusion2.mp3`), same tick as generation bump. */
+  /** Pathname of the clip that ended (e.g. `/audio/voicelines/scale_conclusion2.mp3`), same tick as generation bump. */
   lastCompanionInsightEndedSrc: string
   notifyInsightPlaybackEnded: (endedSrcPathname: string) => void
 }
