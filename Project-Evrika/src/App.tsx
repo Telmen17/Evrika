@@ -64,6 +64,11 @@ function App() {
   const navigateFromIntro = (scene: SceneId) => {
     if (scene === 'hub') {
       setHubFromIntro(true)
+      try {
+        sessionStorage.setItem(HUB_GUIDE_FROM_INTRO_KEY, '1')
+      } catch {
+        /* ignore */
+      }
       navigateWithClouds('hub')
     } else {
       navigate(scene)
@@ -75,6 +80,14 @@ function App() {
       document.body.classList.add('lesson-active')
     } else {
       document.body.classList.remove('lesson-active')
+    }
+    const onLanding = currentScene === 'landing'
+    document.documentElement.classList.toggle('landing-scrollable', onLanding)
+    document.body.classList.toggle('landing-scrollable', onLanding)
+    if (onLanding) {
+      requestAnimationFrame(() => {
+        document.querySelector('.app-root')?.scrollTo({ top: 0, left: 0 })
+      })
     }
     /* Hub has its own full chrome (top bar + nav); the leaf frame only collides there. */
     document.body.classList.toggle('hub-active', currentScene === 'hub')
@@ -190,6 +203,7 @@ function App() {
           ))}
         </div>
       </div>
+      {currentScene === 'landing' ? <LandingBackground /> : null}
       <div className="app-root">{content}</div>
       <GlobalAudioToggle visible={currentScene !== 'landing'} />
       {showCloudTransition ? (
