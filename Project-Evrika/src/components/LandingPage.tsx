@@ -121,29 +121,24 @@ const LandingPage: FC<LandingPageProps> = ({
   completedScenes,
 }) => {
   const isDesktop = useDesktopExperience()
-  const [gatePulse, setGatePulse] = useState(false)
+  const [gateDismissed, setGateDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem('evrika-landing-desktop-gate-dismissed') === '1'
+    } catch {
+      return false
+    }
+  })
+  const handleGateDismiss = useCallback(() => setGateDismissed(true), [])
 
   const isCompleted = (scene: SceneId) => completedScenes.includes(scene)
   const completedCount = JOURNEY_STEPS.filter((s) => isCompleted(s.id)).length
 
-  const pulseGate = useCallback(() => {
-    setGatePulse(true)
-    window.setTimeout(() => setGatePulse(false), 700)
-  }, [])
-
-  const guardAction = useCallback(
-    (action: () => void) => {
-      if (!isDesktop) {
-        pulseGate()
-        return
-      }
-      action()
-    },
-    [isDesktop, pulseGate],
-  )
-
   return (
-    <div className={`landing-page${isDesktop ? '' : ' landing-page-mobile'}`}>
+    <div
+      className={`landing-page${isDesktop ? '' : ' landing-page-mobile'}${
+        gateDismissed ? ' landing-page-mobile-gate-dismissed' : ''
+      }`}
+    >
       <section className="landing-hero-panel layout landing-reveal landing-reveal-1">
         <div className="landing-hero-visual" aria-hidden>
           <div className="landing-hero-scene">
@@ -180,18 +175,30 @@ const LandingPage: FC<LandingPageProps> = ({
           <p className="landing-hero-blurb">
             A storybook journey through buoyancy, density, and the splash that changed science.
           </p>
-          <button
-            className="start-button landing-cta landing-cta-primary"
-            type="button"
-            aria-disabled={!isDesktop}
-            onClick={() => guardAction(onStartJourney)}
-          >
-            <span className="landing-cta-shine" aria-hidden />
-            Start the Journey
-          </button>
-          <p className="hero-note landing-hero-note">
-            No signup · narrated story · hands-on simulations · ~15 minutes
-          </p>
+          {isDesktop ? (
+            <>
+              <button
+                className="start-button landing-cta landing-cta-primary"
+                type="button"
+                onClick={onStartJourney}
+              >
+                <span className="landing-cta-shine" aria-hidden />
+                Start the Journey
+              </button>
+              <p className="hero-note landing-hero-note">
+                No signup · narrated story · hands-on simulations · ~15 minutes
+              </p>
+            </>
+          ) : (
+            <div className="landing-mobile-callout" role="status">
+              <p className="landing-mobile-callout-text">
+                Play on desktop to start the journey and experience the awe!
+              </p>
+              <p className="landing-mobile-callout-sub">
+                Scroll for a sneak peek — the full interactive lesson needs a wider screen.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -233,10 +240,11 @@ const LandingPage: FC<LandingPageProps> = ({
         </div>
       </section>
 
-      <section
-        className="landing-paths layout landing-reveal landing-reveal-3"
-        aria-labelledby="landing-paths-heading"
-      >
+      {isDesktop ? (
+        <section
+          className="landing-paths layout landing-reveal landing-reveal-3"
+          aria-labelledby="landing-paths-heading"
+        >
         <header className="landing-section-head">
           <p className="landing-section-kicker">Choose your path</p>
           <h2 id="landing-paths-heading" className="landing-section-title">
@@ -257,8 +265,7 @@ const LandingPage: FC<LandingPageProps> = ({
             <button
               className="secondary-button wide-button landing-path-button"
               type="button"
-              aria-disabled={!isDesktop}
-              onClick={() => guardAction(() => onNavigate('intro'))}
+              onClick={() => onNavigate('intro')}
             >
               Enter the Story
             </button>
@@ -278,24 +285,21 @@ const LandingPage: FC<LandingPageProps> = ({
               <button
                 className="secondary-button"
                 type="button"
-                aria-disabled={!isDesktop}
-                onClick={() => guardAction(() => onNavigate('bath'))}
+                onClick={() => onNavigate('bath')}
               >
                 Buoyancy Bath
               </button>
               <button
                 className="secondary-button"
                 type="button"
-                aria-disabled={!isDesktop}
-                onClick={() => guardAction(() => onNavigate('crown'))}
+                onClick={() => onNavigate('crown')}
               >
                 Crown &amp; Gold Test
               </button>
               <button
                 className="secondary-button"
                 type="button"
-                aria-disabled={!isDesktop}
-                onClick={() => guardAction(() => onNavigate('practice'))}
+                onClick={() => onNavigate('practice')}
               >
                 Practice problems
               </button>
@@ -331,16 +335,18 @@ const LandingPage: FC<LandingPageProps> = ({
             <button
               className="secondary-button wide-button menu-progress-practice"
               type="button"
-              aria-disabled={!isDesktop}
-              onClick={() => guardAction(() => onNavigate('practice'))}
+              onClick={() => onNavigate('practice')}
             >
               Practice problems
             </button>
           </article>
         </div>
       </section>
+      ) : null}
 
-      {!isDesktop ? <LandingDesktopGate pulse={gatePulse} /> : null}
+      {!isDesktop && !gateDismissed ? (
+        <LandingDesktopGate onDismiss={handleGateDismiss} />
+      ) : null}
     </div>
   )
 }

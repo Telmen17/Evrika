@@ -1,7 +1,13 @@
-import type { FC } from 'react'
+import { type FC, useCallback, useEffect, useState } from 'react'
+
+const SHOW_DELAY_MS = 3200
+const FADE_MS = 520
+const DISMISS_STORAGE_KEY = 'evrika-landing-desktop-gate-dismissed'
+
+type GatePhase = 'idle' | 'entering' | 'visible' | 'leaving' | 'dismissed'
 
 interface LandingDesktopGateProps {
-  pulse?: boolean
+  onDismiss?: () => void
 }
 
 const DesktopIcon: FC = () => (
@@ -13,7 +19,7 @@ const DesktopIcon: FC = () => (
     aria-hidden
   >
     <rect x="8" y="12" width="48" height="32" rx="4" stroke="currentColor" strokeWidth="2.5" />
-    <path d="M8 40 H56" stroke="currentColor" strokeWidth="2.5" />
+    <path d="M 8 40 H56" stroke="currentColor" strokeWidth="2.5" />
     <path
       d="M26 52 H38 L34 44 H30 Z"
       fill="currentColor"
@@ -52,28 +58,91 @@ const LaurelIcon: FC = () => (
   </svg>
 )
 
-const LandingDesktopGate: FC<LandingDesktopGateProps> = ({ pulse = false }) => (
-  <aside
-    className={`landing-desktop-gate${pulse ? ' landing-desktop-gate-pulse' : ''}`}
-    role="status"
-    aria-live="polite"
-  >
-    <div className="landing-desktop-gate-inner">
-      <LaurelIcon />
-      <div className="landing-desktop-gate-body">
-        <DesktopIcon />
-        <div className="landing-desktop-gate-copy">
-          <p className="landing-desktop-gate-title">Desktop experience</p>
-          <p className="landing-desktop-gate-text">
-            Explore the full interactive lesson on a computer or tablet in landscape (960px+ wide).
-          </p>
+const LandingDesktopGate: FC<LandingDesktopGateProps> = ({ onDismiss }) => {
+  const [phase, setPhase] = useState<GatePhase>(() => {
+    try {
+      return sessionStorage.getItem(DISMISS_STORAGE_KEY) === '1' ? 'dismissed' : 'idle'
+    } catch {
+      return 'idle'
+    }
+  })
+
+  useEffect(() => {
+    if (phase === 'dismissed') {
+      onDismiss?.()
+    }
+  }, [phase, onDismiss])
+
+  useEffect(() => {
+    if (phase !== 'idle') return
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const showDelay = reducedMotion ? 0 : SHOW_DELAY_MS
+
+    const showTimer = window.setTimeout(() => {
+      setPhase('entering')
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => setPhase('visible'))
+      })
+    }, showDelay)
+
+    return () => window.clearTimeout(showTimer)
+  }, [phase])
+
+  const dismiss = useCallback(() => {
+    if (phase === 'leaving' || phase === 'dismissed') return
+    setPhase('leaving')
+    window.setTimeout(() => {
+      try {
+        sessionStorage.setItem(DISMISS_STORAGE_KEY, '1')
+      } catch {
+        /* ignore */
+      }
+      setPhase('dismissed')
+    }, FADE_MS)
+  }, [phase])
+
+  if (phase === 'dismissed') {
+    return null
+  }
+
+  const visible = phase === 'visible' || phase === 'entering'
+  const leaving = phase === 'leaving'
+
+  return (
+    <aside
+      className={`landing-desktop-gate${visible ? ' landing-desktop-gate--visible' : ''}${
+        leaving ? ' landing-desktop-gate--leaving' : ''
+      }`}
+      role="status"
+      aria-live="polite"
+      aria-hidden={!visible && !leaving}
+    >
+      <div className="landing-desktop-gate-inner">
+        <button
+          type="button"
+          className="landing-desktop-gate-close"
+          aria-label="Dismiss desktop notice"
+          onClick={dismiss}
+        >
+          <span aria-hidden>×</span>
+        </button>
+        <LaurelIcon />
+        <div className="landing-desktop-gate-body">
+          <DesktopIcon />
+          <div className="landing-desktop-gate-copy">
+            <p className="landing-desktop-gate-title">Best on desktop</p>
+            <p className="landing-desktop-gate-text">
+              Play on desktop to start the journey and experience the awe!
+            </p>
+          </div>
         </div>
+        <p className="landing-desktop-gate-greek" lang="el">
+          ΕΥΡΗΚΑ
+        </p>
       </div>
-      <p className="landing-desktop-gate-greek" lang="el">
-        ΕΥΡΗΚΑ — best on desktop
-      </p>
-    </div>
-  </aside>
-)
+    </aside>
+  )
+}
 
 export default LandingDesktopGate
