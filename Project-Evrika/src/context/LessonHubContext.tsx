@@ -51,6 +51,8 @@ export interface LessonProgress {
   }
   waterLab: {
     discoverySeen: boolean
+    /** Frustration / “what am I missing?” beat on first visit */
+    introBeatSeen: boolean
   }
   bath: {
     storyIndex: number
@@ -94,7 +96,7 @@ export const DEFAULT_LESSON_PROGRESS: LessonProgress = {
     guardPose: 0,
     guardSpeechShown: false,
   },
-  waterLab: { discoverySeen: false },
+  waterLab: { discoverySeen: false, introBeatSeen: false },
   bath: { storyIndex: 0, bathPhase: 'idle', archFrame: 0 },
   overflow: { hasCompared: false },
   archimedes: {

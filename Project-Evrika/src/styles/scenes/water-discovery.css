@@ -1,58 +1,76 @@
-/* Water discovery playground */
-/* --- Water discovery playground (before StoryBathScene) --- */
+/* Water discovery — full-width lab + layered Archimedes overlay */
 .water-discovery-scene .water-discovery-body {
   display: block;
-  max-width: 960px;
+  width: 100%;
+  max-width: min(1180px, 100%);
   margin: 0 auto;
-  padding: 0 0.5rem;
+  padding: 0 0.25rem 0.75rem;
 }
 
-.water-discovery-sandbox {
+.water-discovery-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.water-discovery-kicker {
+  margin: 0 0 0.12rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #8a6230;
+}
+
+.water-discovery-header-copy h2 {
+  margin: 0;
+  font-size: clamp(1.1rem, 0.95rem + 0.7vw, 1.35rem);
+}
+
+.water-discovery-header-hint {
+  margin: 0;
+  max-width: 20rem;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  color: #5a4024;
+  opacity: 0.9;
+}
+
+.water-discovery-workshop {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.55rem;
+  width: 100%;
 }
 
-.water-discovery-objective {
-  margin-bottom: 0.25rem;
-}
-
-.water-discovery-objective h3 {
-  margin: 0.35rem 0 0.5rem;
-  font-size: 1.2rem;
-  line-height: 1.35;
-}
-
-.water-discovery-objective-text {
-  margin: 0;
-}
-
+/* --- Full-width physics stage --- */
 .water-discovery-stage-shell {
   position: relative;
   width: 100%;
-  max-width: 780px;
-  margin: 0 auto;
-  padding: 0.35rem;
+  padding: 0.25rem 0;
 }
 
 .water-discovery-reset-button {
   position: absolute;
-  top: 2.75rem;
-  right: -2.7rem;
-  z-index: 5;
-  width: 2.2rem;
-  height: 2.2rem;
+  top: 0.55rem;
+  right: 0.55rem;
+  z-index: 8;
+  width: 2.15rem;
+  height: 2.15rem;
   border: 1px solid rgba(74, 48, 24, 0.28);
   border-radius: 999px;
   background: rgba(255, 248, 235, 0.96);
   color: #4a3018;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   line-height: 1;
-  box-shadow: 0 8px 18px rgba(42, 26, 8, 0.16);
+  box-shadow: 0 6px 16px rgba(42, 26, 8, 0.14);
   display: flex;
   justify-content: center;
   align-items: center;
-  text-align: center;
+  cursor: pointer;
 }
 
 .water-discovery-reset-button:hover {
@@ -62,8 +80,8 @@
 .water-discovery-stage-shell--sparkle::after {
   content: '';
   position: absolute;
-  inset: -4px;
-  border-radius: 18px;
+  inset: -3px;
+  border-radius: 16px;
   pointer-events: none;
   animation: waterDiscoverySparkle 1.1s ease-out forwards;
   background: radial-gradient(circle, rgba(255, 230, 140, 0.5) 0%, transparent 65%);
@@ -87,12 +105,14 @@
 .water-discovery-stage-viewport {
   position: relative;
   width: 100%;
-  max-width: 780px;
   aspect-ratio: 780 / 268;
+  min-height: clamp(200px, 32vh, 320px);
   margin: 0 auto;
   border-radius: 14px;
-  box-shadow: 0 14px 36px rgba(42, 26, 8, 0.14);
-  overflow: visible;
+  box-shadow:
+    0 16px 40px rgba(42, 26, 8, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  overflow: hidden;
 }
 
 .water-discovery-stage-bg {
@@ -100,8 +120,14 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  border-radius: 14px;
-  overflow: hidden;
+}
+
+.water-discovery-workshop-floor {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 110%, rgba(60, 40, 20, 0.14), transparent 55%),
+    linear-gradient(180deg, rgba(255, 248, 235, 0.55) 0%, rgba(228, 210, 180, 0.7) 100%);
 }
 
 .water-discovery-cupboard-panel {
@@ -110,12 +136,7 @@
   top: 0;
   bottom: 0;
   width: var(--wd-cupboard-width-pct, 33%);
-  background: linear-gradient(
-    165deg,
-    #7a5230 0%,
-    #5c3a1e 38%,
-    #4a2e18 100%
-  );
+  background: linear-gradient(165deg, #7a5230 0%, #5c3a1e 38%, #4a2e18 100%);
   border-right: 3px solid rgba(40, 24, 10, 0.55);
   box-shadow: inset -6px 0 12px rgba(0, 0, 0, 0.2);
 }
@@ -126,42 +147,96 @@
   width: var(--wd-gap-width-pct, 6%);
   top: 0;
   bottom: 0;
-  background:
-    linear-gradient(180deg, rgba(244, 233, 209, 0.78), rgba(222, 204, 176, 0.72)),
-    repeating-linear-gradient(
-      180deg,
-      rgba(92, 64, 32, 0.09) 0,
-      rgba(92, 64, 32, 0.09) 10px,
-      rgba(255, 255, 255, 0.08) 10px,
-      rgba(255, 255, 255, 0.08) 20px
-    );
+  background: linear-gradient(
+    180deg,
+    rgba(244, 233, 209, 0.55) 0%,
+    rgba(228, 210, 180, 0.45) 100%
+  );
   box-shadow:
-    inset 1px 0 0 rgba(92, 64, 32, 0.15),
-    inset -1px 0 0 rgba(92, 64, 32, 0.18);
-}
-
-.water-discovery-cupboard-label {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: rgba(255, 245, 220, 0.85);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    inset 1px 0 0 rgba(92, 64, 32, 0.1),
+    inset -1px 0 0 rgba(92, 64, 32, 0.12);
 }
 
 .water-discovery-cupboard-shelf-groove {
   position: absolute;
-  left: 8%;
-  right: 8%;
-  bottom: 18%;
-  height: 6px;
+  left: 6%;
+  right: 6%;
+  bottom: 16%;
+  height: 8px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.22);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Prop name tags — follow physics bodies, pointer-events none */
+.water-discovery-prop-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.water-discovery-prop-label {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 6px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  transition: transform 0.2s ease;
+  white-space: nowrap;
+}
+
+.water-discovery-prop-label__name {
+  padding: 0.12rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #3d2814;
+  background: rgba(255, 251, 235, 0.88);
+  border: 1px solid rgba(160, 110, 48, 0.28);
+  box-shadow: 0 2px 6px rgba(40, 26, 8, 0.12);
+}
+
+.water-discovery-prop-label__hint {
+  max-width: 9rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 8px;
+  font-size: 0.58rem;
+  line-height: 1.3;
+  text-align: center;
+  color: #4a3018;
+  background: rgba(255, 253, 246, 0.96);
+  border: 1px solid rgba(180, 130, 60, 0.35);
+  box-shadow: 0 4px 10px rgba(40, 26, 8, 0.1);
+  white-space: normal;
+}
+
+.water-discovery-prop-label__pickup {
+  font-size: 0.54rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(74, 48, 24, 0.55);
+}
+
+.water-discovery-prop-label--hover {
+  transform: translate(-50%, calc(-100% - 10px)) scale(1.06);
+  animation: waterPropLabelJiggle 0.55s ease-in-out infinite;
+}
+
+@keyframes waterPropLabelJiggle {
+  0%,
+  100% {
+    transform: translate(-50%, calc(-100% - 10px)) rotate(-1deg) scale(1.06);
+  }
+  50% {
+    transform: translate(-50%, calc(-100% - 12px)) rotate(1deg) scale(1.08);
+  }
 }
 
 .water-discovery-tank-panel {
@@ -170,9 +245,45 @@
   width: var(--wd-tank-width-pct, 67%);
   top: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(230, 240, 252, 0.5), rgba(200, 214, 232, 0.55));
-  border-left: 1px solid rgba(110, 92, 64, 0.25);
   overflow: hidden;
+  background: transparent;
+}
+
+/* Single open-top wooden tank — sides + bottom only, no lid */
+.water-discovery-tank-box {
+  position: absolute;
+  left: 1.5%;
+  right: 1.5%;
+  top: var(--wd-tank-inset-top, 21.6%);
+  bottom: var(--wd-tank-inset-bottom, 18.7%);
+  box-sizing: border-box;
+  padding: 0 clamp(7px, 1.1%, 11px) clamp(7px, 1.1%, 11px);
+  border-radius: 0 0 8px 8px;
+  background:
+    linear-gradient(180deg, #b88838 0%, #8b6914 55%, #5c4210 100%) left / clamp(7px, 1.1%, 11px)
+      100% no-repeat,
+    linear-gradient(180deg, #b88838 0%, #8b6914 55%, #5c4210 100%) right / clamp(7px, 1.1%, 11px)
+      100% no-repeat,
+    linear-gradient(180deg, #a07820 0%, #5c4210 100%) bottom / 100% clamp(7px, 1.1%, 11px)
+      no-repeat;
+  filter: drop-shadow(0 4px 10px rgba(40, 26, 6, 0.12));
+}
+
+.water-discovery-tank-cavity {
+  position: relative;
+  height: 100%;
+  border-radius: 0 0 4px 4px;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 248, 228, 0.72) 0,
+      rgba(255, 248, 228, 0.72) 14px,
+      rgba(244, 232, 204, 0.58) 14px,
+      rgba(244, 232, 204, 0.58) 28px
+    ),
+    linear-gradient(180deg, #f8edd8 0%, #e8d4b0 100%);
+  box-shadow: inset 0 0 0 1px rgba(74, 48, 24, 0.1);
 }
 
 .water-discovery-matter-host {
@@ -180,11 +291,12 @@
   inset: 0;
   z-index: 2;
   pointer-events: auto;
-  overflow: visible;
 }
 
 .water-discovery-matter-host canvas {
   display: block !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .water-discovery-water--live {
@@ -192,23 +304,12 @@
   will-change: height;
 }
 
-.water-discovery-legend {
-  margin: 0.35rem 0 0;
-  padding-left: 1.15rem;
-  font-size: 0.86rem;
-  color: #4a3018;
-  line-height: 1.5;
-}
-
-.water-discovery-advice {
-  margin-top: 0.25rem;
-}
-
 .water-discovery-water {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
+  border-radius: 0 0 4px 4px;
   background: linear-gradient(
     180deg,
     rgba(130, 200, 255, 0.55) 0%,
@@ -216,6 +317,7 @@
     rgba(40, 110, 180, 0.88) 100%
   );
   z-index: 1;
+  box-shadow: inset 0 2px 8px rgba(255, 255, 255, 0.15);
 }
 
 .water-discovery-water-surface {
@@ -224,11 +326,7 @@
   right: 0;
   top: 0;
   height: 10px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.45),
-    rgba(255, 255, 255, 0)
-  );
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
   opacity: 0.85;
 }
 
@@ -238,22 +336,268 @@
   bottom: 12%;
   width: 28%;
   height: 40%;
-  background: linear-gradient(
-    125deg,
-    rgba(255, 255, 255, 0.2),
-    rgba(255, 255, 255, 0)
-  );
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
   border-radius: 40%;
   pointer-events: none;
 }
 
 .water-discovery-tank-caption {
-  margin: 0.65rem 0 0;
+  margin: 0.45rem 0 0;
   text-align: center;
-  font-size: 0.86rem;
+  font-size: 0.78rem;
   color: #5a4024;
+  letter-spacing: 0.04em;
 }
 
+.water-discovery-prop-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  justify-content: center;
+}
+
+.water-discovery-prop-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.2rem 0.5rem 0.22rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  color: #4a3018;
+  background: rgba(255, 251, 240, 0.92);
+  border: 1px solid rgba(160, 110, 48, 0.22);
+}
+
+.water-discovery-prop-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.water-discovery-prop-dot--crown {
+  background: linear-gradient(135deg, #fbbf24, #b45309);
+}
+
+.water-discovery-prop-dot--gold {
+  background: linear-gradient(135deg, #fde68a, #ca8a04);
+}
+
+.water-discovery-prop-dot--rock {
+  background: linear-gradient(135deg, #9ca3af, #4b5563);
+}
+
+.water-discovery-prop-dot--silver {
+  background: linear-gradient(135deg, #e5e7eb, #6b7280);
+}
+
+.water-discovery-prop-dot--wood {
+  background: linear-gradient(135deg, #a16207, #713f12);
+}
+
+/* Water Lab mentor — reuses `.archimedes-companion` shell; emote beats only add modifiers below */
+.water-lab-arch.archimedes-companion {
+  pointer-events: none;
+}
+
+.water-lab-arch__head-btn {
+  pointer-events: none;
+  cursor: default;
+}
+
+.water-lab-arch__head-btn:hover,
+.water-lab-arch__head-btn:active {
+  transform: none;
+  box-shadow:
+    0 0 0 2px rgba(184, 134, 11, 0.35),
+    0 6px 20px rgba(60, 35, 8, 0.35);
+}
+
+.water-lab-arch__bubble {
+  position: relative;
+  pointer-events: auto;
+  padding: 0.55rem 1.6rem 0.55rem 0.65rem;
+  border-radius: 14px;
+  background: linear-gradient(165deg, #fffef9 0%, #f8ecd0 48%, #edd9a4 100%);
+  border: 2px solid #c49a28;
+  box-shadow:
+    0 4px 0 rgba(139, 105, 20, 0.12),
+    0 12px 28px rgba(60, 40, 10, 0.22);
+  animation: waterLabArchBubbleIn 0.42s cubic-bezier(0.22, 1.1, 0.4, 1) both;
+  margin-bottom: 0;
+  max-width: min(240px, calc(100vw - 8rem));
+}
+
+.water-lab-arch__bubble::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(135deg, #f8ecd0, #edd9a4);
+  border-right: 2px solid #c49a28;
+  border-top: 2px solid #c49a28;
+  border-radius: 2px;
+}
+
+.water-lab-arch__line {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.42;
+  color: #3a2810;
+}
+
+.water-lab-arch__dismiss {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.35rem;
+  border: none;
+  background: transparent;
+  color: #8a6230;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.1rem 0.25rem;
+}
+
+.water-lab-arch__emote-anchor {
+  position: relative;
+  pointer-events: none;
+  flex-shrink: 0;
+  width: 112px;
+  height: 138px;
+  transition:
+    width 0.5s cubic-bezier(0.34, 1.15, 0.48, 1),
+    height 0.5s cubic-bezier(0.34, 1.15, 0.48, 1);
+}
+
+.water-lab-arch__aura {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 220, 140, 0.5) 0%,
+    rgba(255, 180, 60, 0.15) 45%,
+    transparent 68%
+  );
+  animation: waterLabArchAura 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.water-lab-arch--emote .water-lab-arch__aura {
+  border-radius: 18px;
+  inset: -8px -10px;
+}
+
+.water-lab-arch__emote-wrap {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(16px) scale(0.88);
+  transition:
+    opacity 0.45s ease,
+    transform 0.5s cubic-bezier(0.22, 1.15, 0.42, 1);
+  box-shadow:
+    0 10px 28px rgba(20, 12, 4, 0.35),
+    inset 0 0 0 1px rgba(255, 220, 140, 0.25);
+  background: linear-gradient(180deg, #3d2814 0%, #25180c 100%);
+}
+
+.water-lab-arch--emote .water-lab-arch__emote-wrap {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.water-lab-arch__figure {
+  width: 118%;
+  height: 118%;
+  margin-left: -9%;
+  margin-top: -6%;
+  object-fit: cover;
+  object-position: center 10%;
+  transition: filter 0.45s ease;
+}
+
+.water-lab-arch__mood-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+@keyframes waterLabArchBubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes waterLabArchAura {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* Mood emotes on expanded figure */
+.water-lab-arch--stuck .water-lab-arch__figure {
+  filter: saturate(0.7) brightness(0.8);
+}
+
+.water-lab-arch--stuck .water-lab-arch__mood-glow {
+  opacity: 1;
+  background: radial-gradient(circle at 50% 80%, rgba(60, 45, 30, 0.45), transparent 65%);
+}
+
+.water-lab-arch--watching .water-lab-arch__aura {
+  animation-duration: 2s;
+}
+
+.water-lab-arch--curious .water-lab-arch__figure {
+  filter: saturate(1.05) brightness(1.03);
+}
+
+.water-lab-arch--curious .water-lab-arch__mood-glow {
+  opacity: 1;
+  background: radial-gradient(circle at 50% 20%, rgba(255, 220, 120, 0.4), transparent 70%);
+}
+
+.water-lab-arch--eureka .water-lab-arch__figure {
+  filter: saturate(1.12) brightness(1.08);
+}
+
+.water-lab-arch--eureka .water-lab-arch__mood-glow {
+  opacity: 1;
+  background: radial-gradient(circle at 50% 15%, rgba(255, 240, 160, 0.55), transparent 72%);
+  animation: waterLabEurekaGlow 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes waterLabEurekaGlow {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- Discovery closeup --- */
 .water-discovery-closeup {
   position: fixed;
   inset: 0;
@@ -299,7 +643,8 @@
 
 .water-discovery-closeup-text {
   margin: 0 0 1rem;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .water-discovery-closeup-stage {
@@ -311,10 +656,6 @@
 .water-discovery-tank--closeup {
   width: 260px;
   transform: scale(1.08);
-}
-
-.water-discovery-tank--closeup .water-discovery-tank-inner {
-  height: 200px;
 }
 
 .water-discovery-tank-inner--modal {
@@ -347,7 +688,6 @@
 }
 
 .water-discovery-modal-thumb--silver {
-  /* Silver bar asset is already Ag-colored (scale chapter) */
   filter: none;
 }
 
@@ -355,17 +695,6 @@
   border-radius: 8px;
   border: 2px solid;
   box-sizing: border-box;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .water-discovery-water:not(.water-discovery-water--live):not(.water-discovery-water--modal) {
-    transition-duration: 0.01ms;
-  }
-
-  .water-discovery-stage-shell--sparkle::after {
-    animation: none;
-    opacity: 0.55;
-  }
 }
 
 .water-discovery-closeup-glow {
@@ -380,25 +709,37 @@
   z-index: 0;
 }
 
-.water-discovery-closeup-hint {
-  margin: 0.35rem 0 0;
-  text-align: center;
-}
-
-.water-discovery-footer .scene-footer-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
+@media (prefers-reduced-motion: reduce) {
+  .water-discovery-stage-shell--sparkle::after,
+  .water-lab-arch__bubble,
+  .water-lab-arch__aura,
+  .water-lab-arch--eureka .water-lab-arch__mood-glow,
+  .water-lab-arch__emote-anchor,
+  .water-lab-arch__emote-wrap,
+  .archimedes-companion__head-bob,
+  .archimedes-companion__head-aura {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media (max-width: 720px) {
-  .water-discovery-reset-button {
-    right: 0.45rem;
-    top: 0.45rem;
+  .water-discovery-header-hint {
+    flex: 1 1 100%;
+    max-width: none;
   }
 
-  .water-discovery-stage-viewport {
-    max-width: 100%;
+  .water-lab-arch.archimedes-companion .archimedes-companion__dock {
+    max-width: min(260px, calc(100vw - 4rem));
+  }
+
+  .water-lab-arch__emote-anchor {
+    width: 96px;
+    height: 118px;
+  }
+
+  .water-discovery-prop-label__hint {
+    max-width: 7rem;
+    font-size: 0.54rem;
   }
 }
-

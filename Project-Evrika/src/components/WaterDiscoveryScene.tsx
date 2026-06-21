@@ -1,5 +1,6 @@
 import type { CSSProperties, FC } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import crownSvg from '../assets/crown.svg'
 import goldNugget1 from '../assets/goldNugget1png.png'
 import rockPng from '../assets/rock.png'
@@ -8,6 +9,11 @@ import { assetUrl } from '../lib/assetUrl'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
 import type { SceneId } from './LandingPage'
 import { useLessonHub } from '../context/LessonHubContext'
+import {
+  WaterLabArchimedesOverlay,
+  type WaterLabArchPresentation,
+  type WaterLabMentorMood,
+} from './WaterLabArchimedesOverlay'
 
 type ItemId = 'crown' | 'gold' | 'rock' | 'wood' | 'silver'
 
@@ -33,8 +39,9 @@ const WD_STAGE_H = 268
 const TANK = {
   innerL: 304,
   innerR: 764,
-  innerTop: 26,
-  innerBottom: 234,
+  /** Lower rim — less vertical lift needed to drag props over the tank. */
+  innerTop: 58,
+  innerBottom: 218,
 } as const
 
 const innerW = TANK.innerR - TANK.innerL
@@ -50,13 +57,19 @@ const SHELF = {
 /** “Put back” zone (cupboard only; must not overlap tank water) */
 const BENCH = { minX: 20, maxX: 230, minY: 38, maxY: 252 }
 
-/** Vertical partition closing the physics gap between cupboard and tank (drag objects up and over). */
+/** Vertical lip at shelf height — blocks sliding under without lifting; top stays open for drag-in. */
 const PARTITION = {
   x: (SHELF.maxX + TANK.innerL) / 2,
-  width: Math.max(14, TANK.innerL - SHELF.maxX - 2),
-  topY: 22,
-  bottomY: WD_STAGE_H - 10,
+  width: Math.max(10, TANK.innerL - SHELF.maxX - 6),
+  topY: 188,
+  bottomY: WD_STAGE_H - 8,
 } as const
+
+/** Open band above left wall lip — drag props over, then drop in. */
+const TANK_LEFT_WALL_TOP_Y = 102
+
+/** Invisible Matter walls — thicker than visible wood frame to prevent tunneling. */
+const TANK_WALL_THICKNESS = 14
 
 const BASE_WATER01 = 0.28
 const MAX_WATER01 = 0.92
@@ -97,6 +110,8 @@ const SILVER_BAR_TEX_H = 48
 interface ItemSpec {
   id: ItemId
   label: string
+  /** Short tooltip shown on hover / near the prop on the shelf. */
+  hint: string
   w: number
   h: number
   benchX: number
@@ -108,26 +123,40 @@ interface ItemSpec {
   stroke?: string
 }
 
-/** 5 props: 2+2+1 on shelf — centers stay left of partition / tank. */
+/** Props on the shelf — two neat rows + wood block on the left. */
 const ITEM_SPECS: ItemSpec[] = [
+  {
+    id: 'wood',
+    label: 'Wood block',
+    hint: 'Floats — watch the waterline climb slowly',
+    w: 58,
+    h: 96,
+    benchX: 48,
+    benchY: 182,
+    density: BULK_RHO.wood,
+    render: 'sprite',
+    texture: assetUrl(woodPng),
+  },
   {
     id: 'crown',
     label: 'Crown',
-    w: 44,
-    h: 34,
-    benchX: 68,
-    benchY: 168,
+    hint: 'Heavy gold crown — sinks fast',
+    w: 42,
+    h: 32,
+    benchX: 112,
+    benchY: 152,
     density: BULK_RHO.crown,
     render: 'sprite',
     texture: assetUrl(crownSvg),
   },
   {
     id: 'gold',
-    label: 'Gold',
-    w: 58,
-    h: 50,
-    benchX: 168,
-    benchY: 168,
+    label: 'Gold nugget',
+    hint: 'Dense lump of gold',
+    w: 52,
+    h: 44,
+    benchX: 182,
+    benchY: 152,
     density: BULK_RHO.gold,
     render: 'sprite',
     texture: assetUrl(goldNugget1),
@@ -135,10 +164,11 @@ const ITEM_SPECS: ItemSpec[] = [
   {
     id: 'rock',
     label: 'Rock',
-    w: 44,
-    h: 40,
-    benchX: 68,
-    benchY: 212,
+    hint: 'Stone — sinks like the crown',
+    w: 40,
+    h: 36,
+    benchX: 112,
+    benchY: 208,
     density: BULK_RHO.rock,
     render: 'sprite',
     texture: assetUrl(rockPng),
@@ -146,25 +176,14 @@ const ITEM_SPECS: ItemSpec[] = [
   {
     id: 'silver',
     label: 'Silver bar',
-    w: 30,
-    h: 17,
-    benchX: 168,
-    benchY: 212,
+    hint: 'Silver ingot — compare its splash',
+    w: 28,
+    h: 16,
+    benchX: 182,
+    benchY: 208,
     density: BULK_RHO.silver,
     render: 'sprite',
     texture: SILVER_BAR_TEXTURE,
-  },
-  {
-    id: 'wood',
-    label: 'Wood',
-    /** Tall asset (~277×478); large on-shelf body, fits above shelf + in tank */
-    w: 72,
-    h: 118,
-    benchX: 118,
-    benchY: 178,
-    density: BULK_RHO.wood,
-    render: 'sprite',
-    texture: assetUrl(woodPng),
   },
 ]
 
@@ -193,8 +212,60 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3)
 }
 
+/** Keep props inside the tank once past the entry lip — backs up invisible walls. */
+function enforceTankContainment(
+  body: { bounds: { min: { x: number; y: number }; max: { x: number; y: number } }; position: { x: number; y: number }; velocity: { x: number; y: number } },
+  Body: { setPosition: (b: unknown, pos: { x: number; y: number }) => void; setVelocity: (b: unknown, vel: { x: number; y: number }) => void },
+) {
+  const b = body.bounds
+  const overlapsTankX = b.max.x > TANK.innerL + 1 && b.min.x < TANK.innerR - 1
+  if (!overlapsTankX || b.min.y > TANK.innerBottom + 8) return
+
+  const halfW = (b.max.x - b.min.x) / 2
+  const halfH = (b.max.y - b.min.y) / 2
+  const pad = 2
+  let { x, y } = body.position
+  let { x: vx, y: vy } = body.velocity
+  let corrected = false
+
+  const floorY = TANK.innerBottom - halfH - pad
+  if (y > floorY) {
+    y = floorY
+    vy = Math.min(vy, 0) * 0.25
+    corrected = true
+  }
+
+  const rightX = TANK.innerR - halfW - pad
+  if (x > rightX) {
+    x = rightX
+    vx = Math.min(vx, 0) * 0.3
+    corrected = true
+  }
+
+  if (y > TANK_LEFT_WALL_TOP_Y + halfH * 0.35) {
+    const leftX = TANK.innerL + halfW + pad
+    if (x < leftX) {
+      x = leftX
+      vx = Math.max(vx, 0) * 0.3
+      corrected = true
+    }
+  }
+
+  if (corrected) {
+    Body.setPosition(body, { x, y })
+    Body.setVelocity(body, { x: vx, y: vy })
+  }
+}
+
 const CLOSEUP_MS = 3400
 const MODAL_REPLAY_MS = 1650
+const MENTOR_INTRO_DELAY_MS = 2800
+const MENTOR_CURIOUS_HOLD_MS = 2200
+
+const MENTOR_STUCK_LINE =
+  'I have weighed the crown and braved the furnace. Mass alone cannot expose a fraud. What clue am I blind to?'
+const MENTOR_CURIOUS_LINE =
+  'Wait—the water moved when you dropped that in. Volume may be speaking to us. Try another object; watch the line.'
 
 interface WaterDiscoverySceneProps {
   onNavigate: (scene: SceneId) => void
@@ -217,12 +288,53 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
   const [modalWaterPct, setModalWaterPct] = useState(BASE_WATER01 * 100)
   const [modalDropT, setModalDropT] = useState(0)
   const [replayItemId, setReplayItemId] = useState<ItemId | null>(null)
+  const [mentorMood, setMentorMood] = useState<WaterLabMentorMood>('idle')
+  const [mentorLine, setMentorLine] = useState<string | null>(null)
+  const [mentorSpeaking, setMentorSpeaking] = useState(false)
+  const [archPresentation, setArchPresentation] = useState<WaterLabArchPresentation>('icon')
+  const emoteCollapseTimerRef = useRef<number | undefined>(undefined)
+  const [hoveredProp, setHoveredProp] = useState<ItemId | null>(null)
+  const [propPositions, setPropPositions] = useState<Record<ItemId, { x: number; y: number }>>(
+    () =>
+      Object.fromEntries(
+        ITEM_SPECS.map((s) => [s.id, { x: s.benchX, y: s.benchY }]),
+      ) as Record<ItemId, { x: number; y: number }>,
+  )
+  const setHoveredPropRef = useRef(setHoveredProp)
+  const setPropPositionsRef = useRef(setPropPositions)
+  setHoveredPropRef.current = setHoveredProp
+  setPropPositionsRef.current = setPropPositions
+
+  const collapseArchEmote = useCallback(() => {
+    window.clearTimeout(emoteCollapseTimerRef.current)
+    setArchPresentation('icon')
+    setMentorSpeaking(false)
+  }, [])
+
+  const presentArchEmote = useCallback(
+    (mood: WaterLabMentorMood, line: string, holdMs: number) => {
+      window.clearTimeout(emoteCollapseTimerRef.current)
+      setMentorMood(mood)
+      setMentorLine(line)
+      setMentorSpeaking(true)
+      setArchPresentation('emote')
+      emoteCollapseTimerRef.current = window.setTimeout(() => {
+        collapseArchEmote()
+      }, holdMs)
+    },
+    [collapseArchEmote],
+  )
 
   const firstDiscoveryHandled = useRef(false)
+  const discoveryPendingRef = useRef(false)
 
   useLayoutEffect(() => {
     if (progress.waterLab.discoverySeen) {
       firstDiscoveryHandled.current = true
+      setMentorMood('idle')
+      setMentorLine(null)
+      setMentorSpeaking(false)
+      setArchPresentation('icon')
     }
   }, [progress.waterLab.discoverySeen])
   const closeupTimerRef = useRef<number | undefined>(undefined)
@@ -246,6 +358,8 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
         '--wd-cupboard-width-pct': `${(SHELF.maxX / WD_STAGE_W) * 100}%`,
         '--wd-gap-left-pct': `${(SHELF.maxX / WD_STAGE_W) * 100}%`,
         '--wd-gap-width-pct': `${((TANK.innerL - SHELF.maxX) / WD_STAGE_W) * 100}%`,
+        '--wd-tank-inset-top': `${(TANK.innerTop / WD_STAGE_H) * 100}%`,
+        '--wd-tank-inset-bottom': `${((WD_STAGE_H - TANK.innerBottom) / WD_STAGE_H) * 100}%`,
       }) as CSSProperties,
     [],
   )
@@ -256,6 +370,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     if (modalRafRef.current) cancelAnimationFrame(modalRafRef.current)
 
     firstDiscoveryHandled.current = false
+    discoveryPendingRef.current = false
     water01Ref.current = BASE_WATER01
     replayDataRef.current = {
       from01: BASE_WATER01,
@@ -271,6 +386,17 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     setModalDropT(0)
     setWaterPct(BASE_WATER01 * 100)
     setSimVersion((v) => v + 1)
+    setMentorMood('idle')
+    setMentorLine(null)
+    setMentorSpeaking(false)
+    setArchPresentation('icon')
+    window.clearTimeout(emoteCollapseTimerRef.current)
+    setHoveredProp(null)
+    setPropPositions(
+      Object.fromEntries(
+        ITEM_SPECS.map((s) => [s.id, { x: s.benchX, y: s.benchY }]),
+      ) as Record<ItemId, { x: number; y: number }>,
+    )
   }, [])
 
   useEffect(() => {
@@ -287,10 +413,38 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     }
   }, [])
 
+  useEffect(
+    () => () => {
+      window.clearTimeout(emoteCollapseTimerRef.current)
+    },
+    [],
+  )
+
+  /** First visit: frustration emote after the learner sees the room. */
+  useEffect(() => {
+    if (progress.waterLab.discoverySeen || progress.waterLab.introBeatSeen) return
+    const id = window.setTimeout(() => {
+      presentArchEmote('stuck', MENTOR_STUCK_LINE, 9000)
+      patchProgress({ waterLab: { introBeatSeen: true } })
+    }, MENTOR_INTRO_DELAY_MS)
+    return () => window.clearTimeout(id)
+  }, [
+    patchProgress,
+    presentArchEmote,
+    progress.waterLab.discoverySeen,
+    progress.waterLab.introBeatSeen,
+  ])
+
   const triggerFirstDiscovery = useCallback((itemId: ItemId) => {
     if (firstDiscoveryHandled.current) return
     firstDiscoveryHandled.current = true
     patchProgress({ waterLab: { discoverySeen: true } })
+
+    setMentorMood('eureka')
+    setMentorLine('The waterline rose—that volume is the answer hiding in plain sight.')
+    setMentorSpeaking(true)
+    setArchPresentation('emote')
+    window.clearTimeout(emoteCollapseTimerRef.current)
 
     setSparkleKey((k) => k + 1)
     setReplayItemId(itemId)
@@ -329,6 +483,22 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
   }, [patchProgress])
 
   triggerDiscoveryRef.current = triggerFirstDiscovery
+
+  const beginDiscoverySequence = useCallback(
+    (itemId: ItemId) => {
+      if (firstDiscoveryHandled.current || discoveryPendingRef.current) return
+      discoveryPendingRef.current = true
+      window.clearTimeout(emoteCollapseTimerRef.current)
+      setMentorMood('curious')
+      setMentorLine(MENTOR_CURIOUS_LINE)
+      setMentorSpeaking(true)
+      setArchPresentation('emote')
+      window.setTimeout(() => {
+        triggerDiscoveryRef.current(itemId)
+      }, MENTOR_CURIOUS_HOLD_MS)
+    },
+    [],
+  )
 
   useEffect(
     () => () => {
@@ -387,10 +557,14 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
       MouseConstraint,
       Events,
       Sleeping,
+      Query,
     } = Matter
 
     const engine = Engine.create({ enableSleeping: true })
     engine.gravity.y = 0.95
+    engine.positionIterations = 10
+    engine.velocityIterations = 8
+    engine.constraintIterations = 4
 
     const render = Render.create({
       element: hostRef.current,
@@ -409,37 +583,42 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     matterCanvas.style.background = 'transparent'
     matterCanvas.style.display = 'block'
     matterCanvas.style.width = '100%'
-    matterCanvas.style.height = 'auto'
-    matterCanvas.style.aspectRatio = `${WD_STAGE_W} / ${WD_STAGE_H}`
+    matterCanvas.style.height = '100%'
     matterCanvas.style.touchAction = 'none'
 
-    const wallStyle = {
+    const staticBody = {
       isStatic: true,
-      render: { fillStyle: '#7a6a58', strokeStyle: '#3d3020', lineWidth: 1 },
+      friction: 0.85,
+      restitution: 0.02,
+      slop: 0.001,
+      render: { visible: false },
     }
-    const wallT = 9
-    const midY = (TANK.innerTop + TANK.innerBottom) / 2
-    const sideH = TANK.innerBottom - TANK.innerTop
+    const wallT = TANK_WALL_THICKNESS
+    const leftWallBottomY = TANK.innerBottom + wallT / 2
+    const leftWallHeight = leftWallBottomY - TANK_LEFT_WALL_TOP_Y
+    const leftWallMidY = TANK_LEFT_WALL_TOP_Y + leftWallHeight / 2
+    const sideMidY = (TANK.innerTop + TANK.innerBottom) / 2
+    const sideH = TANK.innerBottom - TANK.innerTop + wallT
     const leftWall = Bodies.rectangle(
       TANK.innerL - wallT / 2,
-      midY,
+      leftWallMidY,
       wallT,
-      sideH + wallT,
-      wallStyle,
+      leftWallHeight,
+      staticBody,
     )
     const rightWall = Bodies.rectangle(
       TANK.innerR + wallT / 2,
-      midY,
+      sideMidY,
       wallT,
-      sideH + wallT,
-      wallStyle,
+      sideH,
+      staticBody,
     )
     const floor = Bodies.rectangle(
       (TANK.innerL + TANK.innerR) / 2,
       TANK.innerBottom + wallT / 2,
-      innerW + wallT * 2 + 20,
+      innerW + wallT,
       wallT,
-      wallStyle,
+      staticBody,
     )
 
     /** Cupboard shelf — objects rest here at start (separate from tank floor). */
@@ -448,10 +627,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
       SHELF.y,
       SHELF.maxX - SHELF.minX,
       18,
-      {
-        isStatic: true,
-        render: { fillStyle: '#a07840', strokeStyle: '#5c4020', lineWidth: 1 },
-      },
+      staticBody,
     )
 
     const partH = PARTITION.bottomY - PARTITION.topY
@@ -463,15 +639,12 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
       PARTITION.width,
       partH,
       {
-        isStatic: true,
+        ...staticBody,
         friction: 0.42,
-        render: {
-          fillStyle: '#6a5244',
-          strokeStyle: 'rgba(40, 28, 14, 0.55)',
-          lineWidth: 1,
-        },
       },
     )
+
+    const itemBodyList: any[] = []
 
     const ground = Bodies.rectangle(WD_STAGE_W / 2, WD_STAGE_H + 48, WD_STAGE_W * 2, 56, {
       isStatic: true,
@@ -543,6 +716,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
       Body.setVelocity(body, { x: 0, y: 0 })
       if (Sleeping?.set) Sleeping.set(body, true)
       itemBodies[spec.id] = body
+      itemBodyList.push(body)
     }
 
     Composite.add(engine.world, [
@@ -562,29 +736,112 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     const mouse = Mouse.create(matterCanvas)
     const mc = MouseConstraint.create(engine, {
       mouse,
-      constraint: { stiffness: 0.35, damping: 0.15, render: { visible: false } },
+      constraint: { stiffness: 0.42, damping: 0.12, render: { visible: false } },
     })
     Composite.add(engine.world, mc)
     render.mouse = mouse
 
-    const syncMouseScale = () => {
+    /** Map browser pointer (CSS hotspot) → physics stage coords; bypass Matter's pixelRatio scaling. */
+    const pointerToStage = (clientX: number, clientY: number) => {
       const rect = matterCanvas.getBoundingClientRect()
-      if (rect.width < 2 || rect.height < 2) return
-      const sx = matterCanvas.width / rect.width
-      const sy = matterCanvas.height / rect.height
-      if (typeof Mouse.setScale === 'function') {
-        Mouse.setScale(mouse, { x: sx, y: sy })
+      if (rect.width < 2 || rect.height < 2) {
+        return { x: mouse.position.x, y: mouse.position.y }
+      }
+      return {
+        x: ((clientX - rect.left) / rect.width) * WD_STAGE_W,
+        y: ((clientY - rect.top) / rect.height) * WD_STAGE_H,
       }
     }
-    syncMouseScale()
-    window.addEventListener('resize', syncMouseScale)
 
-    const wakeDragged = () => {
+    const applyPointer = (clientX: number, clientY: number) => {
+      const p = pointerToStage(clientX, clientY)
+      mouse.position.x = p.x
+      mouse.position.y = p.y
+      return p
+    }
+
+    Mouse.setScale(mouse, { x: 1, y: 1 })
+    Mouse.setOffset(mouse, { x: 0, y: 0 })
+
+    const hoveredRef = { current: null as ItemId | null }
+
+    const syncHover = () => {
+      const hits = Query.point(itemBodyList, mouse.position)
+      const hit = hits.find((b: { label?: string }) =>
+        ITEM_SPECS.some((s) => s.id === b.label),
+      )
+      const next = (hit?.label as ItemId | undefined) ?? null
+      if (hoveredRef.current !== next) {
+        hoveredRef.current = next
+        setHoveredPropRef.current(next)
+      }
+    }
+
+    const clearHover = () => {
+      hoveredRef.current = null
+      setHoveredPropRef.current(null)
+    }
+
+    const onCanvasMouseMove = (e: MouseEvent) => {
+      applyPointer(e.clientX, e.clientY)
+      syncHover()
+    }
+
+    const onCanvasMouseDown = (e: MouseEvent) => {
+      const p = applyPointer(e.clientX, e.clientY)
+      mouse.button = e.button
+      mouse.mousedownPosition.x = p.x
+      mouse.mousedownPosition.y = p.y
       if (!Sleeping?.set) return
       Object.values(itemBodies).forEach((b) => Sleeping.set(b, false))
+      if (!firstDiscoveryHandled.current && !discoveryPendingRef.current) {
+        collapseArchEmote()
+        setMentorMood('watching')
+      }
     }
-    Events.on(mouse, 'mousedown', wakeDragged)
-    Events.on(mouse, 'touchstart', wakeDragged)
+
+    const onCanvasMouseUp = (e: MouseEvent) => {
+      applyPointer(e.clientX, e.clientY)
+      mouse.button = -1
+      mouse.mouseupPosition.x = mouse.position.x
+      mouse.mouseupPosition.y = mouse.position.y
+      clearHover()
+    }
+
+    const onCanvasTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return
+      e.preventDefault()
+      applyPointer(e.touches[0].clientX, e.touches[0].clientY)
+      syncHover()
+    }
+
+    const onCanvasTouchStart = (e: TouchEvent) => {
+      if (!e.touches[0]) return
+      e.preventDefault()
+      const p = applyPointer(e.touches[0].clientX, e.touches[0].clientY)
+      mouse.button = 0
+      mouse.mousedownPosition.x = p.x
+      mouse.mousedownPosition.y = p.y
+      if (!Sleeping?.set) return
+      Object.values(itemBodies).forEach((b) => Sleeping.set(b, false))
+      if (!firstDiscoveryHandled.current && !discoveryPendingRef.current) {
+        collapseArchEmote()
+        setMentorMood('watching')
+      }
+    }
+
+    const onCanvasTouchEnd = (e: TouchEvent) => {
+      e.preventDefault()
+      mouse.button = -1
+      clearHover()
+    }
+
+    matterCanvas.addEventListener('mousemove', onCanvasMouseMove)
+    matterCanvas.addEventListener('mousedown', onCanvasMouseDown)
+    matterCanvas.addEventListener('mouseup', onCanvasMouseUp)
+    matterCanvas.addEventListener('touchmove', onCanvasTouchMove, { passive: false })
+    matterCanvas.addEventListener('touchstart', onCanvasTouchStart, { passive: false })
+    matterCanvas.addEventListener('touchend', onCanvasTouchEnd, { passive: false })
 
     let water01 = BASE_WATER01
     water01Ref.current = water01
@@ -592,6 +849,14 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     let frame = 0
 
     const beforeUpdate = () => {
+      const hovered = hoveredRef.current
+      if (hovered && itemBodies[hovered]) {
+        const hb = itemBodies[hovered]
+        if (Math.hypot(hb.velocity.x, hb.velocity.y) < 0.55) {
+          Body.setAngle(hb, hb.angle + Math.sin(frame * 0.18) * 0.048)
+        }
+      }
+
       const ws = waterSurfaceY(water01)
       const wb = TANK.innerBottom
 
@@ -692,7 +957,12 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     }
 
     const afterUpdate = () => {
-      if (!firstDiscoveryHandled.current) {
+      for (const spec of ITEM_SPECS) {
+        const body = itemBodies[spec.id]
+        if (body?.bounds) enforceTankContainment(body, Body)
+      }
+
+      if (!firstDiscoveryHandled.current && !discoveryPendingRef.current) {
         const ws = waterSurfaceY(water01Ref.current)
         const wb = TANK.innerBottom
         for (const spec of ITEM_SPECS) {
@@ -706,13 +976,26 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
             wb,
           )
           if (subA > 350) {
-            triggerDiscoveryRef.current(spec.id)
+            beginDiscoverySequence(spec.id)
             break
           }
         }
       }
 
       frame++
+      if (frame % 3 === 0) {
+        const next: Record<ItemId, { x: number; y: number }> = {} as Record<
+          ItemId,
+          { x: number; y: number }
+        >
+        for (const spec of ITEM_SPECS) {
+          const body = itemBodies[spec.id]
+          if (body?.position) {
+            next[spec.id] = { x: body.position.x, y: body.position.y }
+          }
+        }
+        setPropPositionsRef.current(next)
+      }
       if (frame % 2 === 0) {
         setWaterPct(water01Ref.current * 100)
       }
@@ -722,11 +1005,14 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     Events.on(engine, 'afterUpdate', afterUpdate)
 
     return () => {
-      window.removeEventListener('resize', syncMouseScale)
+      matterCanvas.removeEventListener('mousemove', onCanvasMouseMove)
+      matterCanvas.removeEventListener('mousedown', onCanvasMouseDown)
+      matterCanvas.removeEventListener('mouseup', onCanvasMouseUp)
+      matterCanvas.removeEventListener('touchmove', onCanvasTouchMove)
+      matterCanvas.removeEventListener('touchstart', onCanvasTouchStart)
+      matterCanvas.removeEventListener('touchend', onCanvasTouchEnd)
       Events.off(engine, 'beforeUpdate', beforeUpdate)
       Events.off(engine, 'afterUpdate', afterUpdate)
-      Events.off(mouse, 'mousedown', wakeDragged)
-      Events.off(mouse, 'touchstart', wakeDragged)
       Composite.remove(engine.world, mc)
       if (typeof Mouse.clear === 'function') Mouse.clear(mouse)
       Render.stop(render)
@@ -734,7 +1020,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
       matterCanvas.remove()
       Engine.clear(engine)
     }
-  }, [matterReady, simVersion])
+  }, [matterReady, simVersion, beginDiscoverySequence, collapseArchEmote])
 
   const replaySpec = replayItemId
     ? ITEM_SPECS.find((s) => s.id === replayItemId)
@@ -742,21 +1028,15 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
 
   return (
     <div className="scene water-discovery-scene">
-      <header className="scene-header hub-scene-header">
-        <h2>Play around — find out</h2>
+      <header className="scene-header hub-scene-header water-discovery-header">
+        <div className="water-discovery-header-copy">
+          <p className="water-discovery-kicker">Water Lab</p>
+          <h2>Experiment with displacement</h2>
+        </div>
       </header>
 
       <section className="scene-body water-discovery-body">
-        <div className="water-discovery-sandbox">
-          <section className="weigh-info-card water-discovery-objective">
-            <p className="weigh-panel-kicker">Objective</p>
-            <h3>How could we prove the purity of the crown?</h3>
-            <p className="scene-text water-discovery-objective-text">
-              Mass alone is not enough. Drag objects from the <strong>cupboard shelf</strong> into the
-              <strong> water tank</strong> on the right — watch the water line.
-            </p>
-          </section>
-
+        <div className="water-discovery-workshop">
           <div
             className={`water-discovery-stage-shell ${sparkleKey > 0 ? 'water-discovery-stage-shell--sparkle' : ''}`}
           >
@@ -771,20 +1051,51 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
             </button>
             <div className="water-discovery-stage-viewport" style={tankCss}>
               <div className="water-discovery-stage-bg" aria-hidden="true">
+                <div className="water-discovery-workshop-floor" />
                 <div className="water-discovery-cupboard-panel">
-                  <span className="water-discovery-cupboard-label">Cupboard</span>
                   <div className="water-discovery-cupboard-shelf-groove" />
                 </div>
-                <div className="water-discovery-gap-strip" />
+                <div className="water-discovery-gap-strip" aria-hidden="true" />
                 <div className="water-discovery-tank-panel">
-                  <div
-                    className="water-discovery-water water-discovery-water--live"
-                    style={{ height: `${waterPct}%` }}
-                  >
-                    <div className="water-discovery-water-surface" />
-                    <div className="water-discovery-water-shine" />
+                  <div className="water-discovery-tank-box">
+                    <div className="water-discovery-tank-cavity">
+                      <div
+                        className="water-discovery-water water-discovery-water--live"
+                        style={{ height: `${waterPct}%` }}
+                      >
+                        <div className="water-discovery-water-surface" />
+                        <div className="water-discovery-water-shine" />
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
+              <div className="water-discovery-prop-labels" aria-hidden="true">
+                {ITEM_SPECS.map((spec) => {
+                  const pos = propPositions[spec.id] ?? { x: spec.benchX, y: spec.benchY }
+                  const isHovered = hoveredProp === spec.id
+                  const onShelf = pos.x < TANK.innerL - 14
+                  if (!onShelf && !isHovered) return null
+                  return (
+                    <div
+                      key={spec.id}
+                      className={`water-discovery-prop-label water-discovery-prop-label--${spec.id}${
+                        isHovered ? ' water-discovery-prop-label--hover' : ''
+                      }`}
+                      style={{
+                        left: `${(pos.x / WD_STAGE_W) * 100}%`,
+                        top: `${(pos.y / WD_STAGE_H) * 100}%`,
+                      }}
+                    >
+                      <span className="water-discovery-prop-label__name">{spec.label}</span>
+                      {isHovered ? (
+                        <span className="water-discovery-prop-label__hint">{spec.hint}</span>
+                      ) : onShelf ? (
+                        <span className="water-discovery-prop-label__pickup">Drag me</span>
+                      ) : null}
+                    </div>
+                  )
+                })}
               </div>
               <div
                 ref={hostRef}
@@ -793,43 +1104,37 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
               />
             </div>
             <p className="water-discovery-tank-caption" aria-live="polite">
-              {!matterReady
-                ? 'Loading physics…'
-                : 'Cupboard (left) · Tank (right). Drag into the tank — the blue fill tracks displacement.'}
+              {!matterReady ? 'Loading physics…' : `Water level · ${Math.round(waterPct)}%`}
             </p>
           </div>
-
-          <section className="weigh-info-card water-discovery-advice">
-            <p className="weigh-panel-kicker">Tips</p>
-            <p className="helper-text">
-              <strong>Drag</strong> with the mouse (touch works on supported devices). Only{' '}
-              <strong>wood</strong> floats on the surface; metals and rock sink. Lift objects over the
-              cupboard divider to reach the tank. Return an object to the cupboard shelf to set it
-              down. If anything ever gets stuck, refresh the page.
-            </p>
-            <ul className="water-discovery-legend">
-              {ITEM_SPECS.map((s) => (
-                <li key={s.id}>{s.label}</li>
-              ))}
-            </ul>
-          </section>
         </div>
       </section>
+
+      {createPortal(
+        <WaterLabArchimedesOverlay
+          mood={mentorMood}
+          line={mentorLine}
+          presentation={archPresentation}
+          speaking={mentorSpeaking}
+          onDismiss={collapseArchEmote}
+        />,
+        document.body,
+      )}
 
       {closeupOpen ? (
         <div
           className="water-discovery-closeup"
           role="dialog"
           aria-modal="true"
-          aria-label="Displacement replay"
+          aria-label="Displacement discovery"
         >
           <div className="water-discovery-closeup-backdrop" />
           <div className="water-discovery-closeup-card">
-            <p className="water-discovery-closeup-kicker">You found it</p>
-            <h3 className="water-discovery-closeup-title">The water level follows displacement</h3>
+            <p className="water-discovery-closeup-kicker">Discovery</p>
+            <h3 className="water-discovery-closeup-title">Volume displaces water</h3>
             <p className="scene-text water-discovery-closeup-text">
-              The surface rises because submerged objects take space — the same volume as the fluid
-              they push aside. That idea is what Archimedes will use on the crown.
+              Whatever goes under the surface pushes water aside. That hidden volume is the clue
+              Archimedes needs for the crown.
             </p>
             <div
               className={`water-discovery-closeup-stage ${closeupReplay ? 'water-discovery-closeup-stage--animate' : ''}`}
@@ -857,13 +1162,9 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
                 </div>
               </div>
             </div>
-            <p className="helper-text water-discovery-closeup-hint">
-              Replay matches the level change from your tank (rest → after the object enters the water).
-            </p>
           </div>
         </div>
       ) : null}
-
     </div>
   )
 }

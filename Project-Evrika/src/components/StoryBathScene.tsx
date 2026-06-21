@@ -34,7 +34,7 @@ interface StoryBathSceneProps {
   onNavigate: (scene: SceneId) => void
   /** Full-screen hub cutscene: dismiss when the Eureka beat is reached. */
   overlayMode?: boolean
-  onOverlayDismiss?: () => void
+  onOverlayDismiss?: (storyComplete?: boolean) => void
 }
 
 const bathBeats = [
@@ -275,7 +275,7 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({
             <button
               className="primary-button"
               type="button"
-              onClick={() => onOverlayDismiss?.()}
+              onClick={() => onOverlayDismiss?.(true)}
             >
               Continue
             </button>
