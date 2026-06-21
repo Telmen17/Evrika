@@ -7,6 +7,7 @@ import {
   useRef,
   useEffect,
 } from 'react'
+import { createPortal } from 'react-dom'
 import type { SceneId } from './LandingPage'
 import { LessonHubProvider, useLessonHub } from '../context/LessonHubContext'
 import CrownWeighScene from './CrownWeighScene'
@@ -27,13 +28,26 @@ import {
   getNavRoomCompletionState,
   getNavRoomUnlockState,
   HUB_GUIDE_FROM_INTRO_KEY,
+  HUB_GUIDE_OPEN_DELAY_MS,
+  isRoomUnlocked,
   OVERFLOW_UNLOCK_INSIGHT,
   roomCompleteHeading,
   roomUnlockHeading,
   shouldTriggerBathCutscene,
   type NavRoomId,
 } from '../lib/hubRooms'
-import { playSoundEffect, HUB_CHECK_STAMP_DELAY_MS, TADA_EFFECT_SRC } from '../lib/playSoundEffect'
+import {
+  playSoundEffect,
+  preloadSoundEffects,
+  warmSoundEffects,
+  HUB_CELEBRATION_DURATION_MS,
+  HUB_UNLOCK_CELEBRATION_DURATION_MS,
+  HUB_CELEBRATION_REDUCED_MS,
+  HUB_CHECK_STAMP_DELAY_MS,
+  HUB_UNLOCK_STAMP_DELAY_MS,
+  TADA_EFFECT_SRC,
+  UNLOCK_EFFECT_SRC,
+} from '../lib/playSoundEffect'
 import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 
 type RoomId = NavRoomId
@@ -156,6 +170,42 @@ const LockIcon: FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
+/** Chains + padlock overlay for the room-unlock celebration burst. */
+const HubUnlockChains: FC = () => (
+  <span className="hub-completion-chains" aria-hidden>
+    <svg className="hub-completion-chain-svg" viewBox="0 0 120 120" fill="none">
+      <ellipse
+        className="hub-completion-chain-link hub-completion-chain-link--left"
+        cx="28"
+        cy="60"
+        rx="16"
+        ry="20"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <ellipse
+        className="hub-completion-chain-link hub-completion-chain-link--right"
+        cx="92"
+        cy="60"
+        rx="16"
+        ry="20"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="hub-completion-chain-bar"
+        d="M36 60 H84"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+    </svg>
+    <span className="hub-completion-chain-lock">
+      <LockIcon className="hub-completion-chain-lock-icon" />
+    </span>
+  </span>
+)
+
 /** Nav-bar rooms only — the bath plays as a story cutscene, not a tab. */
 const NAV_ROOMS: RoomDef[] = [
   { id: 'weigh', label: 'Weighing Chamber', icon: ScaleIcon },
@@ -179,18 +229,9 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
   const { resetProgress, progress, patchProgress, triggerInsight } = useLessonHub()
   const audioEnabled = useOptionalAudioEnabled()
 
-  const shouldOpenGuideOnMount = useMemo(() => {
-    if (forceGuide || !progress.meta.hubGuideSeen) return true
-    try {
-      return sessionStorage.getItem(HUB_GUIDE_FROM_INTRO_KEY) === '1'
-    } catch {
-      return false
-    }
-  }, [forceGuide, progress.meta.hubGuideSeen])
-
   const [activeRoom, setActiveRoom] = useState<RoomId>('weigh')
   const [transitionKey, setTransitionKey] = useState(0)
-  const [guideOpen, setGuideOpen] = useState(shouldOpenGuideOnMount)
+  const [guideOpen, setGuideOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [inboxOpen, setInboxOpen] = useState(false)
@@ -216,18 +257,37 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
   } | null>(null)
   const celebrationQueueRef = useRef<{ room: RoomId; kind: CelebrationKind }[]>([])
   const celebrationActiveRef = useRef(false)
+  const celebrationRef = useRef(celebration)
+  celebrationRef.current = celebration
+  const celebrationEndTimerRef = useRef<number | null>(null)
   const prevCompletionRef = useRef<Record<RoomId, boolean> | null>(null)
   const prevUnlockedRef = useRef<Record<RoomId, boolean> | null>(null)
   const pendingOverflowInsightRef = useRef(false)
   const bathUnlockCelebratedRef = useRef(false)
   const guideAutoOpenedRef = useRef(false)
+  const guideOpenTimerRef = useRef<number | null>(null)
+  const audioWarmedRef = useRef(false)
+
+  const clearGuideOpenTimer = useCallback(() => {
+    if (guideOpenTimerRef.current != null) {
+      window.clearTimeout(guideOpenTimerRef.current)
+      guideOpenTimerRef.current = null
+    }
+  }, [])
 
   const queueCelebration = useCallback((room: RoomId, kind: CelebrationKind) => {
     celebrationQueueRef.current.push({ room, kind })
   }, [])
 
+  const clearCelebrationEndTimer = useCallback(() => {
+    if (celebrationEndTimerRef.current != null) {
+      window.clearTimeout(celebrationEndTimerRef.current)
+      celebrationEndTimerRef.current = null
+    }
+  }, [])
+
   const startNextCelebration = useCallback(() => {
-    if (celebrationActiveRef.current || guideOpen) return
+    if (celebrationActiveRef.current) return
     const next = celebrationQueueRef.current.shift()
     if (!next) return
     celebrationActiveRef.current = true
@@ -240,22 +300,12 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
       dy = r.top + r.height / 2 - window.innerHeight / 2
     }
     setCelebration({ room: next.room, dx, dy, kind: next.kind })
-  }, [guideOpen])
+  }, [])
 
-  /** Tada when the check/unlock badge stamps on the room icon (~1.4s into the burst). */
-  useEffect(() => {
-    if (!celebration) return
-    const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? 0
-      : HUB_CHECK_STAMP_DELAY_MS
-    const id = window.setTimeout(() => {
-      playSoundEffect(TADA_EFFECT_SRC, audioEnabled)
-    }, delay)
-    return () => window.clearTimeout(id)
-  }, [celebration, audioEnabled])
-
-  const handleCelebrationEnd = useCallback(() => {
-    const ended = celebration
+  const finishCelebration = useCallback(() => {
+    if (!celebrationActiveRef.current) return
+    clearCelebrationEndTimer()
+    const ended = celebrationRef.current
     setCelebration(null)
     celebrationActiveRef.current = false
     if (
@@ -272,7 +322,56 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
       })
     }
     startNextCelebration()
-  }, [celebration, startNextCelebration, triggerInsight])
+  }, [clearCelebrationEndTimer, startNextCelebration, triggerInsight])
+
+  /** Safety net: always end the burst even if CSS animationend never fires. */
+  useEffect(() => {
+    if (!celebration) return
+    clearCelebrationEndTimer()
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const ms = reducedMotion
+      ? HUB_CELEBRATION_REDUCED_MS
+      : celebration.kind === 'unlock'
+        ? HUB_UNLOCK_CELEBRATION_DURATION_MS
+        : HUB_CELEBRATION_DURATION_MS
+    celebrationEndTimerRef.current = window.setTimeout(() => {
+      celebrationEndTimerRef.current = null
+      finishCelebration()
+    }, ms)
+    return () => clearCelebrationEndTimer()
+  }, [celebration, clearCelebrationEndTimer, finishCelebration])
+
+  /** Tada / unlock chime when the badge stamps (~1.4s into the burst). */
+  useEffect(() => {
+    if (!celebration) return
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const isUnlock = celebration.kind === 'unlock'
+    const delay = reducedMotion
+      ? 320
+      : isUnlock
+        ? HUB_UNLOCK_STAMP_DELAY_MS
+        : HUB_CHECK_STAMP_DELAY_MS
+    const src = isUnlock ? UNLOCK_EFFECT_SRC : TADA_EFFECT_SRC
+    const id = window.setTimeout(() => {
+      playSoundEffect(src, audioEnabled, isUnlock ? 0.9 : 1)
+    }, delay)
+    return () => window.clearTimeout(id)
+  }, [celebration, audioEnabled])
+
+  const warmCelebrationAudio = useCallback(() => {
+    if (audioWarmedRef.current) return
+    audioWarmedRef.current = true
+    warmSoundEffects([TADA_EFFECT_SRC, UNLOCK_EFFECT_SRC])
+  }, [])
+
+  /** Prime celebration clips on first hub interaction (avoids delayed-play blocking). */
+  useEffect(() => {
+    preloadSoundEffects([TADA_EFFECT_SRC, UNLOCK_EFFECT_SRC])
+  }, [])
+
+  const handleCelebrationEnd = useCallback(() => {
+    finishCelebration()
+  }, [finishCelebration])
 
   /** Detect rooms that just flipped to complete and queue their celebration. */
   useEffect(() => {
@@ -288,7 +387,7 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
     }
   }, [roomCompletion, queueCelebration, startNextCelebration])
 
-  /** Detect rooms that just became visitable (overflow unlocks via bath dismiss). */
+  /** Detect rooms that just became visitable (overflow waits until bath overlay closes). */
   useEffect(() => {
     const prev = prevUnlockedRef.current
     prevUnlockedRef.current = roomUnlocked
@@ -298,17 +397,22 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
       }
       return
     }
-    const newlyUnlocked = NAV_ROOMS.filter(
-      (r) =>
-        r.id !== 'overflow' &&
-        roomUnlocked[r.id] &&
-        !prev[r.id],
-    ).map((r) => r.id)
-    if (newlyUnlocked.length > 0) {
-      newlyUnlocked.forEach((room) => queueCelebration(room, 'unlock'))
+
+    let queued = false
+    for (const room of NAV_ROOMS) {
+      if (!roomUnlocked[room.id] || prev[room.id]) continue
+      if (room.id === 'overflow') {
+        if (bathOverlayOpen || bathUnlockCelebratedRef.current) continue
+        bathUnlockCelebratedRef.current = true
+        pendingOverflowInsightRef.current = true
+      }
+      queueCelebration(room.id, 'unlock')
+      queued = true
+    }
+    if (queued) {
       startNextCelebration()
     }
-  }, [roomUnlocked, queueCelebration, startNextCelebration])
+  }, [roomUnlocked, bathOverlayOpen, queueCelebration, startNextCelebration])
 
   const celebratingRoomDef = celebration
     ? NAV_ROOMS.find((r) => r.id === celebration.room) ?? null
@@ -326,9 +430,17 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
     setActiveRoom('weigh')
     setBathOverlayOpen(false)
     bathUnlockCelebratedRef.current = false
+    prevCompletionRef.current = null
+    prevUnlockedRef.current = null
+    celebrationQueueRef.current = []
+    clearCelebrationEndTimer()
+    setCelebration(null)
+    celebrationActiveRef.current = false
+    clearGuideOpenTimer()
+    guideAutoOpenedRef.current = true
     setGuideOpen(true)
     setTransitionKey((k) => k + 1)
-  }, [resetProgress])
+  }, [resetProgress, clearGuideOpenTimer, clearCelebrationEndTimer])
 
   const switchRoom = useCallback(
     (room: RoomId) => {
@@ -352,7 +464,7 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
     contentRef.current?.scrollTo({ top: 0 })
   }, [activeRoom])
 
-  /** Open the onboarding guide once per hub visit when appropriate. */
+  /** Open the onboarding guide once per hub visit, after a short orienting pause. */
   useEffect(() => {
     if (guideAutoOpenedRef.current) return
     let fromIntro = false
@@ -363,15 +475,23 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
     }
     const shouldOpen = !progress.meta.hubGuideSeen || forceGuide || fromIntro
     if (!shouldOpen) return
-    guideAutoOpenedRef.current = true
-    setGuideOpen(true)
-  }, [forceGuide, progress.meta.hubGuideSeen])
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const delay = reducedMotion ? 400 : HUB_GUIDE_OPEN_DELAY_MS
+    guideOpenTimerRef.current = window.setTimeout(() => {
+      guideOpenTimerRef.current = null
+      guideAutoOpenedRef.current = true
+      setGuideOpen(true)
+    }, delay)
+
+    return () => {
+      clearGuideOpenTimer()
+    }
+  }, [forceGuide, progress.meta.hubGuideSeen, clearGuideOpenTimer])
 
   /** After the guide closes, play any unlock/complete celebrations that were waiting. */
   useEffect(() => {
-    if (!guideOpen) {
-      startNextCelebration()
-    }
+    startNextCelebration()
   }, [guideOpen, startNextCelebration])
 
   const closeGuide = useCallback(() => {
@@ -385,9 +505,11 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
   }, [patchProgress])
 
   const replayGuide = useCallback(() => {
+    clearGuideOpenTimer()
+    guideAutoOpenedRef.current = true
     setActiveRoom('weigh')
     setGuideOpen(true)
-  }, [])
+  }, [clearGuideOpenTimer])
 
   const handleDiscoveryCloseupDismissed = useCallback(() => {
     if (shouldTriggerBathCutscene(progress)) {
@@ -395,15 +517,22 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
     }
   }, [progress])
 
-  const handleBathOverlayDismiss = useCallback(() => {
-    setBathOverlayOpen(false)
-    if (bathUnlockCelebratedRef.current) return
-    if (progress.bath.storyIndex < 1) return
-    bathUnlockCelebratedRef.current = true
-    pendingOverflowInsightRef.current = true
-    queueCelebration('overflow', 'unlock')
-    startNextCelebration()
-  }, [progress.bath.storyIndex, queueCelebration, startNextCelebration])
+  const handleBathOverlayDismiss = useCallback(
+    (storyComplete?: boolean) => {
+      setBathOverlayOpen(false)
+      if (bathUnlockCelebratedRef.current) return
+      const overflowReady =
+        storyComplete === true ||
+        progress.bath.storyIndex >= 1 ||
+        isRoomUnlocked(progress, 'overflow')
+      if (!overflowReady) return
+      bathUnlockCelebratedRef.current = true
+      pendingOverflowInsightRef.current = true
+      queueCelebration('overflow', 'unlock')
+      startNextCelebration()
+    },
+    [progress, queueCelebration, startNextCelebration],
+  )
 
   /** Default room is Archimedes — preload LCP image early (60KB webp). */
   useEffect(() => {
@@ -466,8 +595,70 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
       break
   }
 
+  const celebrationOverlay =
+    celebration && celebratingRoomDef
+      ? createPortal(
+          <div
+            className={`hub-completion-celebration${
+              celebration.kind === 'unlock' ? ' hub-completion-celebration--unlock' : ''
+            }`}
+            aria-live="polite"
+            style={
+              {
+                '--fly-dx': `${celebration.dx}px`,
+                '--fly-dy': `${celebration.dy}px`,
+              } as CSSProperties
+            }
+          >
+            <div
+              key={`${celebration.kind}-${celebration.room}`}
+              className={`hub-completion-burst${
+                celebration.kind === 'unlock' ? ' hub-completion-burst--unlock' : ''
+              }`}
+              onAnimationEnd={(e) => {
+                if (e.target === e.currentTarget) handleCelebrationEnd()
+              }}
+            >
+              <span className="hub-completion-stage">
+                <span className="hub-completion-glow" aria-hidden />
+                <span className="hub-completion-rays" aria-hidden />
+                <span
+                  className={`hub-completion-icon-wrap${
+                    celebration.kind === 'unlock' ? ' hub-completion-icon-wrap--unlock' : ''
+                  }`}
+                >
+                  {(() => {
+                    const Icon = celebratingRoomDef.icon
+                    return <Icon className="hub-completion-icon" />
+                  })()}
+                  {celebration.kind === 'unlock' ? <HubUnlockChains /> : null}
+                  <span
+                    className={`hub-completion-check${
+                      celebration.kind === 'unlock' ? ' hub-completion-check--unlock' : ''
+                    }`}
+                    aria-hidden
+                  >
+                    {celebration.kind === 'unlock' ? (
+                      <span className="hub-completion-unlock-mark">✦</span>
+                    ) : (
+                      <CheckIcon className="hub-completion-check-mark" />
+                    )}
+                  </span>
+                </span>
+              </span>
+              <span className="hub-completion-text">
+                {celebration.kind === 'unlock'
+                  ? roomUnlockHeading(celebratingRoomDef.label)
+                  : roomCompleteHeading(celebratingRoomDef.label)}
+              </span>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null
+
   return (
-    <div className="exploration-hub">
+    <div className="exploration-hub" onPointerDownCapture={warmCelebrationAudio}>
       <div className="hub-objective-banner">
         <button
           className="hub-intro-button"
@@ -536,7 +727,7 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
         {roomContent}
       </div>
 
-      <ArchimedesCompanion />
+      {activeRoom !== 'waterLab' ? <ArchimedesCompanion /> : null}
 
       <HubAmbientMusic />
 
@@ -614,53 +805,7 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
         </div>
       ) : null}
 
-      {celebration && celebratingRoomDef ? (
-        <div
-          className="hub-completion-celebration"
-          aria-live="polite"
-          style={
-            {
-              '--fly-dx': `${celebration.dx}px`,
-              '--fly-dy': `${celebration.dy}px`,
-            } as CSSProperties
-          }
-        >
-          <div
-            className="hub-completion-burst"
-            onAnimationEnd={(e) => {
-              if (e.target === e.currentTarget) handleCelebrationEnd()
-            }}
-          >
-            <span className="hub-completion-stage">
-              <span className="hub-completion-glow" aria-hidden />
-              <span className="hub-completion-rays" aria-hidden />
-              <span className="hub-completion-icon-wrap">
-                {(() => {
-                  const Icon = celebratingRoomDef.icon
-                  return <Icon className="hub-completion-icon" />
-                })()}
-                <span
-                  className={`hub-completion-check${
-                    celebration.kind === 'unlock' ? ' hub-completion-check--unlock' : ''
-                  }`}
-                  aria-hidden
-                >
-                  {celebration.kind === 'unlock' ? (
-                    <span className="hub-completion-unlock-mark">✦</span>
-                  ) : (
-                    <CheckIcon className="hub-completion-check-mark" />
-                  )}
-                </span>
-              </span>
-            </span>
-            <span className="hub-completion-text">
-              {celebration.kind === 'unlock'
-                ? roomUnlockHeading(celebratingRoomDef.label)
-                : roomCompleteHeading(celebratingRoomDef.label)}
-            </span>
-          </div>
-        </div>
-      ) : null}
+      {celebrationOverlay}
     </div>
   )
 }

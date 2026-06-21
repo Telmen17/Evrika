@@ -3,6 +3,9 @@ import type { LessonProgress } from '../context/LessonHubContext'
 /** Session flag: learner just arrived from the story intro — replay the hub guide. */
 export const HUB_GUIDE_FROM_INTRO_KEY = 'evrika-hub-guide-from-intro'
 
+/** Pause before auto-opening the hub guide so the layout can settle first. */
+export const HUB_GUIDE_OPEN_DELAY_MS = 2600
+
 /** Rooms shown in the hub nav bar (bath is a story cutscene, not a tab). */
 export type NavRoomId =
   | 'weigh'
