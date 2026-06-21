@@ -23,18 +23,21 @@ import { EurekaShareCard } from './EurekaShareCard'
 import { FeedbackModal } from './FeedbackModal'
 import { FeedbackInbox } from './FeedbackInbox'
 import papyrusImg from '../assets/papyrus.webp'
+import {
+  getNavRoomCompletionState,
+  getNavRoomUnlockState,
+  HUB_GUIDE_FROM_INTRO_KEY,
+  OVERFLOW_UNLOCK_INSIGHT,
+  roomCompleteHeading,
+  roomUnlockHeading,
+  shouldTriggerBathCutscene,
+  type NavRoomId,
+} from '../lib/hubRooms'
 
-type RoomId =
-  | 'weigh'
-  | 'furnace'
-  | 'waterLab'
-  | 'bath'
-  | 'overflow'
-  | 'archimedes'
-  | 'throne'
+type RoomId = NavRoomId
 
 interface RoomDef {
-  id: RoomId
+  id: NavRoomId
   label: string
   icon: FC<{ className?: string }>
 }
@@ -76,22 +79,6 @@ const BeakerIcon: FC<{ className?: string }> = ({ className }) => (
     <line x1="16" y1="8" x2="48" y2="8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     <path d="M16 38 L48 38 L52 50 C53 53 51 56 48 56 L16 56 C13 56 11 53 12 50 Z" fill="#3b82f6" fillOpacity="0.3" />
     <path d="M18 38 Q26 42 32 38 Q38 34 46 38" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" fill="none" />
-  </svg>
-)
-
-const BathtubIcon: FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M8 28 L56 28 L54 44 C53 50 48 54 42 54 L22 54 C16 54 11 50 10 44 Z"
-      fill="#60a5fa" fillOpacity="0.25" stroke="currentColor" strokeWidth="3" strokeLinejoin="round"
-    />
-    <line x1="6" y1="28" x2="58" y2="28" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" />
-    <line x1="16" y1="54" x2="14" y2="60" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    <line x1="48" y1="54" x2="50" y2="60" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    <path d="M12 28 L12 16 C12 12 16 10 20 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none" />
-    <circle cx="24" cy="22" r="2" fill="currentColor" opacity="0.4" />
-    <circle cx="36" cy="20" r="2.5" fill="currentColor" opacity="0.3" />
-    <circle cx="46" cy="22" r="2" fill="currentColor" opacity="0.4" />
   </svg>
 )
 
@@ -155,27 +142,27 @@ const CheckIcon: FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
-const ROOMS: RoomDef[] = [
+const LockIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2" />
+    <path
+      d="M8 11V8a4 4 0 118 0v3"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </svg>
+)
+
+/** Nav-bar rooms only — the bath plays as a story cutscene, not a tab. */
+const NAV_ROOMS: RoomDef[] = [
   { id: 'weigh', label: 'Weighing Chamber', icon: ScaleIcon },
   { id: 'furnace', label: 'Furnace', icon: FlameIcon },
   { id: 'waterLab', label: 'Water Lab', icon: BeakerIcon },
-  { id: 'bath', label: 'Bathhouse', icon: BathtubIcon },
   { id: 'overflow', label: 'Overflow Lab', icon: FlaskIcon },
   { id: 'archimedes', label: "Archimedes' room", icon: ScrollIcon },
   { id: 'throne', label: 'Throne Room', icon: CrownIcon },
 ]
-
-/**
- * Build the celebration heading, e.g. "Furnace Room Complete!". Ensures the word
- * "Room" appears for every room without producing "Room Room" for labels that
- * already contain it (Throne Room, Archimedes' room → normalized to "Room").
- */
-function roomCompleteHeading(label: string): string {
-  const base = /\broom\b/i.test(label)
-    ? label.replace(/\broom\b/i, 'Room')
-    : `${label} Room`
-  return `${base} Complete!`
-}
 
 const OBJECTIVE_TEXT =
   "King Hiero suspects his crown is not pure gold. Explore each room to find a way to test it \u2014 without destroying the crown!"
@@ -187,46 +174,61 @@ interface ExplorationHubProps {
 }
 
 function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubProps) {
-  const { resetProgress, progress, patchProgress } = useLessonHub()
-  const [activeRoom, setActiveRoom] = useState<RoomId>('archimedes')
+  const { resetProgress, progress, patchProgress, triggerInsight } = useLessonHub()
+
+  const shouldOpenGuideOnMount = useMemo(() => {
+    if (forceGuide || !progress.meta.hubGuideSeen) return true
+    try {
+      return sessionStorage.getItem(HUB_GUIDE_FROM_INTRO_KEY) === '1'
+    } catch {
+      return false
+    }
+  }, [forceGuide, progress.meta.hubGuideSeen])
+
+  const [activeRoom, setActiveRoom] = useState<RoomId>('weigh')
   const [transitionKey, setTransitionKey] = useState(0)
-  const [guideOpen, setGuideOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(shouldOpenGuideOnMount)
   const [shareOpen, setShareOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [inboxOpen, setInboxOpen] = useState(false)
+  const [bathOverlayOpen, setBathOverlayOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  const roomUnlocked = useMemo(() => getNavRoomUnlockState(progress), [progress])
 
   /** Per-room "all tasks done" flags, derived from saved lesson progress. */
   const roomCompletion = useMemo<Record<RoomId, boolean>>(
-    () => ({
-      weigh: progress.weigh.weighPhase === 'done',
-      furnace: progress.melt.phase === 'done',
-      waterLab: progress.waterLab.discoverySeen,
-      bath: progress.bath.storyIndex >= 1,
-      overflow: progress.overflow.hasCompared,
-      archimedes: progress.archimedes.proofUnlocked,
-      throne: progress.throne.proofPresented,
-    }),
+    () => getNavRoomCompletionState(progress),
     [progress],
   )
 
-  /** Nav-bar buttons, so a completion celebration can fly back to the right slot. */
+  /** Nav-bar buttons, so a completion/unlock celebration can fly back to the right slot. */
   const navRefs = useRef<Map<RoomId, HTMLButtonElement | null>>(new Map())
+  type CelebrationKind = 'complete' | 'unlock'
   const [celebration, setCelebration] = useState<{
     room: RoomId
     dx: number
     dy: number
+    kind: CelebrationKind
   } | null>(null)
-  const celebrationQueueRef = useRef<RoomId[]>([])
+  const celebrationQueueRef = useRef<{ room: RoomId; kind: CelebrationKind }[]>([])
   const celebrationActiveRef = useRef(false)
   const prevCompletionRef = useRef<Record<RoomId, boolean> | null>(null)
+  const prevUnlockedRef = useRef<Record<RoomId, boolean> | null>(null)
+  const pendingOverflowInsightRef = useRef(false)
+  const bathUnlockCelebratedRef = useRef(false)
+  const guideAutoOpenedRef = useRef(false)
+
+  const queueCelebration = useCallback((room: RoomId, kind: CelebrationKind) => {
+    celebrationQueueRef.current.push({ room, kind })
+  }, [])
 
   const startNextCelebration = useCallback(() => {
-    if (celebrationActiveRef.current) return
-    const room = celebrationQueueRef.current.shift()
-    if (!room) return
+    if (celebrationActiveRef.current || guideOpen) return
+    const next = celebrationQueueRef.current.shift()
+    if (!next) return
     celebrationActiveRef.current = true
-    const el = navRefs.current.get(room)
+    const el = navRefs.current.get(next.room)
     let dx = 0
     let dy = 0
     if (el) {
@@ -234,32 +236,67 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
       dx = r.left + r.width / 2 - window.innerWidth / 2
       dy = r.top + r.height / 2 - window.innerHeight / 2
     }
-    setCelebration({ room, dx, dy })
-  }, [])
+    setCelebration({ room: next.room, dx, dy, kind: next.kind })
+  }, [guideOpen])
 
   const handleCelebrationEnd = useCallback(() => {
+    const ended = celebration
     setCelebration(null)
     celebrationActiveRef.current = false
+    if (
+      ended?.kind === 'unlock' &&
+      ended.room === 'overflow' &&
+      pendingOverflowInsightRef.current
+    ) {
+      pendingOverflowInsightRef.current = false
+      triggerInsight({
+        kind: 'hint',
+        transcript: OVERFLOW_UNLOCK_INSIGHT,
+        audioSrc: '',
+        label: 'Archimedes',
+      })
+    }
     startNextCelebration()
-  }, [startNextCelebration])
+  }, [celebration, startNextCelebration, triggerInsight])
 
   /** Detect rooms that just flipped to complete and queue their celebration. */
   useEffect(() => {
     const prev = prevCompletionRef.current
     prevCompletionRef.current = roomCompletion
-    // First pass (e.g. progress loaded from storage): seed baseline, don't replay.
     if (!prev) return
-    const newlyDone = ROOMS.filter(
+    const newlyDone = NAV_ROOMS.filter(
       (r) => roomCompletion[r.id] && !prev[r.id],
     ).map((r) => r.id)
     if (newlyDone.length > 0) {
-      celebrationQueueRef.current.push(...newlyDone)
+      newlyDone.forEach((room) => queueCelebration(room, 'complete'))
       startNextCelebration()
     }
-  }, [roomCompletion, startNextCelebration])
+  }, [roomCompletion, queueCelebration, startNextCelebration])
+
+  /** Detect rooms that just became visitable (overflow unlocks via bath dismiss). */
+  useEffect(() => {
+    const prev = prevUnlockedRef.current
+    prevUnlockedRef.current = roomUnlocked
+    if (!prev) {
+      if (roomUnlocked.overflow) {
+        bathUnlockCelebratedRef.current = true
+      }
+      return
+    }
+    const newlyUnlocked = NAV_ROOMS.filter(
+      (r) =>
+        r.id !== 'overflow' &&
+        roomUnlocked[r.id] &&
+        !prev[r.id],
+    ).map((r) => r.id)
+    if (newlyUnlocked.length > 0) {
+      newlyUnlocked.forEach((room) => queueCelebration(room, 'unlock'))
+      startNextCelebration()
+    }
+  }, [roomUnlocked, queueCelebration, startNextCelebration])
 
   const celebratingRoomDef = celebration
-    ? ROOMS.find((r) => r.id === celebration.room) ?? null
+    ? NAV_ROOMS.find((r) => r.id === celebration.room) ?? null
     : null
 
   const handleResetProgress = useCallback(() => {
@@ -271,53 +308,87 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
       return
     }
     resetProgress()
-    setActiveRoom('archimedes')
+    setActiveRoom('weigh')
+    setBathOverlayOpen(false)
+    bathUnlockCelebratedRef.current = false
+    setGuideOpen(true)
     setTransitionKey((k) => k + 1)
   }, [resetProgress])
 
   const switchRoom = useCallback(
     (room: RoomId) => {
       if (room === activeRoom) return
+      if (!roomUnlocked[room]) return
       setActiveRoom(room)
       setTransitionKey((k) => k + 1)
     },
-    [activeRoom],
+    [activeRoom, roomUnlocked],
   )
+
+  /** If progress changes and the current tab is locked, fall back to Weighing Chamber. */
+  useEffect(() => {
+    if (!roomUnlocked[activeRoom]) {
+      setActiveRoom('weigh')
+      setTransitionKey((k) => k + 1)
+    }
+  }, [activeRoom, roomUnlocked])
 
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0 })
   }, [activeRoom])
 
-  /** First arrival (or after a progress reset): auto-run the onboarding guide. */
-  const hubGuideSeen = progress.meta.hubGuideSeen
+  /** Open the onboarding guide once per hub visit when appropriate. */
   useEffect(() => {
-    if (hubGuideSeen) return
-    const t = window.setTimeout(() => setGuideOpen(true), 850)
-    return () => window.clearTimeout(t)
-  }, [hubGuideSeen])
+    if (guideAutoOpenedRef.current) return
+    let fromIntro = false
+    try {
+      fromIntro = sessionStorage.getItem(HUB_GUIDE_FROM_INTRO_KEY) === '1'
+    } catch {
+      /* ignore */
+    }
+    const shouldOpen = !progress.meta.hubGuideSeen || forceGuide || fromIntro
+    if (!shouldOpen) return
+    guideAutoOpenedRef.current = true
+    setGuideOpen(true)
+  }, [forceGuide, progress.meta.hubGuideSeen])
 
-  /*
-   * Arriving from the story intro replays the guide every time, even once it has
-   * been seen before. Runs once per mount so closing it (which marks hubGuideSeen)
-   * can't retrigger an open loop.
-   */
-  const forcedGuideRef = useRef(false)
+  /** After the guide closes, play any unlock/complete celebrations that were waiting. */
   useEffect(() => {
-    if (!forceGuide || forcedGuideRef.current) return
-    forcedGuideRef.current = true
-    const t = window.setTimeout(() => setGuideOpen(true), 850)
-    return () => window.clearTimeout(t)
-  }, [forceGuide])
+    if (!guideOpen) {
+      startNextCelebration()
+    }
+  }, [guideOpen, startNextCelebration])
 
   const closeGuide = useCallback(() => {
     setGuideOpen(false)
     patchProgress({ meta: { hubGuideSeen: true } })
+    try {
+      sessionStorage.removeItem(HUB_GUIDE_FROM_INTRO_KEY)
+    } catch {
+      /* ignore */
+    }
   }, [patchProgress])
 
   const replayGuide = useCallback(() => {
-    setActiveRoom('archimedes')
+    setActiveRoom('weigh')
     setGuideOpen(true)
   }, [])
+
+  const handleDiscoveryCloseupDismissed = useCallback(() => {
+    if (shouldTriggerBathCutscene(progress)) {
+      setBathOverlayOpen(true)
+    }
+  }, [progress])
+
+  const handleBathOverlayDismiss = useCallback(() => {
+    setBathOverlayOpen(false)
+    if (bathUnlockCelebratedRef.current) return
+    if (progress.bath.storyIndex < 1) return
+    bathUnlockCelebratedRef.current = true
+    pendingOverflowInsightRef.current = true
+    queueCelebration('overflow', 'unlock')
+    startNextCelebration()
+  }, [progress.bath.storyIndex, queueCelebration, startNextCelebration])
 
   /** Default room is Archimedes — preload LCP image early (60KB webp). */
   useEffect(() => {
@@ -340,7 +411,6 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
         weigh: 'weigh',
         melt: 'furnace',
         waterDiscovery: 'waterLab',
-        bathStory: 'bath',
         displacement: 'overflow',
         finale: 'throne',
       }
@@ -363,10 +433,12 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
       roomContent = <CrownMeltScene onNavigate={hubNavigate} />
       break
     case 'waterLab':
-      roomContent = <WaterDiscoveryScene onNavigate={hubNavigate} />
-      break
-    case 'bath':
-      roomContent = <StoryBathScene onNavigate={hubNavigate} />
+      roomContent = (
+        <WaterDiscoveryScene
+          onNavigate={hubNavigate}
+          onDiscoveryCloseupDismissed={handleDiscoveryCloseupDismissed}
+        />
+      )
       break
     case 'overflow':
       roomContent = <DisplacementLabScene onNavigate={hubNavigate} />
@@ -468,10 +540,11 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
       ) : null}
 
       <nav className="hub-nav-bar" aria-label="Room navigation">
-        {ROOMS.map((room) => {
+        {NAV_ROOMS.map((room) => {
           const Icon = room.icon
           const isActive = room.id === activeRoom
           const isComplete = roomCompletion[room.id]
+          const isUnlocked = roomUnlocked[room.id]
           const isFlying = celebration?.room === room.id
           return (
             <button
@@ -481,13 +554,26 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
               }}
               className={`hub-nav-item${isActive ? ' hub-nav-item--active' : ''}${
                 isComplete ? ' hub-nav-item--complete' : ''
-              }`}
+              }${!isUnlocked ? ' hub-nav-item--locked' : ''}`}
               type="button"
+              disabled={!isUnlocked}
               onClick={() => switchRoom(room.id)}
+              data-room={room.id}
               aria-current={isActive ? 'page' : undefined}
+              aria-disabled={!isUnlocked}
+              title={
+                !isUnlocked
+                  ? 'Complete earlier rooms to unlock this experiment'
+                  : room.label
+              }
             >
               <span className="hub-nav-icon-wrap">
                 <Icon className="hub-nav-icon" />
+                {!isUnlocked ? (
+                  <span className="hub-nav-lock" aria-hidden>
+                    <LockIcon className="hub-nav-lock-icon" />
+                  </span>
+                ) : null}
                 {isComplete ? (
                   <span
                     className={`hub-nav-check${isFlying ? ' hub-nav-check--pending' : ''}`}
@@ -502,6 +588,16 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
           )
         })}
       </nav>
+
+      {bathOverlayOpen ? (
+        <div className="hub-bath-overlay" role="dialog" aria-modal="true" aria-label="Bathhouse story">
+          <StoryBathScene
+            onNavigate={hubNavigate}
+            overlayMode
+            onOverlayDismiss={handleBathOverlayDismiss}
+          />
+        </div>
+      ) : null}
 
       {celebration && celebratingRoomDef ? (
         <div
@@ -528,13 +624,24 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
                   const Icon = celebratingRoomDef.icon
                   return <Icon className="hub-completion-icon" />
                 })()}
-                <span className="hub-completion-check" aria-hidden>
-                  <CheckIcon className="hub-completion-check-mark" />
+                <span
+                  className={`hub-completion-check${
+                    celebration.kind === 'unlock' ? ' hub-completion-check--unlock' : ''
+                  }`}
+                  aria-hidden
+                >
+                  {celebration.kind === 'unlock' ? (
+                    <span className="hub-completion-unlock-mark">✦</span>
+                  ) : (
+                    <CheckIcon className="hub-completion-check-mark" />
+                  )}
                 </span>
               </span>
             </span>
             <span className="hub-completion-text">
-              {roomCompleteHeading(celebratingRoomDef.label)}
+              {celebration.kind === 'unlock'
+                ? roomUnlockHeading(celebratingRoomDef.label)
+                : roomCompleteHeading(celebratingRoomDef.label)}
             </span>
           </div>
         </div>

@@ -29,14 +29,14 @@ const STEPS: GuideStep[] = [
   {
     selector: '.hub-nav-bar',
     title: 'The rooms',
-    text: 'Each tab down here is an experiment. Weigh the crown, study water it pushes aside, and gather your evidence.',
+    text: 'Start in the Weighing Chamber and Furnace. New experiments unlock only after you finish the clues before them.',
     pad: 6,
   },
   {
-    selector: '.archimedes-papyrus-stage',
-    title: 'This study',
-    text: 'Right here, use density ρ = m / V. If the crown is less dense than pure gold, it must be mixed with cheaper metal!',
-    pad: 10,
+    selector: '.hub-nav-item[data-room="weigh"]',
+    title: 'Begin here',
+    text: 'Weigh the crown against pure gold. Record the mass — you will need every clue later.',
+    pad: 8,
   },
   {
     selector: '.archimedes-companion__head-btn',

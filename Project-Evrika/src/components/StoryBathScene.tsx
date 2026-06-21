@@ -32,6 +32,9 @@ const BATH_SUBMERGED_TO_OVERFLOW_MS = 1300
 
 interface StoryBathSceneProps {
   onNavigate: (scene: SceneId) => void
+  /** Full-screen hub cutscene: dismiss when the Eureka beat is reached. */
+  overlayMode?: boolean
+  onOverlayDismiss?: () => void
 }
 
 const bathBeats = [
@@ -52,7 +55,11 @@ const bathBeats = [
 /** Visual steps for the displacement sketch (sprites + water). */
 type BathVisualPhase = 'idle' | 'stepIn' | 'submerged' | 'overflow'
 
-const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate: _onNavigate }) => {
+const StoryBathScene: FC<StoryBathSceneProps> = ({
+  onNavigate: _onNavigate,
+  overlayMode = false,
+  onOverlayDismiss,
+}) => {
   const { progress, patchProgress } = useLessonHub()
   const [index, setIndex] = useState(() => progress.bath.storyIndex)
   const [bathPhase, setBathPhase] = useState<BathVisualPhase>(
@@ -262,6 +269,15 @@ const StoryBathScene: FC<StoryBathSceneProps> = ({ onNavigate: _onNavigate }) =>
           {index === 0 && bathPhase === 'overflow' ? (
             <button className="primary-button" type="button" onClick={goNext}>
               Next
+            </button>
+          ) : null}
+          {overlayMode && index >= 1 ? (
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => onOverlayDismiss?.()}
+            >
+              Continue
             </button>
           ) : null}
         </div>

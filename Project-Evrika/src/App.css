@@ -6211,6 +6211,69 @@ body.lesson-active {
   color: #ffe9a8;
 }
 
+.hub-nav-item--locked {
+  opacity: 0.42;
+  cursor: not-allowed;
+  filter: saturate(0.35);
+}
+
+.hub-nav-item--locked:hover {
+  background: transparent;
+  color: #e8d5a8;
+}
+
+.hub-nav-lock {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(30, 22, 12, 0.82);
+  color: #d4c4a0;
+  box-shadow: 0 0 0 1px rgba(255, 220, 120, 0.35);
+}
+
+.hub-nav-lock-icon {
+  width: 8px;
+  height: 8px;
+}
+
+.hub-bath-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5500;
+  background: rgba(245, 235, 210, 0.97);
+  overflow: auto;
+  animation: hub-bath-overlay-in 0.45s ease both;
+}
+
+@keyframes hub-bath-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hub-completion-check--unlock {
+  background: radial-gradient(circle at 35% 30%, #fde68a 0%, #f59e0b 72%);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.9),
+    0 4px 12px rgba(120, 70, 8, 0.45);
+}
+
+.hub-completion-unlock-mark {
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(80, 40, 0, 0.35);
+}
+
 @keyframes hub-nav-check-pop {
   0% {
     transform: scale(0);
@@ -6581,7 +6644,7 @@ body.lesson-active {
 .hub-guide {
   position: fixed;
   inset: 0;
-  z-index: 1150;
+  z-index: 6500;
   pointer-events: none;
 }
 

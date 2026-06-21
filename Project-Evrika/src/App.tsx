@@ -14,7 +14,9 @@ import DisplacementLabScene from './components/DisplacementLabScene'
 import StoryFinaleScene from './components/StoryFinaleScene'
 import PracticeProblemsScreen from './components/PracticeProblemsScreen'
 import ExplorationHub from './components/ExplorationHub'
+import LandingBackground from './components/LandingBackground'
 import { GlobalAudioToggle } from './components/GlobalAudioToggle'
+import { HUB_GUIDE_FROM_INTRO_KEY } from './lib/hubRooms'
 
 const LEAF_LENGTH_PX = 140
 const LEAF_OVERLAP_PX = 44

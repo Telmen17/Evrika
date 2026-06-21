@@ -198,9 +198,14 @@ const MODAL_REPLAY_MS = 1650
 
 interface WaterDiscoverySceneProps {
   onNavigate: (scene: SceneId) => void
+  /** Fires when the first-discovery closeup closes (after the water-rise moment). */
+  onDiscoveryCloseupDismissed?: () => void
 }
 
-const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate: _onNavigate }) => {
+const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
+  onNavigate: _onNavigate,
+  onDiscoveryCloseupDismissed,
+}) => {
   const { progress, patchProgress } = useLessonHub()
   const hostRef = useRef<HTMLDivElement>(null)
   const [matterReady, setMatterReady] = useState(false)
@@ -223,6 +228,8 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate: _onNavi
   const closeupTimerRef = useRef<number | undefined>(undefined)
   const modalSettleTimerRef = useRef<number | undefined>(undefined)
   const modalRafRef = useRef<number | undefined>(undefined)
+  const onCloseupDismissedRef = useRef(onDiscoveryCloseupDismissed)
+  onCloseupDismissedRef.current = onDiscoveryCloseupDismissed
   const triggerDiscoveryRef = useRef<(id: ItemId) => void>(() => {})
   const water01Ref = useRef(BASE_WATER01)
   const replayDataRef = useRef({
@@ -317,6 +324,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({ onNavigate: _onNavi
       setCloseupOpen(false)
       setCloseupReplay(false)
       if (modalRafRef.current) cancelAnimationFrame(modalRafRef.current)
+      onCloseupDismissedRef.current?.()
     }, dismissAfter)
   }, [patchProgress])
 
