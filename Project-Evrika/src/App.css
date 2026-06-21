@@ -1,0 +1,5 @@
+/*
+ * App stylesheet entry — delegates to feature-scoped modules in ./styles/
+ * Keep this file so Vite HMR and imports have a stable root path.
+ */
+@import './styles/index.css';

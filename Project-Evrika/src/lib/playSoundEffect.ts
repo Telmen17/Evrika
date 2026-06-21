@@ -1,6 +1,6 @@
 export const TADA_EFFECT_SRC = '/audio/tada-effect.mp3'
 
-/** Keep in sync with `.hub-completion-check { animation-delay }` in App.css. */
+/** Keep in sync with `.hub-completion-check { animation-delay }` in styles/hub/hub.css. */
 export const HUB_CHECK_STAMP_DELAY_MS = 1400
 
 /** Fire-and-forget one-shot clip; no-op when global audio is muted. */
