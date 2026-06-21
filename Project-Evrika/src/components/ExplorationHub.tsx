@@ -33,6 +33,8 @@ import {
   shouldTriggerBathCutscene,
   type NavRoomId,
 } from '../lib/hubRooms'
+import { playSoundEffect, HUB_CHECK_STAMP_DELAY_MS, TADA_EFFECT_SRC } from '../lib/playSoundEffect'
+import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 
 type RoomId = NavRoomId
 
@@ -175,6 +177,7 @@ interface ExplorationHubProps {
 
 function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubProps) {
   const { resetProgress, progress, patchProgress, triggerInsight } = useLessonHub()
+  const audioEnabled = useOptionalAudioEnabled()
 
   const shouldOpenGuideOnMount = useMemo(() => {
     if (forceGuide || !progress.meta.hubGuideSeen) return true
@@ -238,6 +241,18 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
     }
     setCelebration({ room: next.room, dx, dy, kind: next.kind })
   }, [guideOpen])
+
+  /** Tada when the check/unlock badge stamps on the room icon (~1.4s into the burst). */
+  useEffect(() => {
+    if (!celebration) return
+    const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 0
+      : HUB_CHECK_STAMP_DELAY_MS
+    const id = window.setTimeout(() => {
+      playSoundEffect(TADA_EFFECT_SRC, audioEnabled)
+    }, delay)
+    return () => window.clearTimeout(id)
+  }, [celebration, audioEnabled])
 
   const handleCelebrationEnd = useCallback(() => {
     const ended = celebration
