@@ -1,0 +1,4 @@
+/*
+ * Quill cursor rules are injected at runtime by installQuillCursors()
+ * (literal asset URLs — CSS variables in cursor: are unreliable in WebKit).
+ */

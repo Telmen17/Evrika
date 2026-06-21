@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <!-- Bright white feather quill — hotspot (3, 30) -->
+  <path d="M 3.94 30.25 Q 3.94 30.25 4.21 29.99 Q 4.49 29.74 4.78 29.47 Q 5.06 29.21 5.84 29.23 Q 6.62 29.25 7.17 29.12 Q 7.71 28.99 8.19 28.82 Q 8.67 28.65 9.13 28.44 Q 9.58 28.24 10.01 28.02 Q 10.45 27.80 10.86 27.56 Q 11.28 27.33 11.69 27.07 Q 12.10 26.82 12.49 26.55 Q 12.88 26.28 13.27 26.00 Q 13.65 25.72 14.03 25.43 Q 14.40 25.14 14.77 24.84 Q 15.13 24.53 15.48 24.22 Q 15.84 23.91 16.18 23.59 Q 16.52 23.26 16.86 22.93 Q 17.19 22.60 17.51 22.26 Q 17.83 21.92 18.14 21.57 Q 18.45 21.22 18.75 20.87 Q 19.05 20.51 19.34 20.15 Q 19.62 19.78 19.90 19.42 Q 20.17 19.05 20.43 18.67 Q 20.69 18.30 20.94 17.92 Q 21.19 17.54 21.43 17.15 Q 21.67 16.77 21.89 16.38 Q 22.11 15.99 22.33 15.60 Q 22.54 15.20 22.73 14.80 Q 22.93 14.41 23.12 14.01 Q 23.30 13.60 23.47 13.20 Q 23.64 12.79 23.80 12.38 Q 23.96 11.97 24.10 11.56 Q 24.24 11.15 24.37 10.72 Q 24.50 10.30 24.61 9.87 Q 24.73 9.44 24.82 9.00 Q 24.92 8.55 24.99 8.08 Q 25.06 7.61 25.09 7.08 Q 25.12 6.56 24.94 5.72 Q 24.76 4.89 25.00 4.62 Q 25.24 4.35 25.47 4.10 Q 25.71 3.84 25.50 3.50 Q 25.29 3.16 24.95 3.27 Q 24.60 3.38 24.25 3.51 Q 23.89 3.64 23.11 3.24 Q 22.34 2.84 21.76 2.78 Q 21.19 2.72 20.64 2.75 Q 20.10 2.78 19.58 2.87 Q 19.05 2.95 18.54 3.07 Q 18.03 3.20 17.53 3.36 Q 17.03 3.52 16.55 3.72 Q 16.06 3.91 15.58 4.13 Q 15.10 4.35 14.64 4.60 Q 14.17 4.85 13.72 5.12 Q 13.27 5.39 12.83 5.69 Q 12.39 5.98 11.96 6.30 Q 11.54 6.61 11.13 6.95 Q 10.72 7.29 10.32 7.64 Q 9.93 7.99 9.55 8.36 Q 9.17 8.73 8.80 9.12 Q 8.44 9.51 8.09 9.91 Q 7.75 10.31 7.42 10.73 Q 7.09 11.15 6.78 11.57 Q 6.47 12.00 6.17 12.44 Q 5.88 12.89 5.61 13.34 Q 5.34 13.79 5.08 14.25 Q 4.83 14.71 4.60 15.18 Q 4.37 15.66 4.16 16.13 Q 3.94 16.61 3.75 17.10 Q 3.56 17.59 3.40 18.08 Q 3.23 18.57 3.08 19.07 Q 2.94 19.56 2.82 20.07 Q 2.70 20.57 2.60 21.07 Q 2.51 21.58 2.44 22.09 Q 2.37 22.60 2.33 23.12 Q 2.30 23.63 2.30 24.15 Q 2.30 24.67 2.34 25.21 Q 2.39 25.74 2.52 26.30 Q 2.64 26.86 3.02 27.55 Q 3.41 28.24 3.31 28.62 Q 3.22 29.01 3.14 29.38 Z" fill="#FFFFFF" stroke="#483826" stroke-width="0.55" stroke-linejoin="round" />
+  <path d="M 6.62 29.25 Q 6.62 29.25 7.17 29.12 Q 7.71 28.99 5.05 27.37 Q 2.39 25.74 2.52 26.30 Z" fill="#FCFAF6" opacity="0.14" />
+  <path d="M 11.28 27.33 Q 11.28 27.33 11.69 27.07 Q 12.10 26.82 7.40 23.69 Q 2.70 20.57 2.60 21.07 Z" fill="#FFFFFF" opacity="0.08" />
+  <path d="M 14.40 25.14 Q 14.40 25.14 14.77 24.84 Q 15.13 24.53 15.48 24.22 Q 15.84 23.91 10.10 19.78 Q 4.37 15.66 4.16 16.13 Q 3.94 16.61 3.75 17.10 Z" fill="#FCFAF6" opacity="0.14" />
+  <path d="M 17.83 21.92 Q 17.83 21.92 18.14 21.57 Q 18.45 21.22 12.46 16.61 Q 6.47 12.00 6.17 12.44 Z" fill="#FFFFFF" opacity="0.08" />
+  <path d="M 20.69 18.30 Q 20.69 18.30 20.94 17.92 Q 21.19 17.54 15.56 12.77 Q 9.93 7.99 9.55 8.36 Z" fill="#FCFAF6" opacity="0.14" />
+  <path d="M 22.54 15.20 Q 22.54 15.20 22.73 14.80 Q 22.93 14.41 23.12 14.01 Q 23.30 13.60 18.74 9.23 Q 14.17 4.85 13.72 5.12 Q 13.27 5.39 12.83 5.69 Z" fill="#FFFFFF" opacity="0.08" />
+  <line x1="4.71" y1="27.93" x2="6.37" y2="28.86" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="4.57" y1="28.16" x2="2.92" y2="27.20" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="5.56" y1="26.53" x2="8.21" y2="28.12" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="5.42" y1="26.76" x2="2.79" y2="25.16" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="6.49" y1="25.08" x2="9.83" y2="27.17" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="6.34" y1="25.30" x2="3.02" y2="23.20" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="7.48" y1="23.57" x2="11.36" y2="26.09" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="7.33" y1="23.79" x2="3.46" y2="21.26" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="8.53" y1="22.02" x2="12.83" y2="24.92" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="8.37" y1="22.25" x2="4.08" y2="19.34" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="9.62" y1="20.45" x2="14.24" y2="23.66" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="9.47" y1="20.67" x2="4.86" y2="17.45" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="10.19" y1="19.66" x2="14.92" y2="23.00" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="10.03" y1="19.88" x2="5.31" y2="16.52" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="11.35" y1="18.07" x2="16.24" y2="21.65" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="11.19" y1="18.29" x2="6.31" y2="14.70" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="12.55" y1="16.49" x2="17.50" y2="20.23" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="12.39" y1="16.71" x2="7.45" y2="12.95" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="13.78" y1="14.93" x2="18.68" y2="18.78" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="13.61" y1="15.14" x2="8.72" y2="11.28" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="15.03" y1="13.40" x2="19.78" y2="17.28" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="14.85" y1="13.61" x2="10.11" y2="9.71" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="16.29" y1="11.91" x2="20.81" y2="15.76" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="16.11" y1="12.12" x2="11.60" y2="8.25" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="17.56" y1="10.48" x2="21.76" y2="14.22" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="17.38" y1="10.68" x2="13.20" y2="6.92" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="18.20" y1="9.79" x2="22.20" y2="13.45" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="18.02" y1="9.99" x2="14.04" y2="6.32" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="19.48" y1="8.47" x2="23.01" y2="11.89" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="19.29" y1="8.66" x2="15.77" y2="5.22" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="20.75" y1="7.23" x2="23.74" y2="10.32" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="20.55" y1="7.42" x2="17.57" y2="4.31" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="22.00" y1="6.10" x2="24.37" y2="8.73" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <line x1="21.80" y1="6.27" x2="19.45" y2="3.63" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="23.24" y1="5.07" x2="24.87" y2="7.05" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.17" />
+  <line x1="23.03" y1="5.24" x2="21.42" y2="3.26" stroke="#D8D0C4" stroke-width="0.45" stroke-linecap="round" opacity="0.26" />
+  <path d="M 3.50 30.00 L 3.86 29.37 L 4.23 28.72 L 4.63 28.05 L 5.05 27.37 L 5.49 26.66 L 5.94 25.94 L 6.41 25.20 L 6.89 24.45 L 7.40 23.69 L 7.91 22.92 L 8.44 22.15 L 8.98 21.36 L 9.54 20.57 L 10.10 19.78 L 10.68 18.99 L 11.26 18.19 L 11.86 17.40 L 12.46 16.61 L 13.07 15.83 L 13.68 15.05 L 14.30 14.28 L 14.93 13.52 L 15.56 12.77 L 16.19 12.03 L 16.83 11.30 L 17.46 10.59 L 18.10 9.90 L 18.74 9.23 L 19.37 8.57 L 20.01 7.94 L 20.64 7.33 L 21.27 6.75 L 21.89 6.20 L 22.51 5.67 L 23.12 5.17 L 23.73 4.70 L 24.33 4.27 L 24.92 3.86 L 25.50 3.50" stroke="#604838" stroke-width="1.2" stroke-linecap="round" />
+  <path d="M 3.21 30.52 L 3.50 30.00" stroke="#604838" stroke-width="1.0" stroke-linecap="round" />
+  <path d="M 3.21 30.52 L 3.90 29.50 L 4.30 29.80 Z" fill="#2C2018" />
+</svg>
