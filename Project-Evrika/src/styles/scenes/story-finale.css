@@ -1,0 +1,58 @@
+/* Story finale throne room */
+/* —— Story finale (King / Archimedes) —— */
+.story-finale-scene {
+  min-height: 100vh;
+}
+
+.story-finale-body {
+  flex: 1;
+  padding: 0 1rem 1rem;
+}
+
+.story-finale-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.story-finale-visual {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(146, 92, 28, 0.25);
+  background: rgba(255, 252, 244, 0.6);
+}
+
+.story-finale-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.story-finale-img--smith {
+  object-position: center top;
+}
+
+.story-finale-text {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.story-finale-footer {
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+@media (max-width: 720px) {
+  .story-finale-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .story-finale-visual {
+    max-width: 280px;
+    margin: 0 auto;
+  }
+}
+

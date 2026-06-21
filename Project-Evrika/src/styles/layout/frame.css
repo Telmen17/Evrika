@@ -1,0 +1,117 @@
+/* Decorative leaf vine frame */
+/* Decorative leaf frame – continuous vine on left, top, and right */
+:root {
+  --frame-top-gap: -15px;
+  --frame-side-offset: -30px;
+  /*
+   * Clearance so UI sits inside the leaf vine frame with a visible gap.
+   * Measured visible vine: ~29–53px from each side, top band ends ~50px down.
+   */
+  --frame-safe-top: clamp(3.6rem, 6.5vh, 4.4rem);
+  --frame-safe-x: clamp(3.8rem, 5vw, 4.8rem);
+}
+
+.frame-decoration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+
+.frame-edge {
+  position: absolute;
+  display: flex;
+  overflow: hidden;
+}
+
+.frame-edge.frame-top {
+  top: var(--frame-top-gap);
+  left: calc(120px + var(--frame-side-offset));
+  right: var(--frame-side-offset);
+  overflow: visible;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.frame-edge.frame-left {
+  top: var(--frame-top-gap);
+  left: var(--frame-side-offset);
+  bottom: 0;
+  width: 140px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.frame-edge.frame-right {
+  top: var(--frame-top-gap);
+  right: var(--frame-side-offset);
+  bottom: 0;
+  width: 140px;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.frame-leaf-slot {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* keep as close to the edge as possible */
+}
+
+/* Pull side vines toward inner border so corners meet top vine */
+.frame-edge.frame-left .frame-leaf-slot {
+  justify-content: flex-end;
+}
+
+.frame-edge.frame-right .frame-leaf-slot {
+  justify-content: flex-start;
+}
+
+.frame-leaf-img {
+  height: 140px; /* match edge thickness */
+  width: auto; /* preserve original leaf aspect ratio */
+  display: block;
+  flex: none;
+}
+
+/* Top: rotate while keeping the same rendered leaf size */
+.frame-leaf-img-top {
+  transform: translateY(30px) rotate(90deg);
+  transform-origin: top center;
+}
+
+/* Connected vine look: overlap each next leaf so there are no gaps */
+.frame-edge.frame-top .frame-leaf-slot:not(:first-child) {
+  margin-left: -44px;
+}
+
+.frame-edge.frame-left .frame-leaf-slot:not(:first-child),
+.frame-edge.frame-right .frame-leaf-slot:not(:first-child) {
+  margin-top: -44px;
+}
+
+.app-root:has(.journey-scene) {
+  padding: 0;
+  align-items: stretch;
+}
+
+.app-root .journey-scene {
+  width: 100vw;
+  height: 100vh;
+}
+
+.layout {
+  width: 100%;
+  max-width: 1200px;
+  border-radius: 20px;
+  padding: 2.75rem;
+  background: linear-gradient(135deg, #fffaf0 0%, #f5e2b8 45%, #f0d79c 100%);
+  box-shadow: 0 30px 60px rgba(47, 26, 0, 0.25);
+  border: 1px solid rgba(146, 92, 28, 0.25);
+}
+

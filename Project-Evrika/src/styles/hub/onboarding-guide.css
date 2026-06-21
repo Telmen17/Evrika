@@ -1,0 +1,280 @@
+/* Hub onboarding spotlight guide */
+/* ===== Hub onboarding guide (zipping Archimedes head) ===== */
+
+.hub-tips-button {
+  background: linear-gradient(180deg, #fff6df, #f1d89c);
+  border-color: #b8923a;
+}
+
+.hub-guide {
+  position: fixed;
+  inset: 0;
+  z-index: 6500;
+  pointer-events: none;
+}
+
+.hub-guide-backdrop {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: rgba(28, 18, 4, 0.5);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: auto;
+}
+
+.hub-guide--ready .hub-guide-backdrop {
+  opacity: 1;
+}
+
+/* When a target is spotlit, the spotlight ring provides the dimming instead. */
+.hub-guide-backdrop--clear {
+  background: transparent;
+}
+
+.hub-guide-spotlight {
+  position: absolute;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 3px rgba(232, 188, 92, 0.9),
+    0 0 22px 6px rgba(245, 205, 110, 0.55),
+    0 0 0 9999px rgba(28, 18, 4, 0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    top 0.6s cubic-bezier(0.22, 0.8, 0.2, 1),
+    left 0.6s cubic-bezier(0.22, 0.8, 0.2, 1),
+    width 0.6s cubic-bezier(0.22, 0.8, 0.2, 1),
+    height 0.6s cubic-bezier(0.22, 0.8, 0.2, 1),
+    opacity 0.4s ease;
+}
+
+.hub-guide--ready .hub-guide-spotlight {
+  opacity: 1;
+}
+
+.hub-guide-cluster {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 332px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  will-change: transform;
+  transition: transform 0.66s cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+
+.hub-guide:not(.hub-guide--ready) .hub-guide-cluster {
+  opacity: 0;
+}
+
+.hub-guide--ready .hub-guide-cluster {
+  opacity: 1;
+  transition:
+    transform 0.66s cubic-bezier(0.22, 0.8, 0.2, 1),
+    opacity 0.4s ease;
+}
+
+.hub-guide-head {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  display: grid;
+  place-items: center;
+  margin-bottom: -10px;
+  z-index: 2;
+  animation: hubGuideBob 2.4s ease-in-out infinite;
+}
+
+@keyframes hubGuideBob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(2deg);
+  }
+}
+
+.hub-guide-head-aura {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 42%,
+    rgba(255, 233, 168, 0.7) 0%,
+    rgba(212, 165, 70, 0.22) 46%,
+    transparent 72%
+  );
+  animation: hubGuideAura 2.4s ease-in-out infinite;
+}
+
+@keyframes hubGuideAura {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+.hub-guide-head-ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid rgba(232, 188, 92, 0.95);
+  background: radial-gradient(circle at 50% 30%, #fff7e6, #e7cf9b);
+  box-shadow:
+    0 0 0 2px rgba(120, 80, 20, 0.25),
+    0 8px 22px rgba(50, 30, 6, 0.4);
+}
+
+.hub-guide-head-ring img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hub-guide-bubble {
+  position: relative;
+  width: 100%;
+  padding: 0.85rem 1rem 0.8rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fffaf0 0%, #f7e9c8 100%);
+  border: 1.5px solid rgba(166, 124, 48, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 14px 34px rgba(48, 30, 6, 0.32);
+}
+
+.hub-guide-bubble-nub {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 16px;
+  height: 16px;
+  background: #fffaf0;
+  border-left: 1.5px solid rgba(166, 124, 48, 0.5);
+  border-top: 1.5px solid rgba(166, 124, 48, 0.5);
+}
+
+.hub-guide-cluster--arrow-down .hub-guide-bubble-nub,
+.hub-guide-cluster--arrow-none .hub-guide-bubble-nub {
+  opacity: 1;
+}
+
+.hub-guide-step-count {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #a0722a;
+}
+
+.hub-guide-step-count span {
+  color: rgba(160, 114, 42, 0.6);
+}
+
+.hub-guide-title {
+  margin: 0.2rem 0 0.3rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.04rem;
+  font-weight: 700;
+  color: #4a3112;
+}
+
+.hub-guide-text {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: #5a3e1b;
+}
+
+.hub-guide-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.hub-guide-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hub-guide-skip,
+.hub-guide-prev {
+  padding: 0.34rem 0.7rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #7a5c2e;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+
+.hub-guide-skip:hover,
+.hub-guide-prev:hover {
+  background: rgba(184, 146, 58, 0.12);
+  border-color: rgba(184, 146, 58, 0.35);
+  color: #5a3e1b;
+}
+
+.hub-guide-next {
+  padding: 0.4rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff8ea;
+  background: linear-gradient(180deg, #d6a533, #b8861f);
+  border: 1.5px solid #a0722a;
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(120, 80, 20, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.hub-guide-next:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 6px 16px rgba(120, 80, 20, 0.36);
+}
+
+.hub-guide-next:active {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-guide-cluster,
+  .hub-guide-spotlight {
+    transition: opacity 0.3s ease;
+  }
+
+  .hub-guide-head,
+  .hub-guide-head-aura {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .hub-guide-cluster {
+    width: min(332px, calc(100vw - 32px));
+  }
+}
+

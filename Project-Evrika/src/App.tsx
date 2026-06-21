@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import './App.css'
+import './styles/index.css'
 import LandingPage, { type SceneId } from './components/LandingPage'
 import leafImg from './assets/leaf.png'
 import StoryIntroScene from './components/StoryIntroScene'

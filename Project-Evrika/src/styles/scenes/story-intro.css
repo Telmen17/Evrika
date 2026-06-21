@@ -1,0 +1,695 @@
+/* Story intro journey */
+/* Story intro: thin progress bar + minimal skip arrows */
+.journey-controls--cinematic {
+  align-items: center;
+  gap: 0.65rem;
+  padding-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.journey-progress-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.journey-progress-track {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(58, 35, 13, 0.18);
+  overflow: hidden;
+}
+
+/* Finish-line sparkle at the right end of the bar */
+.journey-progress-track::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  z-index: 2;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  margin-right: -2px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(255, 252, 235, 0.95) 0%,
+    rgba(232, 197, 71, 0.75) 35%,
+    rgba(184, 134, 11, 0.25) 55%,
+    transparent 72%
+  );
+  animation: journey-progress-end-glitter 1.35s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(232, 197, 71, 0.55);
+}
+
+.journey-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+  background: linear-gradient(90deg, #b8860b, #e8c547);
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(184, 134, 11, 0.45);
+  overflow: visible;
+}
+
+/* Leading-edge sparkle that moves with narration progress */
+.journey-progress-fill-gleam {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 14px;
+  height: 18px;
+  margin-top: -9px;
+  margin-right: -7px;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 30% 40%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 236, 160, 0.65) 28%,
+    rgba(232, 197, 71, 0.35) 52%,
+    transparent 72%
+  );
+  filter: blur(0.35px);
+  animation: journey-progress-fill-gleam-pulse 0.9s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes journey-progress-end-glitter {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes journey-progress-fill-gleam-pulse {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(0.88);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journey-progress-track::after,
+  .journey-progress-fill-gleam {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+.journey-skip-btn {
+  flex-shrink: 0;
+  width: 2.35rem;
+  height: 2.35rem;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  color: #5b3a1f;
+  background: rgba(255, 252, 245, 0.88);
+  border: 1.5px solid rgba(146, 92, 28, 0.35);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.15s;
+}
+
+/* Guillemets (‹ ›) sit below the cap height in most fonts — nudge up for optical vertical center */
+.journey-skip-btn__glyph {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-0.1em);
+}
+
+.journey-skip-btn:hover:not(:disabled) {
+  background: #fffdf7;
+  border-color: rgba(184, 134, 11, 0.65);
+  transform: scale(1.06);
+}
+
+.journey-skip-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.journey-skip-btn--primary {
+  background: linear-gradient(135deg, #fff4d4, #f0d090);
+  border-color: #b8860b;
+  font-weight: 500;
+}
+
+/* Final intro CTA: radiating lines + pulse so “next” is obvious */
+.journey-final-cta {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.journey-final-cta-rays {
+  position: absolute;
+  inset: -1.15rem;
+  border-radius: 50%;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg,
+    transparent 0deg 7deg,
+    rgba(184, 134, 11, 0.42) 7deg 8deg
+  );
+  opacity: 0.9;
+  animation: journey-final-rays-spin 10s linear infinite;
+}
+
+@keyframes journey-final-rays-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.journey-skip-btn--final-pulse {
+  position: relative;
+  z-index: 1;
+  animation: journey-final-btn-pulse 1.35s ease-in-out infinite;
+}
+
+@keyframes journey-final-btn-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 0 rgba(184, 134, 11, 0.55),
+      0 0 12px rgba(184, 134, 11, 0.25);
+  }
+
+  50% {
+    transform: scale(1.14);
+    box-shadow:
+      0 0 0 6px rgba(184, 134, 11, 0.12),
+      0 0 20px rgba(232, 197, 71, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journey-final-cta-rays,
+  .journey-skip-btn--final-pulse {
+    animation: none;
+  }
+
+  .journey-skip-btn--final-pulse {
+    box-shadow: 0 0 14px rgba(184, 134, 11, 0.4);
+  }
+}
+
+/* Spacer body fills viewport so controls stay bottom; no margin-top:auto needed */
+.journey-scene .journey-controls {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+/* Story intro (journey): match stage width to narration; controls stay in footer row */
+@media (min-width: 961px) {
+  .journey-scene {
+    justify-content: flex-start;
+  }
+
+  .journey-scene .scene-image-container {
+    width: min(96%, 1040px);
+    max-width: 1040px;
+    max-height: min(59vh, 585px);
+    aspect-ratio: 16 / 9;
+  }
+
+  .journey-scene .narration-container.journey-story-box {
+    padding: 0.7rem 1.25rem 1.75rem 1.25rem;
+  }
+}
+
+.scene-visual-placeholder {
+  border-radius: 14px;
+  border: 1px dashed rgba(146, 92, 28, 0.6);
+  background: radial-gradient(circle at top, rgba(240, 207, 140, 0.18), transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.scene-visual-caption {
+  color: #3a230d;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.scene-footer {
+  margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.scene-footer-left,
+.scene-footer-right {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.scene-footer-left button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.story-step-indicator {
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
+  color: #5b3a1f;
+}
+
+@keyframes cloudSlideLeftIn {
+  from {
+    transform: translate3d(-112%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes cloudSlideRightIn {
+  from {
+    transform: translate3d(112%, 0, 0) scaleX(-1);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0) scaleX(-1);
+  }
+}
+
+@keyframes cloudSlideLeftOut {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-112%, 0, 0);
+  }
+}
+
+@keyframes cloudSlideRightOut {
+  from {
+    transform: translate3d(0, 0, 0) scaleX(-1);
+  }
+
+  to {
+    transform: translate3d(112%, 0, 0) scaleX(-1);
+  }
+}
+
+@keyframes cloudGlowIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cloudGlowOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes missionButtonPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 14px 26px rgba(245, 124, 0, 0.25);
+  }
+
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 16px 30px rgba(245, 124, 0, 0.36);
+  }
+}
+
+/* Small desktop – preserve 16:9, image + narration in flow */
+@media (max-width: 1024px) {
+  .journey-scene {
+    padding: 4rem 1.5rem 2rem 1.5rem;
+    gap: 0.8rem;
+  }
+
+  .scene-image-container {
+    width: min(96%, calc(56vh * 16 / 9));
+    max-width: min(100%, calc(56vh * 16 / 9));
+  }
+
+  .journey-scene .narration-container {
+    width: min(96%, 940px);
+    max-height: none;
+  }
+
+  .narration-container {
+    padding: 0.65rem 1rem;
+  }
+
+  .journey-scene .scene-text p {
+    font-size: 0.9rem;
+  }
+
+  .next-button-container {
+    bottom: 1.25rem;
+    right: 1.25rem;
+  }
+
+  .journey-controls {
+    width: min(96%, 940px);
+  }
+}
+
+/* Tablet screens */
+@media (max-width: 960px) {
+  .crown-melt-scene {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .app-root {
+    padding: 1.5rem;
+  }
+
+  .layout {
+    padding: 2rem;
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scene-body {
+    grid-template-columns: 1fr;
+  }
+
+  .crown-weigh-scene {
+    height: auto;
+    overflow: visible;
+  }
+
+  .weigh-reading-panel {
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .crown-weigh-workspace {
+    overflow: visible;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .journey-scene {
+    min-height: 100svh;
+    height: auto;
+    padding: 3.5rem 1.25rem 2rem 1.25rem;
+    gap: 0.85rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .journey-scene-body {
+    justify-content: flex-start;
+  }
+
+  .weigh-toolbox-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .scale-toolset-hint {
+    max-width: none;
+  }
+
+  .scene-image-container {
+    width: min(100%, calc(52vh * 16 / 9));
+    max-width: min(100%, calc(52vh * 16 / 9));
+  }
+
+  .story-blacksmith {
+    left: 30%;
+    width: clamp(78px, 14%, 118px);
+  }
+
+  .story-crown {
+    left: 42%;
+    bottom: 21%;
+  }
+
+  .journey-scene .narration-container {
+    width: min(100%, 860px);
+  }
+
+  .narration-container {
+    max-height: none;
+  }
+
+  .journey-controls {
+    width: min(100%, 860px);
+    margin-top: 0.35rem;
+    margin-bottom: 1rem;
+    padding-top: 0;
+  }
+
+  .weigh-narrator-bubble {
+    width: min(320px, calc(100vw - 8rem));
+  }
+}
+
+/* Mobile screens */
+@media (max-width: 640px) {
+  .app-root {
+    padding: 1rem;
+    align-items: flex-start;
+  }
+
+  .layout {
+    padding: 1.5rem;
+    border-radius: 16px;
+  }
+
+  .title {
+    font-size: 1.5rem;
+    letter-spacing: 0.03em;
+  }
+
+  .hero-kicker {
+    font-size: 0.7rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .hero-note {
+    font-size: 0.85rem;
+  }
+
+  .start-button {
+    padding: 0.75rem 1.8rem;
+    font-size: 0.95rem;
+  }
+
+  .menu-card {
+    padding: 1.25rem;
+  }
+
+  .menu-card h2 {
+    font-size: 1.05rem;
+  }
+
+  /* Journey Scene - Mobile */
+  .journey-scene {
+    min-height: 100svh;
+    height: auto;
+    padding: 0.85rem 0.85rem 2rem;
+    align-items: stretch;
+    gap: 0.75rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .journey-scene-body {
+    justify-content: flex-start;
+  }
+
+  .menu-button {
+    position: sticky;
+    top: 0.6rem;
+    left: auto;
+    align-self: flex-start;
+    margin-left: 0.15rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .scene-image-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    aspect-ratio: 16 / 9;
+  }
+
+  .journey-scene .narration-container,
+  .journey-controls {
+    width: 100%;
+  }
+
+  .narration-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .journey-story-box-header,
+  .journey-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .journey-controls {
+    margin-top: 0.25rem;
+    margin-bottom: 0.85rem;
+    padding-top: 0;
+  }
+
+  .narration-button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .next-button-container {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    margin: 0 0 1rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .story-step-indicator {
+    margin-top: 0.75rem;
+  }
+
+  .scene-text p {
+    font-size: 0.95rem;
+  }
+
+  .primary-button,
+  .secondary-button {
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .cloud-transition-side-left,
+  .cloud-transition-side-right {
+    top: -4%;
+    bottom: -4%;
+  }
+
+  .weigh-narrator-bubble {
+    right: 0;
+    bottom: calc(100% + 0.7rem);
+    width: min(320px, calc(100vw - 2.5rem));
+  }
+
+  .weigh-narrator-bubble::after {
+    right: 1.15rem;
+    bottom: -10px;
+    transform: rotate(45deg);
+    border-top: none;
+    border-bottom: 1px solid rgba(146, 92, 28, 0.22);
+  }
+
+  .weigh-answer-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 400px) {
+  .app-root {
+    padding: 0.5rem;
+  }
+
+  .layout {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .scene-image-container {
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    aspect-ratio: 16 / 9;
+    border-width: 3px;
+    border-radius: 12px;
+  }
+
+  .narration-container {
+    margin: 0;
+    width: 100%;
+    padding: 1rem;
+  }
+
+  .next-button-container {
+    margin: 0 0.5rem 1.5rem;
+  }
+}
+

@@ -1,0 +1,443 @@
+/* Story bath displacement sketch */
+/* --- Story bath scene (CSS displacement sketch; bathhouse + tub assets) --- */
+
+.story-bath-scene .scene-body.story-bath-body {
+  flex: 1;
+  min-height: 0;
+  /* Single child was sitting in the first column of the default .scene-body 2-col grid (~56% width). */
+  display: block;
+}
+
+.story-bath-layout {
+  display: grid;
+  grid-template-columns: 1fr minmax(300px, 1.5fr);
+  gap: 1.25rem;
+  align-items: start;
+  width: 100%;
+  min-height: 0;
+}
+
+.story-bath-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.story-bath-text {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.story-bath-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.story-bath-step-btn {
+  align-self: flex-start;
+}
+
+.story-bath-stage {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  min-height: 300px;
+  border: 1px solid rgba(146, 92, 28, 0.32);
+  background: #1a1510;
+}
+
+/* Wider than frame so more bathhouse shows left-to-right (tub + figure on right). */
+.story-bath-bg {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 125%;
+  min-width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center center;
+  filter: brightness(0.9) saturate(0.92);
+}
+
+.story-bath-stage-inner {
+  position: relative;
+  z-index: 1;
+  min-height: 300px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.65rem 1rem 0.9rem;
+}
+
+.story-bath-composite {
+  position: relative;
+  width: min(100%, 920px);
+  aspect-ratio: 16 / 9;
+  max-height: 440px;
+}
+
+/* Compact tub — rim ~ chest-high vs Archimedes so stepping in reads believable. */
+.story-bath-tub {
+  position: absolute;
+  bottom: 0;
+  left: 48%;
+  transform: translateX(-50%);
+  width: 42%;
+  height: auto;
+  max-height: 32%;
+  object-fit: contain;
+  object-position: bottom center;
+  z-index: 3;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.4));
+  pointer-events: none;
+}
+
+.story-bath-water {
+  position: absolute;
+  bottom: 6%;
+  left: 32%;
+  width: 22%;
+  height: 12%;
+  z-index: 2;
+  border-radius: 48% 48% 52% 52% / 40% 40% 50% 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(200, 232, 255, 0.72) 0%,
+    rgba(120, 188, 230, 0.82) 42%,
+    rgba(65, 130, 195, 0.9) 100%
+  );
+  transform: scaleY(0.5);
+  transform-origin: center bottom;
+  transition: transform 1.15s cubic-bezier(0.37, 0, 0.25, 1);
+  box-shadow:
+    inset 0 -10px 20px rgba(25, 80, 130, 0.28),
+    0 0 20px rgba(120, 190, 255, 0.15);
+}
+
+.story-bath-stage--submerged .story-bath-water {
+  transform: scaleY(0.88);
+}
+
+.story-bath-stage--overflow .story-bath-water {
+  transform: scaleY(1.05);
+  transition-duration: 1.35s;
+}
+
+/* Wrapper: per-frame placement; grid stacks two imgs so the box keeps height (absolute children alone collapse). */
+.story-bath-archimedes-wrap {
+  position: absolute;
+  left: auto;
+  display: grid;
+  place-items: end center;
+  align-content: end;
+  z-index: 5;
+  transform-origin: bottom center;
+  /* Same duration as sprite crossfade (see StoryBathScene ARCH_BATH_CROSSFADE_MS) — avoids layout drifting after opacity finishes. */
+  transition:
+    bottom 0.2s ease-in-out,
+    right 0.2s ease-in-out,
+    width 0.2s ease-in-out,
+    max-height 0.2s ease-in-out,
+    transform 0.2s ease-in-out;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.32));
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.story-bath-archimedes-layer {
+  grid-area: 1 / 1;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: inherit;
+  object-fit: contain;
+  object-position: bottom center;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Step 1 (idle) */
+.story-bath-archimedes--f0 {
+  bottom: 5%;
+  right: 2%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-22%, 10%) scale(0.88);
+}
+
+/* Step 2 — closer to tub rim / edge */
+.story-bath-archimedes--f1 {
+  bottom: 5%;
+  right: 11%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-38%, 8%) scale(0.88);
+}
+
+/* Steps 3–4 — feet near / above rim (stepping over) */
+.story-bath-archimedes--f2 {
+  bottom: 24%;
+  right: 9%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-34%, 2%) scale(0.88);
+}
+
+.story-bath-archimedes--f3 {
+  bottom: 28%;
+  right: 7%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-36%, -1%) scale(0.88);
+}
+
+/* Step 5 — same torso/head scale as other frames; position over tub with torso above water */
+.story-bath-archimedes--f4 {
+  bottom: 27%;
+  right: 18%;
+  width: min(46%, 190px);
+  max-height: 68%;
+  transform: translate(-54%, 5%) scale(0.88);
+}
+
+.story-bath-overflow {
+  position: absolute;
+  bottom: 24%;
+  width: 12px;
+  height: 36px;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(210, 236, 255, 0.95), rgba(90, 160, 210, 0.45));
+  box-shadow: 0 2px 8px rgba(80, 140, 200, 0.35);
+}
+
+.story-bath-overflow--left {
+  left: 26%;
+}
+
+.story-bath-overflow--right {
+  right: 34%;
+}
+
+/* Streams down the tub front when Archimedes steps in (hidden on eureka beat). */
+.story-bath-spills {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.story-bath-stage--step-in .story-bath-spills,
+.story-bath-stage--submerged .story-bath-spills,
+.story-bath-stage--overflow .story-bath-spills {
+  opacity: 1;
+}
+
+.story-bath-stage--eureka .story-bath-spills {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.story-bath-spill {
+  position: absolute;
+  bottom: 0;
+  width: 8px;
+  height: 42%;
+  border-radius: 0 0 5px 5px;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(140, 200, 245, 0.15) 0 3px,
+    rgba(210, 236, 255, 0.92) 3px 7px,
+    rgba(90, 160, 215, 0.55) 7px 11px
+  );
+  background-size: 100% 11px;
+  box-shadow:
+    0 0 10px rgba(120, 190, 255, 0.35),
+    inset 2px 0 4px rgba(255, 255, 255, 0.25);
+  animation: storyBathSpillFlow 0.42s linear infinite;
+  filter: blur(0.35px);
+}
+
+.story-bath-spill--left {
+  left: 24%;
+}
+
+.story-bath-spill--center {
+  left: 41%;
+  width: 6px;
+  height: 32%;
+  animation-duration: 0.36s;
+  opacity: 0.92;
+}
+
+.story-bath-spill--right {
+  left: 57%;
+  animation-duration: 0.48s;
+}
+
+.story-bath-stage--overflow .story-bath-spill {
+  animation-duration: 0.32s;
+  filter: blur(0.25px);
+}
+
+@keyframes storyBathSpillFlow {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 11px;
+  }
+}
+
+.story-bath-stage--overflow .story-bath-overflow {
+  opacity: 1;
+  animation: storyBathOverflow 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes storyBathOverflow {
+  0% {
+    transform: translateY(0) scaleY(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(8px) scaleY(1.2);
+    opacity: 0.95;
+  }
+}
+
+/* Second beat: same set, calmer water; gentle “eureka” motion on one sprite */
+.story-bath-stage--eureka .story-bath-water {
+  transform: scaleY(0.88);
+  transition: transform 0.6s ease;
+}
+
+.story-bath-stage--eureka .story-bath-overflow {
+  opacity: 0;
+  animation: none;
+}
+
+.story-bath-stage--eureka .story-bath-archimedes--f4 {
+  animation: storyBathEurekaInTub 0.85s ease-in-out infinite alternate;
+}
+
+@keyframes storyBathEurekaInTub {
+  0% {
+    transform: translate(-54%, 5%) scale(0.88) rotate(-4deg);
+  }
+  100% {
+    transform: translate(-54%, 2%) scale(0.91) rotate(3deg);
+  }
+}
+
+@media (max-width: 900px) {
+  .story-bath-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .story-bath-stage {
+    order: -1;
+    min-height: 260px;
+  }
+
+  .story-bath-stage-inner {
+    min-height: 260px;
+  }
+
+  .story-bath-composite {
+    max-height: 300px;
+    aspect-ratio: 16 / 10;
+  }
+
+  .story-bath-bg {
+    width: 135%;
+  }
+
+  .story-bath-tub {
+    width: 40%;
+    max-height: 30%;
+  }
+
+  .story-bath-water {
+    left: 30%;
+    width: 24%;
+    bottom: 7%;
+    height: 11%;
+  }
+
+  .story-bath-archimedes--f0 {
+    bottom: 4%;
+    right: 0;
+    width: min(44%, 168px);
+    max-height: 62%;
+    transform: translate(-20%, 9%) scale(0.88);
+  }
+
+  .story-bath-archimedes--f1 {
+    bottom: 4%;
+    right: 8%;
+    width: min(44%, 168px);
+    max-height: 62%;
+    transform: translate(-34%, 7%) scale(0.88);
+  }
+
+  .story-bath-archimedes--f2 {
+    bottom: 22%;
+    right: 6%;
+    width: min(44%, 168px);
+    max-height: 62%;
+    transform: translate(-30%, 1%) scale(0.88);
+  }
+
+  .story-bath-archimedes--f3 {
+    bottom: 26%;
+    right: 5%;
+    width: min(44%, 168px);
+    max-height: 62%;
+    transform: translate(-32%, -1%) scale(0.88);
+  }
+
+  .story-bath-archimedes--f4 {
+    bottom: 44%;
+    right: 36%;
+    width: min(44%, 168px);
+    max-height: 62%;
+    transform: translate(-78%, 4%) scale(0.88);
+  }
+
+  .story-bath-stage--eureka .story-bath-archimedes--f4 {
+    animation: storyBathEurekaInTubMobile 0.85s ease-in-out infinite alternate;
+  }
+
+  @keyframes storyBathEurekaInTubMobile {
+    0% {
+      transform: translate(-78%, 4%) scale(0.88) rotate(-4deg);
+    }
+    100% {
+      transform: translate(-78%, 1%) scale(0.91) rotate(3deg);
+    }
+  }
+
+  .story-bath-spill--left {
+    left: 22%;
+  }
+
+  .story-bath-spill--center {
+    left: 40%;
+  }
+
+  .story-bath-spill--right {
+    left: 56%;
+  }
+}
+

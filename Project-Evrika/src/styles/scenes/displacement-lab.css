@@ -1,0 +1,301 @@
+/* Displacement lab (Matter.js) */
+/* —— Displacement lab (Matter.js) —— */
+.displacement-lab-scene {
+  min-height: 0;
+}
+
+.displacement-lab-scene .scene-header {
+  margin-bottom: 0.8rem;
+}
+
+/* Standalone route: `app-root` hosts the scene directly (not inside the hub). */
+.app-root > .displacement-lab-scene {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.displacement-lab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 0.85rem 0.45rem;
+}
+
+.displacement-lab-intro .scene-text {
+  margin: 0 0 0.35rem;
+}
+
+.displacement-lab-hint {
+  font-size: 0.92rem;
+  color: #4a3318;
+}
+
+.displacement-lab-stage-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 840px;
+  margin: 0 auto;
+}
+
+.displacement-lab-canvas-host--wide {
+  max-width: 800px;
+}
+
+.displacement-lab-stack {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(146, 92, 28, 0.35);
+  box-shadow: 0 12px 28px rgba(47, 26, 0, 0.12);
+}
+
+.displacement-bg-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: auto;
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.displacement-matter-host {
+  position: relative;
+  z-index: 1;
+}
+
+.displacement-matter-host canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: transparent !important;
+  /* Sprites on tan bg can read flat/dim; nudge saturation & brightness */
+  filter: saturate(1.12) brightness(1.07) contrast(1.03);
+}
+
+.displacement-lab-canvas-with-hud {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.displacement-lab-hud-panels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.displacement-lab-hud {
+  position: absolute;
+  bottom: 0;
+  width: min(108px, 24vw);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 3px;
+}
+
+.displacement-lab-hud--left {
+  /* Align with canvas pour target (~318px / 800) — down + left vs previous */
+  left: 39.75%;
+  transform: translateX(-50%);
+}
+
+.displacement-lab-hud--right {
+  /* Gold side further right (~738px / 800) — clear of vessel */
+  left: 92.25%;
+  transform: translateX(-50%);
+}
+
+.displacement-lab-hud-kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6a4a1a;
+}
+
+.displacement-lab-hud-beaker {
+  position: relative;
+  width: min(100%, 96px);
+  height: 52px;
+  margin: 0 auto;
+  border-radius: 0 0 8px 8px;
+  border: 2px solid rgba(146, 92, 28, 0.45);
+  border-top: none;
+  background: rgba(255, 252, 244, 0.82);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.displacement-lab-hud-beaker::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--fill, 0%);
+  background: linear-gradient(180deg, rgba(120, 190, 255, 0.82), rgba(65, 140, 220, 0.92));
+  /* Fill tracks React state each physics step — no easing or the last segment “snaps”. */
+  transition: none;
+}
+
+.displacement-lab-hud-ml {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.08rem;
+  min-width: 5.1rem;
+  padding: 0 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #2b1b1b;
+  white-space: nowrap;
+}
+
+.displacement-lab-hud-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.displacement-lab-hud-unit {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.displacement-lab-hud-sub {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.65rem;
+  color: #7a5420;
+}
+
+.displacement-lab-tank-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  padding: 0 0.25rem;
+}
+
+.displacement-lab-tank-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7a5420;
+}
+
+.displacement-lab-stack .displacement-lab-canvas-host canvas {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.displacement-lab-fallback {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #7a5420;
+}
+
+.displacement-lab-measures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: end;
+}
+
+.displacement-lab-measure-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b6914;
+}
+
+.displacement-lab-beaker {
+  position: relative;
+  height: 112px;
+  border-radius: 0 0 10px 10px;
+  border: 2px solid rgba(146, 92, 28, 0.45);
+  border-top: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(247, 234, 210, 0.4));
+  overflow: hidden;
+}
+
+.displacement-lab-beaker::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--fill, 0%);
+  background: linear-gradient(180deg, rgba(120, 190, 255, 0.75), rgba(65, 140, 220, 0.9));
+  transition: height 0.45s ease;
+}
+
+.displacement-lab-beaker-ml {
+  position: relative;
+  z-index: 1;
+  display: block;
+  padding: 0.5rem 0.65rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2b1b1b;
+}
+
+.displacement-lab-level-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: #7a5420;
+}
+
+.displacement-lab-conclusion {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(146, 92, 28, 0.28);
+  background: rgba(255, 252, 244, 0.95);
+}
+
+.displacement-lab-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.displacement-lab-footer {
+  margin-top: auto;
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .displacement-lab-tank-labels {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .displacement-lab-hud--left {
+    left: 38%;
+  }
+
+  .displacement-lab-hud--right {
+    left: 89%;
+  }
+}
+
