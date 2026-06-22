@@ -181,6 +181,12 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
+.landing-hero-bath-stack {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .landing-hero-bath {
   position: absolute;
   left: 50%;
@@ -188,17 +194,94 @@
   width: 58%;
   transform: translateX(-50%);
   filter: drop-shadow(0 12px 20px rgba(47, 26, 0, 0.25));
+}
+
+.landing-hero-bath--back {
   z-index: 2;
 }
 
-.landing-hero-archimedes {
+/* Front wood rim — same asset, clipped so legs hide behind the near staves. */
+.landing-hero-bath--front {
+  z-index: 4;
+  clip-path: inset(48% 5% 0 5%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
+}
+
+.landing-hero-archimedes-wrap {
   position: absolute;
   left: 50%;
   bottom: 22%;
-  width: 42%;
-  transform: translateX(-52%);
+  width: 34%;
+  height: 54%;
+  transform: translateX(-50%);
   z-index: 3;
-  filter: drop-shadow(0 8px 16px rgba(47, 26, 0, 0.3));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  /* Full upper body visible; only legs fade out at the waterline */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 70%,
+    rgba(0, 0, 0, 0.45) 84%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 70%,
+    rgba(0, 0, 0, 0.45) 84%,
+    transparent 100%
+  );
+}
+
+.landing-hero-archimedes,
+.landing-hero-archimedes-rive {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+  object-position: bottom center;
+  transform-origin: 50% 88%;
+  filter: drop-shadow(0 3px 8px rgba(47, 26, 0, 0.18));
+}
+
+.landing-hero-archimedes-rive {
+  display: block;
+}
+
+.landing-arch-alive {
+  animation: landing-arch-alive 4.4s ease-in-out infinite;
+}
+
+@keyframes landing-arch-alive {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  14% {
+    transform: translateY(-4px) rotate(-1.5deg);
+  }
+  28% {
+    transform: translateY(-7px) rotate(1deg);
+  }
+  42% {
+    transform: translateY(-5px) rotate(-0.8deg);
+  }
+  52% {
+    transform: translateY(-8px) rotate(2.8deg) scale(1.012);
+  }
+  62% {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+  74% {
+    transform: translateY(-5px) rotate(2.2deg);
+  }
+  86% {
+    transform: translateY(-3px) rotate(0.5deg);
+  }
 }
 
 .landing-hero-crown {
@@ -206,17 +289,17 @@
   right: 12%;
   top: 14%;
   width: 22%;
-  z-index: 4;
+  z-index: 5;
   filter: drop-shadow(0 6px 14px rgba(180, 120, 20, 0.45));
 }
 
 .landing-ripple {
   position: absolute;
   left: 50%;
-  bottom: 18%;
-  width: 40%;
+  bottom: 26%;
+  width: 34%;
   aspect-ratio: 1;
-  margin-left: -20%;
+  margin-left: -17%;
   border-radius: 50%;
   border: 2px solid rgba(59, 130, 246, 0.35);
   animation: landing-ripple 3.2s ease-out infinite;
@@ -233,7 +316,7 @@
 
 .landing-splash {
   position: absolute;
-  bottom: 28%;
+  bottom: 34%;
   width: 18%;
   height: 18%;
   border-radius: 50% 50% 50% 0;
@@ -911,6 +994,7 @@
 
   .landing-page .landing-float,
   .landing-page .landing-float-delayed,
+  .landing-page .landing-arch-alive,
   .landing-page .landing-ripple,
   .landing-page .landing-splash,
   .landing-page .landing-cta-primary,

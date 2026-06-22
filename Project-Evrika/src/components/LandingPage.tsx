@@ -1,6 +1,6 @@
 import { type CSSProperties, type FC, useCallback, useState } from 'react'
-import archimedesImg from '../assets/archimedes.png'
 import bathImg from '../assets/bath.png'
+import LandingArchimedesRive from './LandingArchimedesRive'
 import bathhouseImg from '../assets/bathhouse.jpg'
 import crownSvg from '../assets/crown.svg'
 import kingSitImg from '../assets/kingSit.png'
@@ -145,12 +145,13 @@ const LandingPage: FC<LandingPageProps> = ({
             <div className="landing-ripple landing-ripple-1" />
             <div className="landing-ripple landing-ripple-2" />
             <div className="landing-ripple landing-ripple-3" />
-            <img className="landing-hero-bath" src={bathImg} alt="" />
-            <img
-              className="landing-hero-archimedes landing-float"
-              src={archimedesImg}
-              alt=""
-            />
+            <div className="landing-hero-bath-stack">
+              <img className="landing-hero-bath landing-hero-bath--back" src={bathImg} alt="" />
+              <div className="landing-hero-archimedes-wrap">
+                <LandingArchimedesRive />
+              </div>
+              <img className="landing-hero-bath landing-hero-bath--front" src={bathImg} alt="" />
+            </div>
             <img className="landing-hero-crown landing-float-delayed" src={crownSvg} alt="" />
             <div className="landing-splash landing-splash-left" />
             <div className="landing-splash landing-splash-right" />
