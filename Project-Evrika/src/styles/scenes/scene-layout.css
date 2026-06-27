@@ -222,3 +222,13 @@
   overflow: visible;
 }
 
+.scene {
+  width: 100%;
+  max-width: 1100px;
+  border-radius: 16px;
+  padding: 2rem 2.5rem;
+  background: linear-gradient(135deg, #fff9ed 0%, #f5e3bd 60%, #f0d79c 100%);
+  box-shadow: 0 22px 45px rgba(47, 26, 0, 0.25);
+  border: 1px solid rgba(146, 92, 28, 0.2);
+}
+

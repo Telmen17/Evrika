@@ -1,0 +1,9 @@
+/**
+ * Hub styles barrel — import order preserved from original hub.css.
+ * Docs: docs/styles/README.md
+ */
+@import "./shell.css";
+@import "./companion.css";
+@import "./rooms.css";
+@import "./nav.css";
+@import "./celebrations.css";

@@ -1,0 +1,147 @@
+/* Exploration hub shell, rooms, nav, celebrations */
+/* ===== Exploration Hub ===== */
+
+.exploration-hub {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  /* Inset chrome inside the leaf vine frame, with a clear margin gap from the vines. */
+  padding:
+    var(--frame-safe-top)
+    var(--frame-safe-x)
+    clamp(0.5rem, 1.5vh, 1rem);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(245,230,200,0.5) 0%, transparent 70%),
+    linear-gradient(180deg, #f5e6c8 0%, #e8d5a8 40%, #d4c090 100%);
+}
+
+/* --- Objective Banner --- */
+
+.hub-objective-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.45rem;
+  /* Extra right padding reserves the corner for the floating mute toggle. */
+  padding: 0.38rem clamp(3.2rem, 5.5vw, 3.8rem) 0.38rem 0.85rem;
+  background:
+    linear-gradient(180deg, #fdf6e3 0%, #f5e6c8 60%, #ecdbb0 100%);
+  border: 1.5px solid #c8a960;
+  border-radius: 12px;
+  box-shadow:
+    0 4px 14px rgba(120, 80, 20, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.hub-objective-banner::before,
+.hub-objective-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  width: 20px;
+  height: 8px;
+  background: linear-gradient(180deg, #ecdbb0, transparent);
+}
+
+.hub-objective-banner::before {
+  left: 24px;
+  border-radius: 0 0 0 6px;
+}
+
+.hub-objective-banner::after {
+  right: 24px;
+  border-radius: 0 0 6px 0;
+}
+
+.hub-objective-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: #a0722a;
+}
+
+.hub-objective-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hub-objective-text {
+  margin: 0;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 0.84rem;
+  line-height: 1.32;
+  color: #5a3e1b;
+  flex: 1;
+  min-width: 8rem;
+}
+
+.hub-menu-button {
+  flex-shrink: 0;
+  padding: 0.24rem 0.72rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #7a5c2e;
+  background: linear-gradient(180deg, #fdf6e3, #f0ddb8);
+  border: 1.5px solid #c8a960;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.hub-menu-button:hover {
+  background: linear-gradient(180deg, #fff8ec, #f5e6c8);
+  box-shadow: 0 1px 4px rgba(120, 80, 20, 0.18);
+}
+
+.hub-reset-button {
+  flex-shrink: 0;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #6b4420;
+  background: rgba(255, 248, 236, 0.65);
+  border: 1.5px dashed rgba(146, 92, 28, 0.45);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.hub-reset-button:hover {
+  background: rgba(255, 252, 245, 0.95);
+  border-color: rgba(120, 80, 20, 0.55);
+}
+
+.hub-intro-button {
+  flex-shrink: 0;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #5a4210;
+  background: linear-gradient(180deg, #fff8ec, #e8d4a8);
+  border: 1.5px solid #b8923a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  margin-right: 0.25rem;
+}
+
+.hub-intro-button:hover {
+  background: linear-gradient(180deg, #fffdf5, #f0ddb8);
+  box-shadow: 0 1px 4px rgba(120, 80, 20, 0.15);
+}
+

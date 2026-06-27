@@ -1,3 +1,9 @@
+/**
+ * styles/index.css — global stylesheet barrel (import order matters).
+ *
+ * Docs: docs/styles/README.md
+ */
+
 /* Evrika styles — split by feature; import order matters. */
 @import './base/reset.css';
 @import './components/global-audio-toggle.css';
@@ -12,7 +18,7 @@
 @import './scenes/story-finale.css';
 @import './scenes/practice-problems.css';
 @import './scenes/water-discovery.css';
-@import './hub/hub.css';
+@import './hub/index.css';
 @import './hub/onboarding-guide.css';
 @import './hub/eureka-share.css';
 @import './feedback/feedback.css';
