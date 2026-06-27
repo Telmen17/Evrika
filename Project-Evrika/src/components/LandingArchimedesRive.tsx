@@ -1,3 +1,9 @@
+/**
+ * LandingArchimedesRive — Rive canvas for Archimedes idle hero animation.
+ *
+ * Docs: docs/components/landing.md
+ */
+
 import { type FC, useCallback, useState } from 'react'
 import { Alignment, Fit, Layout, useRive, type Rive } from '@rive-app/react-canvas'
 import {

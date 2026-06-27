@@ -1,3 +1,9 @@
+/**
+ * ArchimedesRoomScene — study room proof scroll inputs.
+ *
+ * Docs: docs/components/scenes/archimedes-room.md
+ */
+
 import type { CSSProperties, FC } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import papyrusImg from '../assets/papyrus.webp'

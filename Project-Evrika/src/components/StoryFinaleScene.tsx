@@ -1,3 +1,9 @@
+/**
+ * StoryFinaleScene — throne room finale beats.
+ *
+ * Docs: docs/components/scenes/story-finale.md
+ */
+
 import type { FC } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import archimedesImg from '../assets/archimedes.png'

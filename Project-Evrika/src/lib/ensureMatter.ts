@@ -1,3 +1,9 @@
+/**
+ * ensureMatter — lazy-load Matter.js for physics labs.
+ *
+ * Docs: docs/lib/README.md
+ */
+
 import matterScriptUrl from '../../matter.min.js?url'
 
 export interface MatterWindow extends Window {

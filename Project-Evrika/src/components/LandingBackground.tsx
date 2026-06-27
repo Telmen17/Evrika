@@ -1,3 +1,9 @@
+/**
+ * LandingBackground — parallax backdrop for the landing page.
+ *
+ * Docs: docs/components/landing.md
+ */
+
 import type { FC } from 'react'
 import cityscapeImg from '../assets/beautiful-ancient-greek-cityscape.jpg'
 import papyrusImg from '../assets/papyrus.webp'

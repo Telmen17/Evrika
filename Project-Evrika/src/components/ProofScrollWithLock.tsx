@@ -1,3 +1,9 @@
+/**
+ * ProofScrollWithLock — locked proof scroll UI in Archimedes room.
+ *
+ * Docs: docs/components/scenes/archimedes-room.md
+ */
+
 import type { FC } from 'react'
 import { useEffect, useRef } from 'react'
 import padlockPng from '../assets/padlock.png'

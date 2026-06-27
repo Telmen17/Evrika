@@ -1,3 +1,10 @@
+/**
+ * LandingDesktopGate — mobile sticky "best on desktop" banner.
+ *
+ * Docs: docs/components/landing.md
+ * Tests: tests/frontend/integration/components/LandingDesktopGate.test.tsx
+ */
+
 import { type FC, useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {

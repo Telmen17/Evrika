@@ -1,3 +1,9 @@
+/**
+ * GlobalAudioToggle — app-wide mute control (hidden on landing).
+ *
+ * Docs: docs/components/audio.md
+ */
+
 import type { FC } from 'react'
 import { useGlobalAudio } from '../context/GlobalAudioContext'
 

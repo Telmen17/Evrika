@@ -1,3 +1,9 @@
+/**
+ * StoryBathScene — Eureka bath cutscene (hub overlay or standalone).
+ *
+ * Docs: docs/components/scenes/story-bath.md
+ */
+
 import type { FC } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import archimedesPng from '../assets/archimedes.png'

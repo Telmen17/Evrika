@@ -1,3 +1,9 @@
+/**
+ * WaterLabArchimedesOverlay — mentor overlay moods in the water lab.
+ *
+ * Docs: docs/components/scenes/water-discovery.md
+ */
+
 import type { FC } from 'react'
 import archimedesImg from '../assets/archimedes.png'
 import headImg from '../assets/head.png'

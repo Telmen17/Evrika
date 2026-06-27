@@ -1,3 +1,9 @@
+/**
+ * playSoundEffect — one-shot SFX playback helper.
+ *
+ * Docs: docs/components/audio.md
+ */
+
 export const TADA_EFFECT_SRC = '/audio/tada-effect.mp3'
 export const UNLOCK_EFFECT_SRC = '/audio/room-unlock.mp3'
 

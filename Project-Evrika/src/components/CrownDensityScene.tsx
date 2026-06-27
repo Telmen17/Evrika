@@ -1,3 +1,9 @@
+/**
+ * CrownDensityScene — crown density lesson screen.
+ *
+ * Docs: docs/components/scenes/buoyancy-bath.md
+ */
+
 import { useState, type FC } from 'react'
 import type { SceneId } from '../types/sceneId'
 import CrownSceneCanvas from './Three/CrownSceneCanvas'

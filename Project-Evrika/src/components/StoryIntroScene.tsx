@@ -1,3 +1,9 @@
+/**
+ * StoryIntroScene — cinematic royal summons intro.
+ *
+ * Docs: docs/components/scenes/story-intro.md
+ */
+
 import type { FC } from 'react'
 import {
   useCallback,

@@ -1,3 +1,9 @@
+/**
+ * main.tsx — Vite entry; mounts App and global styles.
+ *
+ * Docs: docs/README.md
+ */
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

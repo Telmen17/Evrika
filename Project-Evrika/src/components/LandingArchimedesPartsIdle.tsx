@@ -1,3 +1,9 @@
+/**
+ * LandingArchimedesPartsIdle — static PNG fallback when Rive fails.
+ *
+ * Docs: docs/components/landing.md
+ */
+
 import { type FC } from 'react'
 import archimedesImg from '../assets/archimedes.png'
 

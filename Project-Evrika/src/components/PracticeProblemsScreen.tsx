@@ -1,3 +1,9 @@
+/**
+ * PracticeProblemsScreen — optional practice problems.
+ *
+ * Docs: docs/components/scenes/buoyancy-bath.md
+ */
+
 import type { FC } from 'react'
 import type { SceneId } from '../types/sceneId'
 

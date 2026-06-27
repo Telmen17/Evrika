@@ -1,3 +1,9 @@
+/**
+ * HubAmbientMusic — ambient loop in the exploration hub.
+ *
+ * Docs: docs/components/audio.md
+ */
+
 import { useEffect, useRef } from 'react'
 import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 

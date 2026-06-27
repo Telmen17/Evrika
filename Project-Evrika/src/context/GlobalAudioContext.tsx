@@ -1,3 +1,9 @@
+/**
+ * GlobalAudioContext — app-wide audio mute state.
+ *
+ * Docs: docs/context/README.md
+ */
+
 import {
   createContext,
   useCallback,

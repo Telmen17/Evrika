@@ -1,3 +1,9 @@
+/**
+ * ArchimedesCompanion — insight bubble and voiceline playback in the hub.
+ *
+ * Docs: docs/components/hub.md
+ */
+
 import { useEffect, useRef } from 'react'
 import headImg from '../assets/head.png'
 import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'

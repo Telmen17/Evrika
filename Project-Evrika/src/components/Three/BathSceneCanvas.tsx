@@ -1,3 +1,9 @@
+/**
+ * BathSceneCanvas — Three.js bath preview wrapper.
+ *
+ * Docs: docs/components/scenes/three-canvas.md
+ */
+
 import type { FC } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'

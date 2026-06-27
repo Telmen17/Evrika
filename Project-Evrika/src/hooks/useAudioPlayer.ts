@@ -1,3 +1,9 @@
+/**
+ * useAudioPlayer — HTMLAudioElement lifecycle for voicelines.
+ *
+ * Docs: docs/hooks/README.md
+ */
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 

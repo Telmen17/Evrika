@@ -1,3 +1,9 @@
+/**
+ * EurekaShareCard — dev completion share card preview.
+ *
+ * Docs: docs/components/hub.md
+ */
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface EurekaShareCardProps {

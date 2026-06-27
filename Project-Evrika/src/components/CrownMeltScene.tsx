@@ -1,3 +1,9 @@
+/**
+ * CrownMeltScene — furnace quiz and guard narrative orchestrator.
+ *
+ * Docs: docs/components/scenes/crown-melt.md
+ */
+
 import type { FC } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import archimedesPng from '../assets/archimedes.png'

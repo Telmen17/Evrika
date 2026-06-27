@@ -1,3 +1,10 @@
+/**
+ * FeedbackModal — anonymous learner feedback dialog.
+ *
+ * Docs: docs/components/feedback.md
+ * Tests: tests/frontend/integration/components/FeedbackModal.test.tsx
+ */
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   submitFeedback,

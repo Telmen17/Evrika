@@ -1,3 +1,9 @@
+/**
+ * useScalePhysics — balance-beam tilt animation helper.
+ *
+ * Docs: docs/hooks/README.md
+ */
+
 import { useEffect, useRef } from 'react'
 
 /**

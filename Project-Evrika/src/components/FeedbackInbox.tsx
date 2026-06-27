@@ -1,3 +1,9 @@
+/**
+ * FeedbackInbox — dev-only viewer for locally stored feedback.
+ *
+ * Docs: docs/components/feedback.md
+ */
+
 import { useEffect, useState } from 'react'
 import {
   clearLocalFeedback,

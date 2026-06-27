@@ -1,3 +1,9 @@
+/**
+ * RecapScreen — lesson recap summary.
+ *
+ * Docs: docs/components/scenes/buoyancy-bath.md
+ */
+
 import { useState, type FC } from 'react'
 import type { SceneId } from '../types/sceneId'
 

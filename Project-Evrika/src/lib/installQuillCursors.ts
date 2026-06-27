@@ -1,3 +1,9 @@
+/**
+ * installQuillCursors — inject custom quill cursor styles.
+ *
+ * Docs: docs/lib/README.md
+ */
+
 import quillCursorPng from '../assets/cursors/quill-cursor.png?url'
 import quillCursorSvg from '../assets/cursors/quill-cursor.svg?url'
 

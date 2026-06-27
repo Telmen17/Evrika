@@ -1,3 +1,9 @@
+/**
+ * HubOnboardingGuide — first-visit guided tour of the workshop.
+ *
+ * Docs: docs/components/hub.md
+ */
+
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import headImg from '../assets/head.png'
 
