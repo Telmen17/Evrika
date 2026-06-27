@@ -5,6 +5,7 @@
  */
 
 import type { FC } from 'react'
+import { cn } from '../lib/cn'
 import { useGlobalAudio } from '../context/GlobalAudioContext'
 
 interface GlobalAudioToggleProps {
@@ -23,15 +24,21 @@ export const GlobalAudioToggle: FC<GlobalAudioToggleProps> = ({ visible }) => {
   return (
     <button
       type="button"
-      className={`global-audio-toggle${audioEnabled ? '' : ' global-audio-toggle--muted'}`}
+      className={cn(
+        'fixed z-[1100] flex h-[2.65rem] w-[2.65rem] items-center justify-center rounded-xl border-2 border-[rgba(120,80,30,0.45)] p-0 shadow-[0_3px_14px_rgba(60,40,10,0.18)] transition-[transform,box-shadow,border-color] duration-150 hover:-translate-y-px hover:border-[rgba(184,134,11,0.65)] hover:shadow-[0_5px_18px_rgba(80,50,10,0.2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgba(214,145,35,0.95)]',
+        'top-[max(var(--frame-safe-top),env(safe-area-inset-top))] right-[max(var(--frame-safe-x),env(safe-area-inset-right))]',
+        audioEnabled
+          ? 'bg-gradient-to-b from-[#fff9ec] to-[#f0ddb8] text-audio-ink'
+          : 'bg-gradient-to-b from-[#f5f0e8] to-[#e8dcc8] text-audio-muted',
+      )}
       onClick={toggleAudioEnabled}
       aria-pressed={audioEnabled}
       aria-label={audioEnabled ? 'Sound on — tap to mute narration' : 'Sound off — tap to unmute'}
       title={audioEnabled ? 'Mute narration & voice' : 'Unmute narration & voice'}
     >
-      <span className="global-audio-toggle__icon-wrap" aria-hidden>
+      <span className="relative flex h-[1.45rem] w-[1.45rem] items-center justify-center" aria-hidden>
         <svg
-          className="global-audio-toggle__speaker"
+          className="block h-full w-full"
           viewBox="0 0 24 24"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -61,7 +68,7 @@ export const GlobalAudioToggle: FC<GlobalAudioToggleProps> = ({ visible }) => {
         </svg>
         {!audioEnabled ? (
           <svg
-            className="global-audio-toggle__mute-line"
+            className="pointer-events-none absolute -inset-0.5 h-[calc(100%+4px)] w-[calc(100%+4px)]"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden

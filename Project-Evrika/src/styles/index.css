@@ -7,7 +7,7 @@
 /* Evrika styles — split by feature; import order matters. */
 @import './tailwind.css';
 @import './base/reset.css';
-@import './components/global-audio-toggle.css';
+@import './components/cloud-transition.css';
 @import './layout/frame.css';
 @import './landing/landing.css';
 @import './scenes/scene-layout.css';
