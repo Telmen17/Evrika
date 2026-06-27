@@ -12,6 +12,7 @@ Pure helpers under [`src/lib/`](../src/lib/).
 | `playSoundEffect.ts` | One-shot SFX playback | — |
 | `ensureMatter.ts` | Lazy-load Matter.js | — |
 | `installQuillCursors.ts` | Custom cursor CSS injection | — |
+| `cn.ts` | Tailwind class merge (`clsx` + `tailwind-merge`) | — |
 
 ## Related
 

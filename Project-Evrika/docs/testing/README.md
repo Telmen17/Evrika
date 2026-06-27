@@ -64,7 +64,8 @@ tests/
 |------|-----|
 | Rive / Three.js / Matter.js | Canvas/WebGL/physics — E2E or visual tests |
 | Audio | Flaky in jsdom |
-| CSS / animations | Visual regression |
+| CSS / animations | Visual regression; Tailwind layout in migrated components is still untested visually |
+| Tailwind class selectors | Prefer roles/`aria-*`; migrated components avoid BEM modifiers in tests |
 | Story scenes / hub celebrations | Large UI — future E2E |
 | Cloud transitions | Animation timing |
 

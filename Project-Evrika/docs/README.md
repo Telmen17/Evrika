@@ -8,13 +8,15 @@
 |------|----------|
 | Routing & scenes | [architecture/routing-and-scenes.md](architecture/routing-and-scenes.md) |
 | Progress & unlocks | [architecture/progress-and-state.md](architecture/progress-and-state.md) |
-| CSS organization | [architecture/styling-system.md](architecture/styling-system.md) |
+| CSS & hybrid styling | [architecture/styling-system.md](architecture/styling-system.md) |
+| Tailwind utilities | [styles/tailwind.md](styles/tailwind.md) |
 | Components | [components/README.md](components/README.md) |
 | Lib utilities | [lib/README.md](lib/README.md) |
 | React hooks | [hooks/README.md](hooks/README.md) |
 | Context providers | [context/README.md](context/README.md) |
 | Stylesheets | [styles/README.md](styles/README.md) |
 | Testing | [testing/README.md](testing/README.md) |
+| Future work backlog | [BACKLOG.md](BACKLOG.md) |
 
 ## Architecture overview
 
@@ -46,8 +48,8 @@ src/
 ├── components/       # UI and lesson scenes
 ├── context/          # LessonHub + global audio
 ├── hooks/            # Shared React hooks
-├── lib/              # Pure utilities (unlocks, feedback, assets)
-├── styles/           # Feature-scoped CSS (imported via styles/index.css)
+├── lib/              # Pure utilities (unlocks, feedback, cn, assets)
+├── styles/           # tailwind.css + feature CSS (via styles/index.css)
 └── types/            # Shared types (SceneId, etc.)
 ```
 
