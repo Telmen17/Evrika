@@ -1,0 +1,119 @@
+/**
+ * feedback-animations.css — keyframes and motion-only hooks for feedback UI.
+ *
+ * Layout and colors live in Tailwind on FeedbackModal / FeedbackInbox.
+ * Docs: docs/styles/tailwind.md#feedbackmodal
+ */
+
+@keyframes eurekaFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes eurekaPop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes feedbackCheckCircle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes feedbackCheckMark {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes feedbackSpark {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--sx), var(--sy)) scale(1.1);
+  }
+}
+
+.feedback-animate-fade {
+  animation: eurekaFade 0.25s ease both;
+}
+
+.feedback-animate-pop {
+  animation: eurekaPop 0.32s cubic-bezier(0.22, 0.8, 0.2, 1) both;
+}
+
+.feedback-thanks-check circle {
+  fill: none;
+  stroke: #2f9e57;
+  stroke-width: 3;
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: feedbackCheckCircle 0.5s ease-out forwards;
+}
+
+.feedback-thanks-check path {
+  fill: none;
+  stroke: #2f9e57;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: feedbackCheckMark 0.35s 0.4s ease-out forwards;
+}
+
+.feedback-thanks-burst {
+  position: absolute;
+  top: 38px;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+
+.feedback-spark {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f3c64b;
+  opacity: 0;
+  animation: feedbackSpark 0.7s 0.45s ease-out forwards;
+}
+
+.feedback-spark--0 { --sx: 0px; --sy: -54px; background: #f3c64b; }
+.feedback-spark--1 { --sx: 38px; --sy: -38px; background: #2f9e57; }
+.feedback-spark--2 { --sx: 54px; --sy: 0px; background: #e8556b; }
+.feedback-spark--3 { --sx: 38px; --sy: 38px; background: #5bb0e8; }
+.feedback-spark--4 { --sx: 0px; --sy: 54px; background: #f3c64b; }
+.feedback-spark--5 { --sx: -38px; --sy: 38px; background: #2f9e57; }
+.feedback-spark--6 { --sx: -54px; --sy: 0px; background: #e8556b; }
+.feedback-spark--7 { --sx: -38px; --sy: -38px; background: #5bb0e8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-animate-fade,
+  .feedback-animate-pop,
+  .feedback-thanks-check circle,
+  .feedback-thanks-check path,
+  .feedback-spark {
+    animation: none;
+  }
+
+  .feedback-thanks-check circle,
+  .feedback-thanks-check path {
+    stroke-dashoffset: 0;
+  }
+}
