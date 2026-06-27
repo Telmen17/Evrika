@@ -1,0 +1,63 @@
+/**
+ * tailwind.css — Evrika design tokens + utilities (preflight disabled).
+ *
+ * Preflight is omitted so feature CSS (reset, scenes, landing buttons) stays authoritative.
+ * Docs: docs/styles/tailwind.md
+ */
+
+@layer theme, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme {
+  /* Breakpoint — matches useDesktopExperience / landing desktop gate (960px) */
+  --breakpoint-desktop: 60rem;
+
+  /* Brand palette (from landing.css, feedback.css, hub shell) */
+  --color-gold: #d4a454;
+  --color-gold-light: #f3c64b;
+  --color-gold-dark: #b8861f;
+  --color-gold-border: rgba(166, 124, 48, 0.5);
+  --color-gold-muted: #c08a1e;
+  --color-gold-ring: #d6a533;
+
+  --color-parchment: #fffaf0;
+  --color-parchment-mid: #f5e6c6;
+  --color-parchment-soft: #fffdf7;
+  --color-parchment-wash: rgba(255, 250, 235, 0.7);
+
+  --color-ink: #22160c;
+  --color-ink-brown: #4a3112;
+  --color-ink-muted: #5a3e1b;
+  --color-ink-field: #3f2c10;
+  --color-ink-label: #7a5418;
+  --color-ink-close: #7a5c2e;
+
+  --color-landing-bg: #3d2818;
+  --color-backdrop: rgba(24, 15, 4, 0.6);
+  --color-success: #2f9e57;
+  --color-danger: #8a2c1e;
+  --color-danger-border: rgba(180, 70, 50, 0.4);
+
+  --color-hub-nav-text: #e8d5a8;
+  --color-hub-nav-active: #ffeaa0;
+  --color-hub-nav-hover: #fff3d4;
+  --color-hub-nav-bar-top: #8b6914;
+  --color-hub-nav-bar-mid: #6b4f10;
+  --color-hub-nav-bar-bottom: #5a4210;
+  --color-hub-nav-bar-border: #a07820;
+
+  --color-audio-ink: #5a4210;
+  --color-audio-muted: #6b5344;
+
+  /* Typography */
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-cinzel: 'Cinzel', 'Trajan Pro', serif;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Radii & shadows */
+  --radius-feedback: 1.25rem;
+  --radius-chip: 0.75rem;
+  --shadow-feedback: 0 28px 70px rgba(38, 24, 6, 0.5);
+  --shadow-gold-button: 0 4px 12px rgba(120, 80, 20, 0.3);
+}

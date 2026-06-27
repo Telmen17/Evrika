@@ -5,6 +5,7 @@
  */
 
 /* Evrika styles — split by feature; import order matters. */
+@import './tailwind.css';
 @import './base/reset.css';
 @import './components/global-audio-toggle.css';
 @import './layout/frame.css';
