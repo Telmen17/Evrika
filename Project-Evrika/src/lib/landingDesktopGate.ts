@@ -1,4 +1,11 @@
-import { useEffect, useState } from 'react'
+/**
+ * landingDesktopGate — session storage and viewport helpers for the mobile desktop banner.
+ *
+ * Responsibility: dismiss flag, hard-reload reset, isMobileLandingViewport (non-hook).
+ * Hook: hooks/useMobileLandingViewport.ts
+ * Docs: docs/components/landing.md
+ * Tests: tests/frontend/unit/lib/landingDesktopGate.test.ts
+ */
 
 export const LANDING_DESKTOP_GATE_DISMISSED_KEY = 'evrika-landing-desktop-gate-dismissed'
 
@@ -33,18 +40,4 @@ export function isLandingDesktopGateDismissed(): boolean {
 export function isMobileLandingViewport(): boolean {
   if (typeof window === 'undefined') return false
   return window.matchMedia(MOBILE_MEDIA_QUERY).matches
-}
-
-export function useMobileLandingViewport(): boolean {
-  const [mobile, setMobile] = useState(isMobileLandingViewport)
-
-  useEffect(() => {
-    const mq = window.matchMedia(MOBILE_MEDIA_QUERY)
-    const sync = () => setMobile(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
-
-  return mobile
 }

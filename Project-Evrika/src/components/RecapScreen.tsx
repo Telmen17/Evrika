@@ -1,5 +1,5 @@
 import { useState, type FC } from 'react'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 
 interface RecapScreenProps {
   onNavigate: (scene: SceneId) => void

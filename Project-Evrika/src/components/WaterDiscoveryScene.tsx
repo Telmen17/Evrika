@@ -7,7 +7,7 @@ import rockPng from '../assets/rock.png'
 import woodPng from '../assets/wood.png'
 import { assetUrl } from '../lib/assetUrl'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 import { useLessonHub } from '../context/LessonHubContext'
 import {
   WaterLabArchimedesOverlay,

@@ -2,7 +2,7 @@ import type { CSSProperties, FC } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import papyrusImg from '../assets/papyrus.webp'
 import scrollPng from '../assets/scroll.png'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 import { useLessonHub } from '../context/LessonHubContext'
 import { ProofScrollWithLock } from './ProofScrollWithLock'
 

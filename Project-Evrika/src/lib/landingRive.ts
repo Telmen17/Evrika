@@ -1,3 +1,11 @@
+/**
+ * landingRive — constants for the landing hero Archimedes Rive animation.
+ *
+ * Responsibility: asset path, artboard name, Idle timeline, layout scale.
+ * Docs: docs/components/landing.md
+ * Tests: tests/frontend/unit/lib/landingRive.test.ts
+ */
+
 import archimedesIdleRiv from '../assets/archimedes-parts/archimedes-idle-3.riv'
 
 /**

@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom'
 import {
   isLandingDesktopGateDismissed,
   LANDING_DESKTOP_GATE_DISMISSED_KEY,
-  useMobileLandingViewport,
 } from '../lib/landingDesktopGate'
+import { useMobileLandingViewport } from '../hooks/useMobileLandingViewport'
 
 const SHOW_DELAY_MS = 3200
 const FADE_MS = 520

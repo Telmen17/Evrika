@@ -8,7 +8,7 @@ import {
   useEffect,
 } from 'react'
 import { createPortal } from 'react-dom'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 import { LessonHubProvider, useLessonHub } from '../context/LessonHubContext'
 import CrownWeighScene from './CrownWeighScene'
 import CrownMeltScene from './CrownMeltScene'

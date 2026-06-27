@@ -7,7 +7,7 @@ import archimedesStep4 from '../assets/archimedes-step4.png'
 import archimedesStep5 from '../assets/archimedes-step5.png'
 import bathPng from '../assets/bath.png'
 import bathhouseJpg from '../assets/bathhouse.jpg'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 import { useLessonHub } from '../context/LessonHubContext'
 
 /** Step 1 = idle; steps 2–5 = sequential “into the bath” frames. */

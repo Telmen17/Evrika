@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 import archimedesImg from '../assets/archimedes.png'
 import blacksmithImg from '../assets/blacksmith-removebg-preview.png'
 import kingSitImg from '../assets/kingSit.png'

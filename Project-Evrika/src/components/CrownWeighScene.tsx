@@ -1,6 +1,6 @@
 import type { AnimationEvent, FC } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 import crownSvg from '../assets/crown.svg'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
 import { useLessonHub } from '../context/LessonHubContext'

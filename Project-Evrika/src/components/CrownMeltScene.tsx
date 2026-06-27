@@ -4,7 +4,7 @@ import archimedesPng from '../assets/archimedes.png'
 import crownSvg from '../assets/crown.svg'
 import furnacePng from '../assets/furnace.png'
 import guardPng from '../assets/guard.png'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 import { useLessonHub } from '../context/LessonHubContext'
 

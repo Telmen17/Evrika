@@ -1,3 +1,11 @@
+/**
+ * useDesktopExperience — true when viewport meets the interactive lesson min width (960px).
+ *
+ * Responsibility: responsive desktop vs mobile layout gate.
+ * Docs: docs/hooks/README.md
+ * Tests: tests/frontend/integration/hooks/useDesktopExperience.test.tsx
+ */
+
 import { useEffect, useState } from 'react'
 
 /** Matches interactive lesson layout breakpoints — experiences below this width are view-only on landing. */

@@ -1,4 +1,12 @@
 /**
+ * feedback — anonymous learner feedback (local inbox + optional Web3Forms email).
+ *
+ * Responsibility: submitFeedback, load/clear local entries, FEEDBACK_CONFIG.
+ * Docs: docs/components/feedback.md
+ * Tests: tests/frontend/unit/lib/feedback.test.ts
+ */
+
+/**
  * Anonymous feedback collection.
  *
  * Backend strategy (zero server to maintain):

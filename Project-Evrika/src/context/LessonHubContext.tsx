@@ -1,3 +1,11 @@
+/**
+ * LessonHubContext — persisted lesson progress and Archimedes companion state.
+ *
+ * Responsibility: provider for hub/scenes; localStorage sync for progress slices.
+ * Docs: docs/context/README.md
+ * Tests: tests/frontend/integration/context/LessonHubContext.test.tsx
+ */
+
 import {
   createContext,
   useCallback,

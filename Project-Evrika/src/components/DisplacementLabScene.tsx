@@ -4,7 +4,7 @@ import { useLessonHub } from '../context/LessonHubContext'
 import crownSvg from '../assets/crown.svg'
 import goldNuggetPng from '../assets/goldNugget3.png'
 import { assetUrl } from '../lib/assetUrl'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
 
 interface DisplacementLabSceneProps {

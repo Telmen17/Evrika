@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { useMobileLandingViewport } from '@/lib/landingDesktopGate'
+import { useMobileLandingViewport } from '@/hooks/useMobileLandingViewport'
 import { setViewportWidth } from '../../setup/matchMedia'
 
 describe('useMobileLandingViewport', () => {

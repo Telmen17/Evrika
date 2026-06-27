@@ -10,22 +10,10 @@ import scrollImg from '../assets/scroll.png'
 import archimedesStep1 from '../assets/archimedes-step1.png'
 import { useDesktopExperience } from '../hooks/useDesktopExperience'
 import { isLandingDesktopGateDismissed } from '../lib/landingDesktopGate'
+import type { SceneId } from '../types/sceneId'
 import LandingDesktopGate from './LandingDesktopGate'
 
-export type SceneId =
-  | 'landing'
-  | 'intro'
-  | 'hub'
-  | 'bathStory'
-  | 'weigh'
-  | 'melt'
-  | 'waterDiscovery'
-  | 'displacement'
-  | 'finale'
-  | 'practice'
-  | 'bath'
-  | 'crown'
-  | 'recap'
+export type { SceneId } from '../types/sceneId'
 
 interface LandingPageProps {
   onNavigate: (scene: SceneId) => void

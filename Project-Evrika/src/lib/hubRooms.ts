@@ -1,3 +1,11 @@
+/**
+ * hubRooms — hub navigation unlock/completion rules and copy helpers.
+ *
+ * Responsibility: pure functions over LessonProgress for room gating and cutscene triggers.
+ * Docs: docs/lib/README.md
+ * Tests: tests/frontend/unit/lib/hubRooms.test.ts
+ */
+
 import type { LessonProgress } from '../context/LessonHubContext'
 
 /** Session flag: learner just arrived from the story intro — replay the hub guide. */

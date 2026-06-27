@@ -19,12 +19,12 @@ export function mockMatchMedia(width: number): void {
       onchange: null,
       addListener: vi.fn(),
       removeListener: vi.fn(),
-      addEventListener: (_event, listener) => {
+      addEventListener: (_event: string, listener: EventListenerOrEventListenerObject) => {
         const set = listeners.get(query) ?? new Set()
         set.add(listener as (event: MediaQueryListEvent) => void)
         listeners.set(query, set)
       },
-      removeEventListener: (_event, listener) => {
+      removeEventListener: (_event: string, listener: EventListenerOrEventListenerObject) => {
         listeners.get(query)?.delete(listener as (event: MediaQueryListEvent) => void)
       },
       dispatchEvent: vi.fn(),

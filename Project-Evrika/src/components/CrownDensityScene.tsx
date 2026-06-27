@@ -1,5 +1,5 @@
 import { useState, type FC } from 'react'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 import CrownSceneCanvas from './Three/CrownSceneCanvas'
 
 interface CrownDensitySceneProps {

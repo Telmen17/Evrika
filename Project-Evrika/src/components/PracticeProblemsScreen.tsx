@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import type { SceneId } from './LandingPage'
+import type { SceneId } from '../types/sceneId'
 
 interface PracticeProblemsScreenProps {
   onNavigate: (scene: SceneId) => void
