@@ -1,11 +1,12 @@
+/**
+ * WaterDiscoveryScene — Matter.js water tank buoyancy lab orchestrator.
+ *
+ * Docs: docs/components/scenes/water-discovery.md
+ */
+
 import type { CSSProperties, FC } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import crownSvg from '../assets/crown.svg'
-import goldNugget1 from '../assets/goldNugget1png.png'
-import rockPng from '../assets/rock.png'
-import woodPng from '../assets/wood.png'
-import { assetUrl } from '../lib/assetUrl'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
 import type { SceneId } from '../types/sceneId'
 import { useLessonHub } from '../context/LessonHubContext'
@@ -14,258 +15,54 @@ import {
   type WaterLabArchPresentation,
   type WaterLabMentorMood,
 } from './WaterLabArchimedesOverlay'
-
-type ItemId = 'crown' | 'gold' | 'rock' | 'wood' | 'silver'
-
-function toSvgDataUrl(svg: string) {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
-}
-
-/** Same Ag ingot as CrownWeighScene (scaling chapter) — `makeBarIcon('#d9dde7', '#7e8ba5', 'Ag')` */
-const SILVER_BAR_TEXTURE = toSvgDataUrl(`
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 48">
-    <rect x="10" y="10" width="52" height="28" rx="8" fill="#d9dde7" stroke="#7e8ba5" stroke-width="3"/>
-    <rect x="15" y="14" width="42" height="8" rx="4" fill="rgba(255,255,255,0.25)"/>
-    <text x="36" y="31" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#2b1b1b">Ag</text>
-  </svg>`)
-
-/** Full physics stage (px). Slightly wider so the cupboard and tank breathe more. */
-const WD_STAGE_W = 780
-const WD_STAGE_H = 268
-
-/**
- * Glass tank interior (fluid region). Cupboard / shelf is entirely to the left of `innerL`.
- */
-const TANK = {
-  innerL: 304,
-  innerR: 764,
-  /** Lower rim — less vertical lift needed to drag props over the tank. */
-  innerTop: 58,
-  innerBottom: 218,
-} as const
-
-const innerW = TANK.innerR - TANK.innerL
-const innerH = TANK.innerBottom - TANK.innerTop
-
-/** Cupboard shelf plank (static); aligned with lowest row of ITEM_SPECS */
-const SHELF = {
-  y: 246,
-  minX: 26,
-  maxX: 230,
-} as const
-
-/** “Put back” zone (cupboard only; must not overlap tank water) */
-const BENCH = { minX: 20, maxX: 230, minY: 38, maxY: 252 }
-
-/** Vertical lip at shelf height — blocks sliding under without lifting; top stays open for drag-in. */
-const PARTITION = {
-  x: (SHELF.maxX + TANK.innerL) / 2,
-  width: Math.max(10, TANK.innerL - SHELF.maxX - 6),
-  topY: 188,
-  bottomY: WD_STAGE_H - 8,
-} as const
-
-/** Open band above left wall lip — drag props over, then drop in. */
-const TANK_LEFT_WALL_TOP_Y = 102
-
-/** Invisible Matter walls — thicker than visible wood frame to prevent tunneling. */
-const TANK_WALL_THICKNESS = 14
-
-const BASE_WATER01 = 0.28
-const MAX_WATER01 = 0.92
-/** px² submerged → added fill (tuned for visible rise) */
-const DISPLACEMENT_TO_FILL = 0.000055
-const WATER_RISE_LERP = 0.05
-const WATER_FALL_LERP = 0.035
-
-const RHO_WATER = 0.0011
-const BUOY_STRENGTH = 0.00012
-/** Extra vertical spring so wood rides the surface as water level changes */
-const WOOD_SURFACE_SPRING = 0.00008
-const WOOD_MAX_WATER_VY = 11
-/** In 2D, raw AABB submergence overstates a floating block's displaced water. */
-const WOOD_DISPLACEMENT_SCALE = 0.42
-const WOOD_DISPLACEMENT_LERP = 0.08
-const BULK_RHO: Record<ItemId, number> = {
-  /** Slightly lighter than water so it floats and tracks the surface */
-  wood: 0.00032,
-  crown: 0.0028,
-  gold: 0.0032,
-  rock: 0.0034,
-  silver: 0.003,
-}
-
-const CROWN_TEX_W = 800
-const CROWN_TEX_H = 800
-const GOLD1_W = 839
-const GOLD1_H = 839
-/** Must match current `wood.png` or sprite/body mismatch hides or “loses” the wood */
-const WOOD_TEX_W = 277
-const WOOD_TEX_H = 478
-const ROCK_TEX_W = 2000
-const ROCK_TEX_H = 2000
-const SILVER_BAR_TEX_W = 72
-const SILVER_BAR_TEX_H = 48
-
-interface ItemSpec {
-  id: ItemId
-  label: string
-  /** Short tooltip shown on hover / near the prop on the shelf. */
-  hint: string
-  w: number
-  h: number
-  benchX: number
-  benchY: number
-  density: number
-  render: 'sprite' | 'fill'
-  texture?: string
-  fill?: string
-  stroke?: string
-}
-
-/** Props on the shelf — two neat rows + wood block on the left. */
-const ITEM_SPECS: ItemSpec[] = [
-  {
-    id: 'wood',
-    label: 'Wood block',
-    hint: 'Floats — watch the waterline climb slowly',
-    w: 58,
-    h: 96,
-    benchX: 48,
-    benchY: 182,
-    density: BULK_RHO.wood,
-    render: 'sprite',
-    texture: assetUrl(woodPng),
-  },
-  {
-    id: 'crown',
-    label: 'Crown',
-    hint: 'Heavy gold crown — sinks fast',
-    w: 42,
-    h: 32,
-    benchX: 112,
-    benchY: 152,
-    density: BULK_RHO.crown,
-    render: 'sprite',
-    texture: assetUrl(crownSvg),
-  },
-  {
-    id: 'gold',
-    label: 'Gold nugget',
-    hint: 'Dense lump of gold',
-    w: 52,
-    h: 44,
-    benchX: 182,
-    benchY: 152,
-    density: BULK_RHO.gold,
-    render: 'sprite',
-    texture: assetUrl(goldNugget1),
-  },
-  {
-    id: 'rock',
-    label: 'Rock',
-    hint: 'Stone — sinks like the crown',
-    w: 40,
-    h: 36,
-    benchX: 112,
-    benchY: 208,
-    density: BULK_RHO.rock,
-    render: 'sprite',
-    texture: assetUrl(rockPng),
-  },
-  {
-    id: 'silver',
-    label: 'Silver bar',
-    hint: 'Silver ingot — compare its splash',
-    w: 28,
-    h: 16,
-    benchX: 182,
-    benchY: 208,
-    density: BULK_RHO.silver,
-    render: 'sprite',
-    texture: SILVER_BAR_TEXTURE,
-  },
-]
-
-const WOOD_SPEC = ITEM_SPECS.find((spec) => spec.id === 'wood')!
-
-function waterSurfaceY(water01: number): number {
-  return TANK.innerBottom - innerH * water01
-}
-
-function submergedAreaInTank(
-  bounds: { min: { x: number; y: number }; max: { x: number; y: number } },
-  wl: number,
-  wr: number,
-  wTop: number,
-  wBottom: number,
-): number {
-  const ix1 = Math.max(bounds.min.x, wl)
-  const ix2 = Math.min(bounds.max.x, wr)
-  const iy1 = Math.max(bounds.min.y, wTop)
-  const iy2 = Math.min(bounds.max.y, wBottom)
-  if (ix2 <= ix1 || iy2 <= iy1) return 0
-  return (ix2 - ix1) * (iy2 - iy1)
-}
-
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3)
-}
-
-/** Keep props inside the tank once past the entry lip — backs up invisible walls. */
-function enforceTankContainment(
-  body: { bounds: { min: { x: number; y: number }; max: { x: number; y: number } }; position: { x: number; y: number }; velocity: { x: number; y: number } },
-  Body: { setPosition: (b: unknown, pos: { x: number; y: number }) => void; setVelocity: (b: unknown, vel: { x: number; y: number }) => void },
-) {
-  const b = body.bounds
-  const overlapsTankX = b.max.x > TANK.innerL + 1 && b.min.x < TANK.innerR - 1
-  if (!overlapsTankX || b.min.y > TANK.innerBottom + 8) return
-
-  const halfW = (b.max.x - b.min.x) / 2
-  const halfH = (b.max.y - b.min.y) / 2
-  const pad = 2
-  let { x, y } = body.position
-  let { x: vx, y: vy } = body.velocity
-  let corrected = false
-
-  const floorY = TANK.innerBottom - halfH - pad
-  if (y > floorY) {
-    y = floorY
-    vy = Math.min(vy, 0) * 0.25
-    corrected = true
-  }
-
-  const rightX = TANK.innerR - halfW - pad
-  if (x > rightX) {
-    x = rightX
-    vx = Math.min(vx, 0) * 0.3
-    corrected = true
-  }
-
-  if (y > TANK_LEFT_WALL_TOP_Y + halfH * 0.35) {
-    const leftX = TANK.innerL + halfW + pad
-    if (x < leftX) {
-      x = leftX
-      vx = Math.max(vx, 0) * 0.3
-      corrected = true
-    }
-  }
-
-  if (corrected) {
-    Body.setPosition(body, { x, y })
-    Body.setVelocity(body, { x: vx, y: vy })
-  }
-}
-
-const CLOSEUP_MS = 3400
-const MODAL_REPLAY_MS = 1650
-const MENTOR_INTRO_DELAY_MS = 2800
-const MENTOR_CURIOUS_HOLD_MS = 2200
-
-const MENTOR_STUCK_LINE =
-  'I have weighed the crown and braved the furnace. Mass alone cannot expose a fraud. What clue am I blind to?'
-const MENTOR_CURIOUS_LINE =
-  'Wait—the water moved when you dropped that in. Volume may be speaking to us. Try another object; watch the line.'
+import {
+  BASE_WATER01,
+  BENCH,
+  BULK_RHO,
+  BUOY_STRENGTH,
+  CLOSEUP_MS,
+  CROWN_TEX_H,
+  CROWN_TEX_W,
+  DISPLACEMENT_TO_FILL,
+  GOLD1_H,
+  GOLD1_W,
+  MATTER_ENGINE,
+  MAX_WATER01,
+  MENTOR_CURIOUS_HOLD_MS,
+  MENTOR_CURIOUS_LINE,
+  MENTOR_INTRO_DELAY_MS,
+  MENTOR_STUCK_LINE,
+  MODAL_REPLAY_MS,
+  PARTITION,
+  RHO_WATER,
+  ROCK_TEX_H,
+  ROCK_TEX_W,
+  SHELF,
+  SILVER_BAR_TEX_H,
+  SILVER_BAR_TEX_W,
+  TANK,
+  TANK_LEFT_WALL_TOP_Y,
+  TANK_WALL_THICKNESS,
+  WATER_FALL_LERP,
+  WATER_RISE_LERP,
+  WD_STAGE_H,
+  WD_STAGE_W,
+  WOOD_DISPLACEMENT_LERP,
+  WOOD_DISPLACEMENT_SCALE,
+  WOOD_MAX_WATER_VY,
+  WOOD_SURFACE_SPRING,
+  WOOD_TEX_H,
+  WOOD_TEX_W,
+  innerW,
+} from './waterDiscovery/constants'
+import {
+  easeOutCubic,
+  enforceTankContainment,
+  submergedAreaInTank,
+  waterSurfaceY,
+} from './waterDiscovery/geometry'
+import { ITEM_SPECS, WOOD_SPEC, initialPropPositions } from './waterDiscovery/itemSpecs'
+import type { ItemId, ItemSpec } from './waterDiscovery/types'
 
 interface WaterDiscoverySceneProps {
   onNavigate: (scene: SceneId) => void
@@ -294,12 +91,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
   const [archPresentation, setArchPresentation] = useState<WaterLabArchPresentation>('icon')
   const emoteCollapseTimerRef = useRef<number | undefined>(undefined)
   const [hoveredProp, setHoveredProp] = useState<ItemId | null>(null)
-  const [propPositions, setPropPositions] = useState<Record<ItemId, { x: number; y: number }>>(
-    () =>
-      Object.fromEntries(
-        ITEM_SPECS.map((s) => [s.id, { x: s.benchX, y: s.benchY }]),
-      ) as Record<ItemId, { x: number; y: number }>,
-  )
+  const [propPositions, setPropPositions] = useState(initialPropPositions)
   const setHoveredPropRef = useRef(setHoveredProp)
   const setPropPositionsRef = useRef(setPropPositions)
   setHoveredPropRef.current = setHoveredProp
@@ -392,11 +184,7 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     setArchPresentation('icon')
     window.clearTimeout(emoteCollapseTimerRef.current)
     setHoveredProp(null)
-    setPropPositions(
-      Object.fromEntries(
-        ITEM_SPECS.map((s) => [s.id, { x: s.benchX, y: s.benchY }]),
-      ) as Record<ItemId, { x: number; y: number }>,
-    )
+    setPropPositions(initialPropPositions())
   }, [])
 
   useEffect(() => {
@@ -561,10 +349,10 @@ const WaterDiscoveryScene: FC<WaterDiscoverySceneProps> = ({
     } = Matter
 
     const engine = Engine.create({ enableSleeping: true })
-    engine.gravity.y = 0.95
-    engine.positionIterations = 10
-    engine.velocityIterations = 8
-    engine.constraintIterations = 4
+    engine.gravity.y = MATTER_ENGINE.gravityY
+    engine.positionIterations = MATTER_ENGINE.positionIterations
+    engine.velocityIterations = MATTER_ENGINE.velocityIterations
+    engine.constraintIterations = MATTER_ENGINE.constraintIterations
 
     const render = Render.create({
       element: hostRef.current,
