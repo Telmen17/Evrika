@@ -163,14 +163,23 @@
 }
 
 .landing-hero-visual {
+  /* Responsive hero composition — bath + Rive slot stay in sync across viewports */
+  --hero-scene-min-h: clamp(300px, 38vw, 420px);
+  --hero-bath-width: clamp(58%, 62%, 66%);
+  --hero-bath-bottom: 6%;
+  --hero-arch-width: clamp(54%, 58vw, 64%);
+  --hero-arch-height: clamp(88%, 96%, 102%);
+  --hero-arch-bottom: clamp(15%, 18%, 20%);
+  --hero-arch-lift: clamp(-3%, -5vh, -7%);
   position: relative;
-  min-height: 280px;
+  min-height: var(--hero-scene-min-h);
 }
 
 .landing-hero-scene {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 4 / 3.4;
+  min-height: var(--hero-scene-min-h);
   border-radius: 20px;
   overflow: hidden;
   background:
@@ -190,8 +199,8 @@
 .landing-hero-bath {
   position: absolute;
   left: 50%;
-  bottom: 8%;
-  width: 58%;
+  bottom: var(--hero-bath-bottom, 6%);
+  width: var(--hero-bath-width, 62%);
   transform: translateX(-50%);
   filter: drop-shadow(0 12px 20px rgba(47, 26, 0, 0.25));
 }
@@ -200,56 +209,262 @@
   z-index: 2;
 }
 
-/* Front wood rim — same asset, clipped so legs hide behind the near staves. */
+/* Near-facing staves — separate PNG sits in front of Archimedes' legs. */
 .landing-hero-bath--front {
   z-index: 4;
-  clip-path: inset(48% 5% 0 5%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
 }
 
 .landing-hero-archimedes-wrap {
   position: absolute;
   left: 50%;
-  bottom: 22%;
-  width: 34%;
-  height: 54%;
-  transform: translateX(-50%);
+  bottom: var(--hero-arch-bottom, 18%);
+  width: var(--hero-arch-width, 58%);
+  height: var(--hero-arch-height, 96%);
+  transform: translateX(-50%) translateY(var(--hero-arch-lift, -5%));
   z-index: 3;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  overflow: hidden;
-  /* Full upper body visible; only legs fade out at the waterline */
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    #000 0%,
-    #000 70%,
-    rgba(0, 0, 0, 0.45) 84%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    #000 0%,
-    #000 70%,
-    rgba(0, 0, 0, 0.45) 84%,
-    transparent 100%
-  );
+  overflow: visible;
 }
 
 .landing-hero-archimedes,
+.landing-hero-archimedes-rive-wrap,
 .landing-hero-archimedes-rive {
   width: 100%;
   height: 100%;
   max-height: none;
-  object-fit: contain;
-  object-position: bottom center;
   transform-origin: 50% 88%;
   filter: drop-shadow(0 3px 8px rgba(47, 26, 0, 0.18));
 }
 
+.landing-hero-archimedes-rive-wrap {
+  position: relative;
+  overflow: visible;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
 .landing-hero-archimedes-rive {
   display: block;
+  background: transparent !important;
+}
+
+.landing-hero-archimedes-rive canvas {
+  background: transparent !important;
+}
+
+.landing-arch-parts-idle {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 88%;
+  filter: drop-shadow(0 3px 8px rgba(47, 26, 0, 0.18));
+  animation: landing-arch-idle-bob 4.8s ease-in-out infinite;
+}
+
+.landing-arch-part {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  will-change: transform;
+}
+
+.landing-arch-part--torso {
+  animation: landing-arch-torso-breathe 3.6s ease-in-out infinite;
+}
+
+.landing-arch-part--head {
+  animation: landing-arch-head-sway 5.2s ease-in-out infinite;
+}
+
+.landing-arch-part--right-upper-arm {
+  animation: landing-arch-right-upper-arm 4.6s ease-in-out infinite;
+}
+
+.landing-arch-part--right-forearm {
+  animation: landing-arch-right-forearm 4.6s ease-in-out infinite;
+  animation-delay: -0.08s;
+}
+
+.landing-arch-part--right-hand {
+  animation: landing-arch-right-hand 4.6s ease-in-out infinite;
+  animation-delay: -0.16s;
+}
+
+.landing-arch-part--left-upper-arm {
+  animation: landing-arch-left-upper-arm 5.4s ease-in-out infinite;
+}
+
+.landing-arch-part--left-forearm {
+  animation: landing-arch-left-forearm 5.4s ease-in-out infinite;
+  animation-delay: -0.1s;
+}
+
+.landing-arch-part--left-hand {
+  animation: landing-arch-left-hand 5.4s ease-in-out infinite;
+  animation-delay: -0.18s;
+}
+
+.landing-arch-part--right-leg,
+.landing-arch-part--left-leg {
+  animation: landing-arch-leg-drift 6.2s ease-in-out infinite;
+}
+
+.landing-arch-part--right-foot {
+  animation: landing-arch-foot-drift 6.2s ease-in-out infinite;
+}
+
+.landing-arch-part--left-foot {
+  animation: landing-arch-foot-drift 6.2s ease-in-out infinite;
+  animation-delay: -0.35s;
+}
+
+.landing-arch-part--left-leg {
+  animation-delay: -0.2s;
+}
+
+@keyframes landing-arch-idle-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) rotate(-0.6deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.8deg);
+  }
+  75% {
+    transform: translateY(-4px) rotate(-0.4deg);
+  }
+}
+
+@keyframes landing-arch-torso-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  45% {
+    transform: scale(1.012, 1.018);
+  }
+}
+
+@keyframes landing-arch-head-sway {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  35% {
+    transform: rotate(-1.8deg) translateY(-1px);
+  }
+  68% {
+    transform: rotate(2.2deg) translateY(-2px);
+  }
+}
+
+@keyframes landing-arch-right-upper-arm {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-3.5deg);
+  }
+  72% {
+    transform: rotate(2.8deg);
+  }
+}
+
+@keyframes landing-arch-right-forearm {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-4.5deg);
+  }
+  72% {
+    transform: rotate(3.2deg);
+  }
+}
+
+@keyframes landing-arch-right-hand {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-2deg);
+  }
+  72% {
+    transform: rotate(1.5deg);
+  }
+}
+
+@keyframes landing-arch-left-upper-arm {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  38% {
+    transform: rotate(2deg);
+  }
+  70% {
+    transform: rotate(-2.4deg);
+  }
+}
+
+@keyframes landing-arch-left-forearm {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  38% {
+    transform: rotate(2.8deg);
+  }
+  70% {
+    transform: rotate(-3deg);
+  }
+}
+
+@keyframes landing-arch-left-hand {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  38% {
+    transform: rotate(1.5deg);
+  }
+  70% {
+    transform: rotate(-1.8deg);
+  }
+}
+
+@keyframes landing-arch-leg-drift {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  50% {
+    transform: rotate(1.2deg) translateY(2px);
+  }
+}
+
+@keyframes landing-arch-foot-drift {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-0.8deg) translateY(1px);
+  }
 }
 
 .landing-arch-alive {
@@ -995,6 +1210,8 @@
   .landing-page .landing-float,
   .landing-page .landing-float-delayed,
   .landing-page .landing-arch-alive,
+  .landing-page .landing-arch-parts-idle,
+  .landing-page .landing-arch-part,
   .landing-page .landing-ripple,
   .landing-page .landing-splash,
   .landing-page .landing-cta-primary,
@@ -1105,6 +1322,12 @@ body.landing-scrollable .app-root {
 }
 
 @media (max-width: 960px) {
+  .landing-hero-visual {
+    --hero-arch-bottom: clamp(13%, 16%, 18%);
+    --hero-arch-lift: clamp(-2%, -4vh, -6%);
+    --hero-arch-width: clamp(56%, 60%, 66%);
+  }
+
   .landing-hero-panel {
     grid-template-columns: 1fr;
     text-align: center;
@@ -1149,8 +1372,17 @@ body.landing-scrollable .app-root {
     gap: 1.5rem;
   }
 
+  .landing-hero-visual {
+    --hero-scene-min-h: clamp(280px, 72vw, 340px);
+    --hero-bath-width: 64%;
+    --hero-arch-width: 62%;
+    --hero-arch-height: 92%;
+    --hero-arch-bottom: 14%;
+    --hero-arch-lift: -3%;
+  }
+
   .landing-hero-scene {
-    aspect-ratio: 16 / 11;
+    aspect-ratio: 4 / 3.6;
   }
 
   .landing-journey-map {
