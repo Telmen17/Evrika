@@ -1,156 +1,55 @@
+/**
+ * CrownWeighScene — interactive balance-scale lesson room.
+ *
+ * Responsibility: Matter.js physics orchestration, drag-and-drop weighing, mission VO/insights.
+ * Docs: docs/architecture/routing-and-scenes.md
+ */
+
 import type { AnimationEvent, FC } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SceneId } from '../types/sceneId'
-import crownSvg from '../assets/crown.svg'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
 import { useLessonHub } from '../context/LessonHubContext'
+import {
+  BASE_BOTTOM_PX,
+  BASE_HEIGHT_PX,
+  BASE_PAN_PHYSICS_MASS,
+  BASE_WIDTH_PX,
+  BALANCE_LOAD_TORQUE_SCALE,
+  BALANCE_RESTORE_DAMPING,
+  BALANCE_RESTORE_STIFFNESS,
+  BEAM_CENTER_OFFSET_Y,
+  BEAM_FRICTION_AIR,
+  CROWN_MASS_G,
+  DRAG_TYPE,
+  GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE,
+  INSIGHT_TEXT_BALANCE,
+  INSIGHT_TEXT_CROWN_ANSWER,
+  ITEM_DEFS,
+  ITEM_LABELS,
+  LUMP_MASS_G,
+  MASS_KG,
+  PAN_FRICTION_AIR,
+  PIVOT_STIFFNESS,
+  POST_HEIGHT_PX,
+  POST_TOP_PX,
+  POST_WIDTH_PX,
+  ROPE_STIFFNESS,
+  STAGE_GEOMETRY,
+  VOICE_CROWN_BALANCED_SRC,
+  VOICE_CROWN_VS_LUMP_SRC,
+} from './crownWeigh/constants'
+import { lineStyle, rotatePoint } from './crownWeigh/geometry'
+import type {
+  MatterWindow,
+  PanSide,
+  PhysicsRuntime,
+  PhysicsSnapshot,
+  PlacedItem,
+  ScaleItemId,
+} from './crownWeigh/types'
 
-type PanSide = 'left' | 'right'
-export type ScaleItemId =
-  | 'crown'
-  | 'goldLump'
-  | 'goldBar'
-  | 'silverBar'
-  | 'mass100'
-  | 'mass200'
-  | 'mass300'
-
-interface MatterWindow extends Window {
-  Matter?: any
-}
-
-interface StageGeometry {
-  width: number
-  height: number
-  pivotX: number
-  pivotY: number
-  beamWidth: number
-  panWidth: number
-  panWallHeight: number
-  ropeLength: number
-}
-
-interface ItemDefinition {
-  label: string
-  massGrams: number
-  physicsMass: number
-  iconSrc: string
-  bodyShape: 'circle' | 'rectangle'
-  width?: number
-  height?: number
-  radius?: number
-  singleInstance?: boolean
-}
-
-interface PlacedItem {
-  instanceId: string
-  type: ScaleItemId
-  pan: PanSide
-}
-
-interface PhysicsSnapshot {
-  beamAngle: number
-  leftPan: { x: number; y: number; angle: number }
-  rightPan: { x: number; y: number; angle: number }
-  leftRopes: Array<{ x1: number; y1: number; x2: number; y2: number }>
-  rightRopes: Array<{ x1: number; y1: number; x2: number; y2: number }>
-}
-
-interface PhysicsRuntime {
-  Matter: any
-  engine: any
-  runner: any
-  beam: any
-  leftPan: any
-  rightPan: any
-  world: any
-  items: Map<string, { type: ScaleItemId; pan: PanSide }>
-  geometry: StageGeometry
-  applyPanMasses: () => void
-  syncView: () => void
-}
-
-const STAGE_GEOMETRY: StageGeometry = {
-  width: 440,
-  height: 390,
-  pivotX: 220,
-  pivotY: 106,
-  beamWidth: 248,
-  panWidth: 122,
-  panWallHeight: 38,
-  ropeLength: 112,
-}
-
-const DRAG_TYPE = 'application/x-evrika-scale-item'
-const BASE_PAN_PHYSICS_MASS = 5
-const BALANCE_RESTORE_STIFFNESS = 0
-const BALANCE_RESTORE_DAMPING = 0.06
-const BALANCE_LOAD_TORQUE_SCALE = 0.0092
-const BEAM_CENTER_OFFSET_Y = 10
-const BEAM_FRICTION_AIR = 0.008
-const PAN_FRICTION_AIR = 0.02
-const PIVOT_STIFFNESS = 0.68
-const ROPE_STIFFNESS = 0.56
-const BASE_WIDTH_PX = 176
-const BASE_HEIGHT_PX = 20
-const BASE_BOTTOM_PX = 10
-const POST_WIDTH_PX = 18
-const POST_TOP_PX = STAGE_GEOMETRY.pivotY - 4
-const POST_HEIGHT_PX =
-  STAGE_GEOMETRY.height - BASE_BOTTOM_PX - BASE_HEIGHT_PX - POST_TOP_PX
-
-function toSvgDataUrl(svg: string) {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
-}
-
-function makeBarIcon(fill: string, accent: string, text: string) {
-  return toSvgDataUrl(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 48">
-      <rect x="10" y="10" width="52" height="28" rx="8" fill="${fill}" stroke="${accent}" stroke-width="3"/>
-      <rect x="15" y="14" width="42" height="8" rx="4" fill="rgba(255,255,255,0.25)"/>
-      <text x="36" y="31" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#2b1b1b">${text}</text>
-    </svg>
-  `)
-}
-
-function makeWeightIcon(fill: string, text: string) {
-  return toSvgDataUrl(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-      <path d="M23 18c0-5 4-9 9-9s9 4 9 9h-6c0-2-1-3-3-3s-3 1-3 3z" fill="${fill}" stroke="#5a4020" stroke-width="3"/>
-      <path d="M18 22h28l8 30c1 4-2 8-7 8H17c-5 0-8-4-7-8z" fill="${fill}" stroke="#5a4020" stroke-width="3"/>
-      <text x="32" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#2b1b1b">${text}</text>
-    </svg>
-  `)
-}
-
-/** Unlabeled nugget — no mass text on the art (player must weigh it). */
-function makeGoldLumpIcon() {
-  return toSvgDataUrl(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 56">
-      <path d="M38 6 C52 8 62 18 64 32 C66 46 54 54 40 54 C26 54 10 46 8 32 C6 18 20 8 38 6Z" fill="#e0a82e" stroke="#5c4a12" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M28 22 C34 18 44 20 50 28" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linecap="round"/>
-      <ellipse cx="44" cy="26" rx="10" ry="6" fill="rgba(255,255,255,0.15)"/>
-    </svg>
-  `)
-}
-
-const CROWN_MASS_G = 2000
-const LUMP_MASS_G = 2000
-/** Plays once when crown and lump sit on opposite pans and the beam levels (equal-weight clue). */
-const VOICE_CROWN_VS_LUMP_SRC = '/audio/voicelines/archimedes-crown-match.mp3'
-
-/**
- * When true: lump VO never runs until `scale_conclusion2` has fully ended in this session (or was
- * already completed in saved progress). After crown audio ends while vs-lump is balanced, the player
- * must break that balance once and re-level before lump VO can fire.
- */
-const GATE_LUMP_VO_UNTIL_CROWN_AUDIO_DONE = true
-/** Plays once when the crown is physically balanced against known masses (beam level, correct counterweight). */
-const VOICE_CROWN_BALANCED_SRC = '/audio/voicelines/scale_conclusion2.mp3'
-const INSIGHT_TEXT_BALANCE =
-  "Hmm, it seems like the blacksmith made the golden crown weigh exactly the same as the gold given to him by the king. There should be another way to solve this."
-const INSIGHT_TEXT_CROWN_ANSWER =
-  "The crown has weight. That much is certain. But a dishonest goldsmith knows how to match a number on a scale. Mass is a clue, not a conclusion. The secret of what lies inside the crown still waits to be uncovered."
+export type { ScaleItemId } from './crownWeigh/types'
 
 function companionEndedPathMatchesInsight(pathname: string, appSrc: string) {
   if (!pathname || !appSrc) return false
@@ -163,89 +62,6 @@ function companionEndedPathMatchesInsight(pathname: string, appSrc: string) {
   )
 }
 
-const MASS_KG: Record<ScaleItemId, number> = {
-  crown: 2.0,
-  goldLump: 2.0,
-  goldBar: 0.5,
-  silverBar: 0.3,
-  mass100: 0.1,
-  mass200: 0.2,
-  mass300: 0.3,
-}
-
-const ITEM_LABELS: Record<ScaleItemId, string> = {
-  crown: 'Crown',
-  goldLump: 'Lump of gold',
-  goldBar: 'Gold bar',
-  silverBar: 'Silver bar',
-  mass100: '100 g',
-  mass200: '200 g',
-  mass300: '300 g',
-}
-
-const ITEM_DEFS: Record<ScaleItemId, ItemDefinition> = {
-  crown: {
-    label: 'Crown',
-    massGrams: CROWN_MASS_G,
-    physicsMass: 20,
-    iconSrc: crownSvg,
-    bodyShape: 'circle',
-    radius: 18,
-    singleInstance: true,
-  },
-  goldLump: {
-    label: 'Lump of gold from the king',
-    massGrams: LUMP_MASS_G,
-    physicsMass: 20,
-    iconSrc: makeGoldLumpIcon(),
-    bodyShape: 'circle',
-    radius: 16,
-    singleInstance: true,
-  },
-  goldBar: {
-    label: 'Gold bar 500 g',
-    massGrams: 500,
-    physicsMass: 5,
-    iconSrc: makeBarIcon('#f0b52d', '#8b6914', 'Au'),
-    bodyShape: 'rectangle',
-    width: 42,
-    height: 22,
-  },
-  silverBar: {
-    label: 'Silver bar 300 g',
-    massGrams: 300,
-    physicsMass: 3,
-    iconSrc: makeBarIcon('#d9dde7', '#7e8ba5', 'Ag'),
-    bodyShape: 'rectangle',
-    width: 40,
-    height: 20,
-  },
-  mass100: {
-    label: 'Dead mass 100 g',
-    massGrams: 100,
-    physicsMass: 1,
-    iconSrc: makeWeightIcon('#c49c45', '100'),
-    bodyShape: 'circle',
-    radius: 12,
-  },
-  mass200: {
-    label: 'Dead mass 200 g',
-    massGrams: 200,
-    physicsMass: 2,
-    iconSrc: makeWeightIcon('#b8842d', '200'),
-    bodyShape: 'circle',
-    radius: 14,
-  },
-  mass300: {
-    label: 'Dead mass 300 g',
-    massGrams: 300,
-    physicsMass: 3,
-    iconSrc: makeWeightIcon('#8e6b3a', '300'),
-    bodyShape: 'circle',
-    radius: 15,
-  },
-}
-
 interface CrownWeighSceneProps {
   onNavigate: (scene: SceneId) => void
 }
@@ -253,34 +69,6 @@ interface CrownWeighSceneProps {
 type WeighMissionPhase = 'crown' | 'lump' | 'done'
 
 type MissionCheckCelebrate = 'crown' | 'optional' | 'lump' | null
-
-function rotatePoint(
-  centerX: number,
-  centerY: number,
-  offsetX: number,
-  offsetY: number,
-  angle: number,
-) {
-  const cos = Math.cos(angle)
-  const sin = Math.sin(angle)
-  return {
-    x: centerX + offsetX * cos - offsetY * sin,
-    y: centerY + offsetX * sin + offsetY * cos,
-  }
-}
-
-function lineStyle(x1: number, y1: number, x2: number, y2: number) {
-  const dx = x2 - x1
-  const dy = y2 - y1
-  const length = Math.hypot(dx, dy)
-  const angle = Math.atan2(dy, dx)
-  return {
-    left: x1,
-    top: y1,
-    width: `${length}px`,
-    transform: `translateY(-50%) rotate(${angle}rad)`,
-  }
-}
 
 function createPanBody(Matter: any, x: number, y: number, group: number) {
   const { Bodies, Body } = Matter
