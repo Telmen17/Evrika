@@ -1,10 +1,15 @@
 import { type FC, useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import {
+  isLandingDesktopGateDismissed,
+  LANDING_DESKTOP_GATE_DISMISSED_KEY,
+  useMobileLandingViewport,
+} from '../lib/landingDesktopGate'
 
 const SHOW_DELAY_MS = 3200
 const FADE_MS = 520
-const DISMISS_STORAGE_KEY = 'evrika-landing-desktop-gate-dismissed'
 
-type GatePhase = 'idle' | 'entering' | 'visible' | 'leaving' | 'dismissed'
+type GatePhase = 'idle' | 'visible' | 'leaving' | 'dismissed'
 
 interface LandingDesktopGateProps {
   onDismiss?: () => void
@@ -59,42 +64,41 @@ const LaurelIcon: FC = () => (
 )
 
 const LandingDesktopGate: FC<LandingDesktopGateProps> = ({ onDismiss }) => {
-  const [phase, setPhase] = useState<GatePhase>(() => {
-    try {
-      return sessionStorage.getItem(DISMISS_STORAGE_KEY) === '1' ? 'dismissed' : 'idle'
-    } catch {
-      return 'idle'
-    }
-  })
+  const mobileViewport = useMobileLandingViewport()
+  const [phase, setPhase] = useState<GatePhase>(() =>
+    isLandingDesktopGateDismissed() ? 'dismissed' : 'idle',
+  )
 
   useEffect(() => {
-    if (phase === 'dismissed') {
-      onDismiss?.()
-    }
+    if (phase !== 'dismissed') return
+    onDismiss?.()
   }, [phase, onDismiss])
 
   useEffect(() => {
     if (phase !== 'idle') return
+    if (!mobileViewport) return
+    if (isLandingDesktopGateDismissed()) {
+      setPhase('dismissed')
+      return
+    }
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const showDelay = reducedMotion ? 0 : SHOW_DELAY_MS
 
     const showTimer = window.setTimeout(() => {
-      setPhase('entering')
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => setPhase('visible'))
-      })
+      if (isLandingDesktopGateDismissed()) return
+      setPhase('visible')
     }, showDelay)
 
     return () => window.clearTimeout(showTimer)
-  }, [phase])
+  }, [phase, mobileViewport])
 
   const dismiss = useCallback(() => {
     if (phase === 'leaving' || phase === 'dismissed') return
     setPhase('leaving')
     window.setTimeout(() => {
       try {
-        sessionStorage.setItem(DISMISS_STORAGE_KEY, '1')
+        sessionStorage.setItem(LANDING_DESKTOP_GATE_DISMISSED_KEY, '1')
       } catch {
         /* ignore */
       }
@@ -102,18 +106,18 @@ const LandingDesktopGate: FC<LandingDesktopGateProps> = ({ onDismiss }) => {
     }, FADE_MS)
   }, [phase])
 
-  if (phase === 'dismissed') {
+  if (phase === 'dismissed' || !mobileViewport) {
     return null
   }
 
-  const visible = phase === 'visible' || phase === 'entering'
+  const visible = phase === 'visible'
   const leaving = phase === 'leaving'
 
-  return (
+  return createPortal(
     <aside
       className={`landing-desktop-gate${visible ? ' landing-desktop-gate--visible' : ''}${
         leaving ? ' landing-desktop-gate--leaving' : ''
-      }`}
+      }${phase === 'idle' ? ' landing-desktop-gate--pending' : ''}`}
       role="status"
       aria-live="polite"
       aria-hidden={!visible && !leaving}
@@ -141,7 +145,8 @@ const LandingDesktopGate: FC<LandingDesktopGateProps> = ({ onDismiss }) => {
           ΕΥΡΗΚΑ
         </p>
       </div>
-    </aside>
+    </aside>,
+    document.body,
   )
 }
 

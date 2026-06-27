@@ -9,6 +9,7 @@ import kingSitImg from '../assets/kingSit.png'
 import scrollImg from '../assets/scroll.png'
 import archimedesStep1 from '../assets/archimedes-step1.png'
 import { useDesktopExperience } from '../hooks/useDesktopExperience'
+import { isLandingDesktopGateDismissed } from '../lib/landingDesktopGate'
 import LandingDesktopGate from './LandingDesktopGate'
 
 export type SceneId =
@@ -123,13 +124,7 @@ const LandingPage: FC<LandingPageProps> = ({
   completedScenes,
 }) => {
   const isDesktop = useDesktopExperience()
-  const [gateDismissed, setGateDismissed] = useState(() => {
-    try {
-      return sessionStorage.getItem('evrika-landing-desktop-gate-dismissed') === '1'
-    } catch {
-      return false
-    }
-  })
+  const [gateDismissed, setGateDismissed] = useState(isLandingDesktopGateDismissed)
   const handleGateDismiss = useCallback(() => setGateDismissed(true), [])
 
   const isCompleted = (scene: SceneId) => completedScenes.includes(scene)
@@ -347,9 +342,7 @@ const LandingPage: FC<LandingPageProps> = ({
       </section>
       ) : null}
 
-      {!isDesktop && !gateDismissed ? (
-        <LandingDesktopGate onDismiss={handleGateDismiss} />
-      ) : null}
+      <LandingDesktopGate onDismiss={handleGateDismiss} />
     </div>
   )
 }
