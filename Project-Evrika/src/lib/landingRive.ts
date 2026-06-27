@@ -1,28 +1,26 @@
+import archimedesIdleRiv from '../assets/archimedes-parts/archimedes-idle-3.riv'
+
 /**
- * Landing hero — Archimedes bath Rive asset contract.
+ * Landing hero — Archimedes idle Rive animation.
  *
- * Workflow:
- * 1. Split art in Photoshop (torso, head, arms, water ripples, etc.).
- * 2. Import layers into Rive, rig idle motion (breathing, subtle bob, splash).
- * 3. Export `.riv` to `public/rive/archimedes-bath.riv`.
- * 4. Use a state machine named `State Machine 1` with an idle loop, or rename
- *    `LANDING_ARCHIMEDES_STATE_MACHINE` below to match your file.
- *
- * Recommended artboard: 400×520 — aligns with `.landing-hero-archimedes-wrap`.
+ * Source: `src/assets/archimedes-parts/archimedes-idle-3.riv`
+ * Plays the linear timeline `Idle` (ping-pong loop authored in Rive).
  */
 
-/** Served from /public — Vite copies as-is at dev + build time. */
-export const LANDING_ARCHIMEDES_RIVE_SRC = '/rive/archimedes-bath.riv'
+export const LANDING_ARCHIMEDES_RIVE_SRC = archimedesIdleRiv
 
-/** Primary playback mode: state machine (preferred for idle + future triggers). */
-export const LANDING_ARCHIMEDES_STATE_MACHINE = 'State Machine 1'
+export const LANDING_ARCHIMEDES_ARTBOARD = 'Artboard'
 
-/** Timeline-only fallback if you export without a state machine. */
-export const LANDING_ARCHIMEDES_IDLE_ANIMATION = 'idle'
+/** Timeline name in the Rive file — must match exactly. */
+export const LANDING_ARCHIMEDES_IDLE_ANIMATION = 'Idle'
 
-/** Optional artboard name when the file has multiple artboards. */
-export const LANDING_ARCHIMEDES_ARTBOARD = 'Archimedes Bath'
+/**
+ * Scales the artboard inside the hero slot. Tune here + `--hero-rive-scale` in landing.css.
+ * Does not change Rive artboard pixel size — only runtime draw scale.
+ */
+export const LANDING_ARCHIMEDES_LAYOUT_SCALE = 1.38
 
+/** Display slot on the landing hero — tune CSS vars on `.landing-hero-scene`, not artboard px. */
 export const LANDING_ARCHIMEDES_ARTBOARD_SIZE = {
   width: 400,
   height: 520,

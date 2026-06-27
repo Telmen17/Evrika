@@ -1,29 +1,43 @@
 import { type FC, useCallback, useState } from 'react'
-import { Alignment, Fit, Layout, useRive } from '@rive-app/react-canvas'
-import archimedesImg from '../assets/archimedes.png'
+import { Alignment, Fit, Layout, useRive, type Rive } from '@rive-app/react-canvas'
 import {
+  LANDING_ARCHIMEDES_ARTBOARD,
+  LANDING_ARCHIMEDES_IDLE_ANIMATION,
+  LANDING_ARCHIMEDES_LAYOUT_SCALE,
   LANDING_ARCHIMEDES_RIVE_SRC,
-  LANDING_ARCHIMEDES_STATE_MACHINE,
 } from '../lib/landingRive'
+import LandingArchimedesPartsIdle from './LandingArchimedesPartsIdle'
+
+const startArchimedesMotion = (rive: Rive) => {
+  rive.resizeDrawingSurfaceToCanvas()
+  rive.play(LANDING_ARCHIMEDES_IDLE_ANIMATION)
+}
 
 const LandingArchimedesRive: FC = () => {
-  const [useFallback, setUseFallback] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const handleLoadError = useCallback(() => {
-    setUseFallback(true)
+    setLoadFailed(true)
   }, [])
 
-  const { RiveComponent } = useRive(
-    useFallback
+  const handleRiveReady = useCallback((rive: Rive) => {
+    startArchimedesMotion(rive)
+  }, [])
+
+  const { RiveComponent, setContainerRef } = useRive(
+    loadFailed
       ? null
       : {
           src: LANDING_ARCHIMEDES_RIVE_SRC,
-          stateMachines: LANDING_ARCHIMEDES_STATE_MACHINE,
+          artboard: LANDING_ARCHIMEDES_ARTBOARD,
+          animations: LANDING_ARCHIMEDES_IDLE_ANIMATION,
           autoplay: true,
           layout: new Layout({
             fit: Fit.Contain,
             alignment: Alignment.BottomCenter,
+            layoutScaleFactor: LANDING_ARCHIMEDES_LAYOUT_SCALE,
           }),
+          onRiveReady: handleRiveReady,
           onLoadError: handleLoadError,
         },
     {
@@ -31,17 +45,15 @@ const LandingArchimedesRive: FC = () => {
     },
   )
 
-  if (useFallback) {
-    return (
-      <img
-        className="landing-hero-archimedes landing-arch-alive"
-        src={archimedesImg}
-        alt=""
-      />
-    )
+  if (loadFailed) {
+    return <LandingArchimedesPartsIdle />
   }
 
-  return <RiveComponent className="landing-hero-archimedes-rive" aria-hidden />
+  return (
+    <div ref={setContainerRef} className="landing-hero-archimedes-rive-wrap">
+      <RiveComponent className="landing-hero-archimedes-rive" aria-hidden />
+    </div>
+  )
 }
 
 export default LandingArchimedesRive
