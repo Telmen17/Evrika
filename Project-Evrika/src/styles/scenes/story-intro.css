@@ -1,10 +1,16 @@
-/* Story intro journey */
-/* Story intro: thin progress bar + minimal skip arrows */
+/* Story intro: progress bar + prev/next navigation */
 .journey-controls--cinematic {
+  --journey-nav-btn-size: clamp(2.85rem, 5.5vmin, 3.75rem);
+  --journey-nav-glyph-size: clamp(1.75rem, 3.4vmin, 2.25rem);
+  --journey-progress-height: clamp(5px, 0.65vmin, 7px);
   align-items: center;
-  gap: 0.65rem;
+  gap: clamp(0.75rem, 1.4vw, 1.1rem);
   padding-top: 0.5rem;
   margin-bottom: 0.75rem;
+}
+
+.journey-controls--cinematic .journey-progress-track {
+  height: var(--journey-progress-height);
 }
 
 .journey-progress-wrap {
@@ -121,8 +127,10 @@
 
 .journey-skip-btn {
   flex-shrink: 0;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: var(--journey-nav-btn-size, 2.85rem);
+  height: var(--journey-nav-btn-size, 2.85rem);
+  min-width: var(--journey-nav-btn-size, 2.85rem);
+  min-height: var(--journey-nav-btn-size, 2.85rem);
   padding: 0;
   display: inline-grid;
   place-items: center;
@@ -140,7 +148,7 @@
 /* Guillemets (‹ ›) sit below the cap height in most fonts — nudge up for optical vertical center */
 .journey-skip-btn__glyph {
   display: block;
-  font-size: 1.5rem;
+  font-size: var(--journey-nav-glyph-size, 1.75rem);
   font-weight: 400;
   line-height: 1;
   margin: 0;
@@ -151,7 +159,7 @@
 .journey-skip-btn:hover:not(:disabled) {
   background: #fffdf7;
   border-color: rgba(184, 134, 11, 0.65);
-  transform: scale(1.06);
+  transform: scale(1.05);
 }
 
 .journey-skip-btn:disabled {
@@ -171,13 +179,13 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: var(--journey-nav-btn-size, 2.85rem);
+  height: var(--journey-nav-btn-size, 2.85rem);
 }
 
 .journey-final-cta-rays {
   position: absolute;
-  inset: -1.15rem;
+  inset: calc(var(--journey-nav-btn-size, 2.85rem) * -0.48);
   border-radius: 50%;
   pointer-events: none;
   background: repeating-conic-gradient(
@@ -237,8 +245,8 @@
 
 /* Story intro (journey): match stage width to narration; controls stay in footer row */
 @media (min-width: 961px) {
-  .journey-scene {
-    justify-content: flex-start;
+  .journey-scene-body {
+    justify-content: center;
   }
 
   .journey-scene .scene-image-container {
