@@ -14,6 +14,7 @@ import {
   useState,
 } from 'react'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
+import { cn } from '../lib/cn'
 import type { SceneId } from '../types/sceneId'
 import archimedesImg from '../assets/archimedes.png'
 import blacksmithImg from '../assets/blacksmith-removebg-preview.png'
@@ -263,6 +264,8 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
   }
 
   const isLast = index >= beats.length - 1
+  /** Final → hub CTA pulses only after lead + narration + tail (progress bar full). */
+  const finalCtaReady = isLast && timeline01 >= 1
 
   return (
     <div className="scene journey-scene">
@@ -377,10 +380,13 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
         </div>
         {isLast ? (
           <div className="journey-final-cta">
-            <span className="journey-final-cta-rays" aria-hidden />
+            {finalCtaReady ? <span className="journey-final-cta-rays" aria-hidden /> : null}
             <button
               type="button"
-              className="journey-skip-btn journey-skip-btn--primary journey-skip-btn--final-pulse"
+              className={cn(
+                'journey-skip-btn',
+                finalCtaReady && 'journey-skip-btn--primary journey-skip-btn--final-pulse',
+              )}
               onClick={() => onNavigate('hub')}
               aria-label="Enter Archimedes workshop"
             >
