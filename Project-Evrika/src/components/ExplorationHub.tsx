@@ -290,7 +290,9 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
             <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </span>
-        <p className="hub-objective-text">{OBJECTIVE_TEXT}</p>
+        <p className="hub-objective-text">
+          <span className="hub-objective-text-copy">{OBJECTIVE_TEXT}</span>
+        </p>
         <button
           className="hub-reset-button"
           type="button"
