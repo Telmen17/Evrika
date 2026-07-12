@@ -719,10 +719,10 @@
   font-family: Georgia, 'Times New Roman', serif;
   font-weight: 700;
   line-height: 1;
-  color: rgba(255, 238, 188, 0.9);
+  color: #ffffff;
   text-shadow:
-    0 0 10px rgba(255, 218, 128, 0.75),
-    0 2px 6px rgba(58, 35, 13, 0.35);
+    0 0 8px rgba(255, 255, 255, 0.85),
+    0 2px 6px rgba(18, 12, 6, 0.45);
   opacity: 0;
   animation: story-ponder-mark-boil 3.1s ease-in-out infinite;
 }
