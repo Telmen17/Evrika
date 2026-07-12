@@ -13,6 +13,22 @@
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
+  /* Transparent shell so LandingBackground matches landing page depth */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.journey-scene .menu-button {
+  position: absolute;
+  z-index: 10;
+}
+
+.journey-scene-body,
+.journey-scene .journey-controls {
+  position: relative;
+  z-index: 1;
 }
 
 /* Stage + narration: share one column, vertically centered in space above footer controls */

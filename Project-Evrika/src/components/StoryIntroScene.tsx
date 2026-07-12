@@ -16,6 +16,7 @@ import {
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import { cn } from '../lib/cn'
 import type { SceneId } from '../types/sceneId'
+import LandingBackground from './LandingBackground'
 import archimedesImg from '../assets/archimedes.png'
 import blacksmithImg from '../assets/blacksmith-removebg-preview.png'
 import kingSitImg from '../assets/kingSit.png'
@@ -269,6 +270,8 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
 
   return (
     <div className="scene journey-scene">
+      <LandingBackground />
+
       <button
         className="link-button menu-button"
         type="button"

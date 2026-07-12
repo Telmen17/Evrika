@@ -13,9 +13,6 @@ const LandingBackground: FC = () => (
     <img className="landing-bg-cityscape" src={cityscapeImg} alt="" />
     <div className="landing-bg-papyrus" style={{ backgroundImage: `url(${papyrusImg})` }} />
     <div className="landing-bg-vignette" />
-    <p className="landing-watermark" lang="el">
-      ΕΥΡΗΚΑ
-    </p>
     <div className="landing-meander landing-meander-top" />
     <div className="landing-meander landing-meander-bottom" />
   </div>
