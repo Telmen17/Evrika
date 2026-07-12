@@ -701,3 +701,121 @@
   }
 }
 
+/* Slide 6 — bubbling question marks above Archimedes while he ponders the crown */
+.story-ponder-marks {
+  position: absolute;
+  left: 77%;
+  bottom: 42%;
+  width: clamp(88px, 15%, 150px);
+  height: clamp(76px, 13%, 128px);
+  transform: translateX(-50%);
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.story-ponder-mark {
+  position: absolute;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  line-height: 1;
+  color: rgba(255, 238, 188, 0.9);
+  text-shadow:
+    0 0 10px rgba(255, 218, 128, 0.75),
+    0 2px 6px rgba(58, 35, 13, 0.35);
+  opacity: 0;
+  animation: story-ponder-mark-boil 3.1s ease-in-out infinite;
+}
+
+.story-ponder-mark--0 {
+  left: 8%;
+  bottom: 2%;
+  font-size: clamp(1rem, 2vmin, 1.45rem);
+  animation-delay: 0s;
+  --ponder-drift: 5px;
+}
+
+.story-ponder-mark--1 {
+  left: 30%;
+  bottom: 14%;
+  font-size: clamp(0.9rem, 1.75vmin, 1.25rem);
+  animation-delay: 0.42s;
+  --ponder-drift: -4px;
+}
+
+.story-ponder-mark--2 {
+  left: 52%;
+  bottom: 6%;
+  font-size: clamp(1.15rem, 2.25vmin, 1.65rem);
+  animation-delay: 0.85s;
+  --ponder-drift: 6px;
+}
+
+.story-ponder-mark--3 {
+  left: 72%;
+  bottom: 18%;
+  font-size: clamp(0.95rem, 1.85vmin, 1.35rem);
+  animation-delay: 1.28s;
+  --ponder-drift: -5px;
+}
+
+.story-ponder-mark--4 {
+  left: 20%;
+  bottom: 34%;
+  font-size: clamp(1.05rem, 2.05vmin, 1.5rem);
+  animation-delay: 0.2s;
+  --ponder-drift: 3px;
+}
+
+.story-ponder-mark--5 {
+  left: 44%;
+  bottom: 38%;
+  font-size: clamp(1.25rem, 2.45vmin, 1.8rem);
+  animation-delay: 0.64s;
+  --ponder-drift: -3px;
+}
+
+.story-ponder-mark--6 {
+  left: 66%;
+  bottom: 32%;
+  font-size: clamp(1rem, 1.95vmin, 1.4rem);
+  animation-delay: 1.06s;
+  --ponder-drift: 4px;
+}
+
+@keyframes story-ponder-mark-boil {
+  0% {
+    opacity: 0;
+    transform: translate(0, 10px) scale(0.5) rotate(-10deg);
+  }
+
+  12% {
+    opacity: 0.82;
+  }
+
+  45% {
+    opacity: 0.72;
+    transform: translate(var(--ponder-drift, 0), -22px) scale(1.08) rotate(8deg);
+  }
+
+  72% {
+    opacity: 0.38;
+    transform: translate(calc(var(--ponder-drift, 0) * -0.6), -42px) scale(0.92)
+      rotate(-5deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--ponder-drift, 0) * -1.2), -62px) scale(0.62)
+      rotate(4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-ponder-mark {
+    animation: none;
+    opacity: 0.55;
+    transform: translateY(-18px) scale(0.95);
+  }
+}
+

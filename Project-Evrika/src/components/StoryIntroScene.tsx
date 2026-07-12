@@ -289,6 +289,18 @@ const StoryIntroScene: FC<StoryIntroSceneProps> = ({ onNavigate }) => {
               className="scene-image"
             />
             <div className="story-scene-wash" aria-hidden />
+            {beat.id === 'pondering' ? (
+              <div className="story-ponder-marks" aria-hidden>
+                {Array.from({ length: 7 }, (_, markIndex) => (
+                  <span
+                    key={markIndex}
+                    className={`story-ponder-mark story-ponder-mark--${markIndex}`}
+                  >
+                    ?
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <img
               src={archimedesImg}
               alt="Archimedes"
