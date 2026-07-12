@@ -9,6 +9,9 @@
 
 export const LANDING_DESKTOP_GATE_DISMISSED_KEY = 'evrika-landing-desktop-gate-dismissed'
 
+/** Set true to re-enable the sticky mobile desktop tip banner (component kept as backup). */
+export const LANDING_DESKTOP_GATE_ENABLED = false
+
 export const LANDING_DESKTOP_GATE_MIN_WIDTH_PX = 960
 
 const MOBILE_MEDIA_QUERY = `(max-width: ${LANDING_DESKTOP_GATE_MIN_WIDTH_PX - 1}px)`

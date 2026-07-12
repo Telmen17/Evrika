@@ -50,29 +50,22 @@ export const LandingHero: FC<LandingHeroProps> = ({ isDesktop, onStartJourney })
       <p className="landing-hero-blurb">
         A storybook journey through buoyancy, density, and the splash that changed science.
       </p>
+      <button
+        className="start-button landing-cta landing-cta-primary"
+        type="button"
+        onClick={onStartJourney}
+      >
+        <span className="landing-cta-shine" aria-hidden />
+        Start the Journey
+      </button>
       {isDesktop ? (
-        <>
-          <button
-            className="start-button landing-cta landing-cta-primary"
-            type="button"
-            onClick={onStartJourney}
-          >
-            <span className="landing-cta-shine" aria-hidden />
-            Start the Journey
-          </button>
-          <p className="hero-note landing-hero-note">
-            No signup · narrated story · hands-on simulations · ~15 minutes
-          </p>
-        </>
+        <p className="hero-note landing-hero-note">
+          No signup · narrated story · hands-on simulations · ~15 minutes
+        </p>
       ) : (
-        <div className="landing-mobile-callout" role="status">
-          <p className="landing-mobile-callout-text">
-            Play on desktop to start the journey and experience the awe!
-          </p>
-          <p className="landing-mobile-callout-sub">
-            Scroll for a sneak peek — the full interactive lesson needs a wider screen.
-          </p>
-        </div>
+        <p className="hero-note landing-hero-note landing-hero-note--mobile">
+          Playable on phone — tap the labs; landscape helps in the weighing and overflow rooms.
+        </p>
       )}
     </div>
   </section>

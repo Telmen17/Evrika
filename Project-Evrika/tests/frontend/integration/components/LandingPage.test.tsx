@@ -19,15 +19,15 @@ describe('LandingPage', () => {
     expect(screen.getByTestId('archimedes-rive-mock')).toBeInTheDocument()
   })
 
-  it('applies the mobile layout class below the desktop breakpoint', () => {
+  it('renders path chooser on mobile', () => {
     setViewportWidth(390)
-    const { container } = render(
+    render(
       <LandingPage onNavigate={() => undefined} onStartJourney={() => undefined} completedScenes={[]} />,
     )
 
-    expect(container.firstChild).toHaveClass('landing-page-mobile')
-    const callout = container.querySelector('.landing-mobile-callout-text')
-    expect(callout).toHaveTextContent(/Play on desktop to start the journey/)
+    expect(screen.getByRole('button', { name: 'Start the Journey' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Enter Syracuse' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enter the Story' })).toBeInTheDocument()
   })
 
   it('marks completed journey milestones', () => {

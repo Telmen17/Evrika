@@ -1,14 +1,17 @@
 /**
  * LandingPage — marketing entry orchestrator.
  *
- * Responsibility: compose hero, preview, path chooser, and desktop gate.
+ * Responsibility: compose hero, preview, path chooser, and optional desktop gate.
  * Docs: docs/components/landing.md
  * Tests: tests/frontend/integration/components/LandingPage.test.tsx
  */
 
 import { type FC, useCallback, useState } from 'react'
 import { useDesktopExperience } from '../hooks/useDesktopExperience'
-import { isLandingDesktopGateDismissed } from '../lib/landingDesktopGate'
+import {
+  isLandingDesktopGateDismissed,
+  LANDING_DESKTOP_GATE_ENABLED,
+} from '../lib/landingDesktopGate'
 import type { SceneId } from '../types/sceneId'
 import LandingDesktopGate from './LandingDesktopGate'
 import { LandingHero } from './landing/LandingHero'
@@ -28,18 +31,18 @@ const LandingPage: FC<LandingPageProps> = ({ onNavigate, onStartJourney, complet
   const [gateDismissed, setGateDismissed] = useState(isLandingDesktopGateDismissed)
   const handleGateDismiss = useCallback(() => setGateDismissed(true), [])
 
+  const gateActive = LANDING_DESKTOP_GATE_ENABLED && !gateDismissed
+
   return (
     <div
       className={`landing-page${isDesktop ? '' : ' landing-page-mobile'}${
-        gateDismissed ? ' landing-page-mobile-gate-dismissed' : ''
+        gateDismissed || !LANDING_DESKTOP_GATE_ENABLED ? ' landing-page-mobile-gate-dismissed' : ''
       }`}
     >
       <LandingHero isDesktop={isDesktop} onStartJourney={onStartJourney} />
       <LandingPreviewSection />
-      {isDesktop ? (
-        <LandingPathsSection completedScenes={completedScenes} onNavigate={onNavigate} />
-      ) : null}
-      <LandingDesktopGate onDismiss={handleGateDismiss} />
+      <LandingPathsSection completedScenes={completedScenes} onNavigate={onNavigate} />
+      {gateActive ? <LandingDesktopGate onDismiss={handleGateDismiss} /> : null}
     </div>
   )
 }

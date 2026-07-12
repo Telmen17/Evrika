@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom'
 import {
   isLandingDesktopGateDismissed,
   LANDING_DESKTOP_GATE_DISMISSED_KEY,
+  LANDING_DESKTOP_GATE_ENABLED,
 } from '../lib/landingDesktopGate'
 import { useMobileLandingViewport } from '../hooks/useMobileLandingViewport'
 
@@ -113,7 +114,7 @@ const LandingDesktopGate: FC<LandingDesktopGateProps> = ({ onDismiss }) => {
     }, FADE_MS)
   }, [phase])
 
-  if (phase === 'dismissed' || !mobileViewport) {
+  if (!LANDING_DESKTOP_GATE_ENABLED || phase === 'dismissed' || !mobileViewport) {
     return null
   }
 
@@ -142,9 +143,10 @@ const LandingDesktopGate: FC<LandingDesktopGateProps> = ({ onDismiss }) => {
         <div className="landing-desktop-gate-body">
           <DesktopIcon />
           <div className="landing-desktop-gate-copy">
-            <p className="landing-desktop-gate-title">Best on desktop</p>
+            <p className="landing-desktop-gate-title">Mobile tip</p>
             <p className="landing-desktop-gate-text">
-              Play on desktop to start the journey and experience the awe!
+              The full journey works on your phone — tap items in the labs. Rotate to landscape for
+              the weighing scale and overflow tanks.
             </p>
           </div>
         </div>

@@ -1,7 +1,10 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import LandingDesktopGate from '@/components/LandingDesktopGate'
-import { LANDING_DESKTOP_GATE_DISMISSED_KEY } from '@/lib/landingDesktopGate'
+import {
+  LANDING_DESKTOP_GATE_DISMISSED_KEY,
+  LANDING_DESKTOP_GATE_ENABLED,
+} from '@/lib/landingDesktopGate'
 import { setViewportWidth } from '../../setup/matchMedia'
 
 describe('LandingDesktopGate', () => {
@@ -29,10 +32,27 @@ describe('LandingDesktopGate', () => {
   it('does not render on desktop viewports', () => {
     setViewportWidth(1280)
     render(<LandingDesktopGate />)
-    expect(screen.queryByText('Best on desktop')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mobile tip')).not.toBeInTheDocument()
   })
 
-  it('appears on mobile after the show delay', () => {
+  it('does not render on mobile when the gate is disabled', () => {
+    if (LANDING_DESKTOP_GATE_ENABLED) return
+
+    vi.useFakeTimers()
+    setViewportWidth(390)
+    render(<LandingDesktopGate />)
+
+    act(() => {
+      vi.advanceTimersByTime(3200)
+    })
+
+    expect(screen.queryByText('Mobile tip')).not.toBeInTheDocument()
+    vi.useRealTimers()
+  })
+
+  it('appears on mobile after the show delay when enabled', () => {
+    if (!LANDING_DESKTOP_GATE_ENABLED) return
+
     vi.useFakeTimers()
     setViewportWidth(390)
 
@@ -44,11 +64,13 @@ describe('LandingDesktopGate', () => {
     })
 
     expect(document.querySelector('.landing-desktop-gate--visible')).toBeInTheDocument()
-    expect(screen.getByText('Best on desktop')).toBeInTheDocument()
+    expect(screen.getByText('Mobile tip')).toBeInTheDocument()
     vi.useRealTimers()
   })
 
-  it('dismisses and persists for the session', () => {
+  it('dismisses and persists for the session when enabled', () => {
+    if (!LANDING_DESKTOP_GATE_ENABLED) return
+
     vi.useFakeTimers()
     setViewportWidth(390)
     const onDismiss = vi.fn()
@@ -67,7 +89,7 @@ describe('LandingDesktopGate', () => {
 
     expect(onDismiss).toHaveBeenCalled()
     expect(sessionStorage.getItem(LANDING_DESKTOP_GATE_DISMISSED_KEY)).toBe('1')
-    expect(screen.queryByText('Best on desktop')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mobile tip')).not.toBeInTheDocument()
 
     vi.useRealTimers()
   })
