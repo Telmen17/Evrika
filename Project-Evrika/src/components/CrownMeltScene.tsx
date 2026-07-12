@@ -226,6 +226,28 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
     return clearGuardTimers
   }, [phase, clearGuardTimers])
 
+  const moveCrownToForge = useCallback(() => {
+    if (phase !== 'forge' || crownAtForge) return
+    setCrownAtForge(true)
+    window.setTimeout(() => setPhase('guard'), 450)
+  }, [phase, crownAtForge])
+
+  const returnCrownToPool = useCallback(() => {
+    if (phase !== 'returnCrown' || !crownAtForge) return
+    setCrownAtForge(false)
+    setPhase('done')
+  }, [phase, crownAtForge])
+
+  const handleCrownPoolTap = useCallback(() => {
+    if (phase === 'forge' && !crownAtForge) {
+      moveCrownToForge()
+      return
+    }
+    if (phase === 'returnCrown' && crownAtForge) {
+      returnCrownToPool()
+    }
+  }, [phase, crownAtForge, moveCrownToForge, returnCrownToPool])
+
   const handleDragFromPool = (e: React.DragEvent) => {
     if (phase !== 'forge' || crownAtForge) return
     e.dataTransfer.setData(DRAG_TYPE, 'crown')
@@ -248,8 +270,7 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
     e.preventDefault()
     if (phase !== 'forge' || crownAtForge) return
     if (e.dataTransfer.getData(DRAG_TYPE) !== 'crown') return
-    setCrownAtForge(true)
-    window.setTimeout(() => setPhase('guard'), 450)
+    moveCrownToForge()
   }
 
   const handleDragOverPool = (e: React.DragEvent) => {
@@ -262,8 +283,7 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
     e.preventDefault()
     if (phase !== 'returnCrown' || !crownAtForge) return
     if (e.dataTransfer.getData(DRAG_TYPE) !== 'crown') return
-    setCrownAtForge(false)
-    setPhase('done')
+    returnCrownToPool()
   }
 
   const guardOrAfter =
@@ -531,7 +551,15 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
                   role={phase === 'done' ? 'button' : undefined}
                   tabIndex={phase === 'done' ? 0 : undefined}
                   aria-label={phase === 'done' ? 'Furnace — tap for a reminder' : undefined}
-                  onClick={phase === 'done' ? () => triggerRevisitGuardWarn() : undefined}
+                  onClick={() => {
+                    if (phase === 'done') {
+                      triggerRevisitGuardWarn()
+                      return
+                    }
+                    if (phase === 'forge' && !crownAtForge) {
+                      moveCrownToForge()
+                    }
+                  }}
                   onKeyDown={phase === 'done' ? onRevisitKeyDown : undefined}
                   onDragOver={handleDragOverForge}
                   onDrop={handleDropOnForge}
@@ -563,7 +591,11 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
                     onDragStart={handleDragFromPool}
                     onDragOver={handleDragOverPool}
                     onDrop={handleDropOnPool}
-                    onClick={phase === 'done' ? () => triggerRevisitGuardWarn() : undefined}
+                    onClick={
+                      phase === 'done'
+                        ? () => triggerRevisitGuardWarn()
+                        : handleCrownPoolTap
+                    }
                     onKeyDown={phase === 'done' ? onRevisitKeyDown : undefined}
                   >
                     {phase === 'returnCrown' && crownAtForge ? null : (
@@ -573,8 +605,10 @@ const CrownMeltScene: FC<CrownMeltSceneProps> = ({ onNavigate: _onNavigate }) =>
                       {phase === 'done'
                         ? 'Back on the pedestal'
                         : phase === 'returnCrown' && crownAtForge
-                          ? 'Drop the crown here'
-                          : 'Drag me to the furnace'}
+                          ? 'Tap here to return the crown'
+                          : phase === 'forge' && !crownAtForge
+                            ? 'Tap to send the crown to the furnace'
+                            : 'Drag me to the furnace'}
                     </span>
                   </div>
                 ) : (

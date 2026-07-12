@@ -228,6 +228,49 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
     }
     Events.on(mouse, 'mousedown', wakeDragged)
 
+    matterCanvas.style.touchAction = 'none'
+
+    const mapTouchToMouse = (clientX: number, clientY: number) => {
+      const rect = matterCanvas.getBoundingClientRect()
+      const scaleX = LAB_W / rect.width
+      const scaleY = LAB_H / rect.height
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY,
+      }
+    }
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!e.touches[0]) return
+      e.preventDefault()
+      const p = mapTouchToMouse(e.touches[0].clientX, e.touches[0].clientY)
+      mouse.position.x = p.x
+      mouse.position.y = p.y
+      mouse.button = 0
+      Events.trigger(mouse, 'mousedown', { mouse })
+      wakeDragged()
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return
+      e.preventDefault()
+      const p = mapTouchToMouse(e.touches[0].clientX, e.touches[0].clientY)
+      mouse.position.x = p.x
+      mouse.position.y = p.y
+      Events.trigger(mouse, 'mousemove', { mouse })
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      e.preventDefault()
+      mouse.button = -1
+      Events.trigger(mouse, 'mouseup', { mouse })
+    }
+
+    matterCanvas.addEventListener('touchstart', onTouchStart, { passive: false })
+    matterCanvas.addEventListener('touchmove', onTouchMove, { passive: false })
+    matterCanvas.addEventListener('touchend', onTouchEnd, { passive: false })
+    matterCanvas.addEventListener('touchcancel', onTouchEnd, { passive: false })
+
     const bgEl = bgCanvasRef.current
 
     let frame = 0
@@ -328,6 +371,10 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
     return () => {
       Events.off(engine, 'afterUpdate', tick)
       Events.off(mouse, 'mousedown', wakeDragged)
+      matterCanvas.removeEventListener('touchstart', onTouchStart)
+      matterCanvas.removeEventListener('touchmove', onTouchMove)
+      matterCanvas.removeEventListener('touchend', onTouchEnd)
+      matterCanvas.removeEventListener('touchcancel', onTouchEnd)
       Render.stop(render)
       Runner.stop(runner)
       if (render.canvas?.parentNode) {
@@ -368,9 +415,9 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
 
       <section className="scene-body displacement-lab-body">
         <div className="displacement-lab-intro">
-          <p className="scene-text">
-            Each overflow can is filled to the spout. Drag the <strong>crown</strong> and{' '}
-            <strong>gold nugget</strong> into either can—overflow runs into that side’s collection
+          <p className="scene-text displacement-lab-hint">
+            Each overflow can is filled to the spout. Drag or touch-drag the <strong>crown</strong>{' '}
+            and <strong>gold nugget</strong> into either can—overflow runs into that side’s collection
             cup. Use <strong>Retry</strong> to reset.
           </p>
         </div>
