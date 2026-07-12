@@ -1,4 +1,10 @@
-const FLIGHT_EASING = 'cubic-bezier(0.22, 0.8, 0.2, 1)'
+/** Keep in sync with companion.css and onboarding-guide.css motion durations. */
+export const GUIDE_MOTION_MS = 1250
+export const GUIDE_CUE_FADE_MS = 480
+export const GUIDE_CUE_ENTER_DELAY_MS = 320
+export const GUIDE_MOTION_EASING = 'cubic-bezier(0.33, 0.9, 0.25, 1)'
+
+const FLIGHT_EASING = GUIDE_MOTION_EASING
 
 export function setCompanionHeadPosition(
   head: HTMLButtonElement,
