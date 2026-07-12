@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SceneId } from '../types/sceneId'
 import { ensureMatterLoaded } from '../lib/ensureMatter'
 import { useLessonHub } from '../context/LessonHubContext'
+import { useCoarsePointer } from '../hooks/useCoarsePointer'
 import {
   BASE_BOTTOM_PX,
   BASE_HEIGHT_PX,
@@ -120,6 +121,8 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
   const nextItemIdRef = useRef(progress.weigh.nextItemId)
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [dragOverPan, setDragOverPan] = useState<PanSide | null>(null)
+  const [selectedToolId, setSelectedToolId] = useState<ScaleItemId | null>(null)
+  const coarsePointer = useCoarsePointer()
   const [matterReady, setMatterReady] = useState(false)
   const [massGuess, setMassGuess] = useState(() => progress.weigh.massGuess)
   const [massCheckFeedback, setMassCheckFeedback] = useState(
@@ -938,6 +941,29 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     saveWeighLayout()
   }, [saveWeighLayout])
 
+  function canSelectTool(id: ScaleItemId): boolean {
+    if (id === 'crown') return crownInPool
+    if (id === 'goldLump') return goldLumpInPool
+    return true
+  }
+
+  function handleToolTap(id: ScaleItemId) {
+    if (!canSelectTool(id)) return
+    setSelectedToolId((prev) => (prev === id ? null : id))
+  }
+
+  function placeToolOnPan(pan: PanSide, id: ScaleItemId) {
+    if (!canSelectTool(id)) return
+    spawnIntoPan(pan, id)
+    setSelectedToolId(null)
+    setDragOverPan(null)
+  }
+
+  function handlePanTap(pan: PanSide) {
+    if (!selectedToolId) return
+    placeToolOnPan(pan, selectedToolId)
+  }
+
   function handleDragStart(e: React.DragEvent, id: ScaleItemId) {
     if (id === 'crown' && !crownInPool) {
       e.preventDefault()
@@ -962,9 +988,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
     setDragOverPan(null)
     const id = e.dataTransfer.getData(DRAG_TYPE) as ScaleItemId | ''
     if (!id) return
-    if (id === 'crown' && !crownInPool) return
-    if (id === 'goldLump' && !goldLumpInPool) return
-    spawnIntoPan(pan, id)
+    placeToolOnPan(pan, id)
   }
 
   function handleDragLeave(e: React.DragEvent) {
@@ -1004,37 +1028,43 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
       <div className="weigh-showcase-pair">
         <div className="weigh-crown-showcase">
           <div className="weigh-crown-showcase-ring">
-            <div
-              draggable={!crownDisabled}
+            <button
+              type="button"
+              draggable={!crownDisabled && !coarsePointer}
               onDragStart={(e) => handleDragStart(e, 'crown')}
               onDragEnd={() => setDragOverPan(null)}
-              className={`scale-tool-draggable weigh-crown-draggable ${crownDisabled ? 'scale-tool-draggable-disabled' : ''}`}
-              title={`${crownDef.label} – drag to a bowl`}
+              onClick={() => handleToolTap('crown')}
+              className={`scale-tool-draggable weigh-crown-draggable ${crownDisabled ? 'scale-tool-draggable-disabled' : ''}${selectedToolId === 'crown' ? ' scale-tool-draggable--selected' : ''}`}
+              title={`${crownDef.label} – ${coarsePointer ? 'tap then tap a bowl' : 'drag to a bowl'}`}
+              disabled={crownDisabled}
             >
               <img
                 src={crownDef.iconSrc}
                 alt={ITEM_LABELS.crown}
                 className="scale-tool-img weigh-crown-img"
               />
-            </div>
+            </button>
           </div>
           <span className="weigh-crown-showcase-label">Crown</span>
         </div>
         <div className="weigh-crown-showcase">
           <div className="weigh-crown-showcase-ring">
-            <div
-              draggable={!goldLumpDisabled}
+            <button
+              type="button"
+              draggable={!goldLumpDisabled && !coarsePointer}
               onDragStart={(e) => handleDragStart(e, 'goldLump')}
               onDragEnd={() => setDragOverPan(null)}
-              className={`scale-tool-draggable weigh-crown-draggable ${goldLumpDisabled ? 'scale-tool-draggable-disabled' : ''}`}
-              title="Lump of gold from the king — no mass label; weigh it yourself"
+              onClick={() => handleToolTap('goldLump')}
+              className={`scale-tool-draggable weigh-crown-draggable ${goldLumpDisabled ? 'scale-tool-draggable-disabled' : ''}${selectedToolId === 'goldLump' ? ' scale-tool-draggable--selected' : ''}`}
+              title="Lump of gold from the king — tap then tap a bowl"
+              disabled={goldLumpDisabled}
             >
               <img
                 src={goldLumpDef.iconSrc}
                 alt={ITEM_LABELS.goldLump}
                 className="scale-tool-img weigh-crown-img"
               />
-            </div>
+            </button>
           </div>
           <span className="weigh-crown-showcase-label">King's gold lump</span>
         </div>
@@ -1047,7 +1077,9 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
         </div>
       </div>
       <p className="helper-text scale-toolset-hint">
-        Drag items into a bowl. Click an item inside a bowl to remove it. Use the circular reset control under the scale to clear both pans and level the beam.
+        {coarsePointer
+          ? 'Tap an item, then tap a bowl to place it. Tap an item inside a bowl to remove it. Use the circular reset control under the scale to clear both pans and level the beam.'
+          : 'Drag items into a bowl, or tap an item then tap a bowl. Click an item inside a bowl to remove it. Use the circular reset control under the scale to clear both pans and level the beam.'}
       </p>
       <div className="scale-toolset-items">
         {(
@@ -1061,13 +1093,15 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
         ).map((id) => {
           const def = ITEM_DEFS[id]
           return (
-            <div
+            <button
               key={id}
-              draggable
+              type="button"
+              draggable={!coarsePointer}
               onDragStart={(e) => handleDragStart(e, id)}
               onDragEnd={() => setDragOverPan(null)}
-              className="scale-tool-draggable"
-              title={`${def.label} – drag to a bowl`}
+              onClick={() => handleToolTap(id)}
+              className={`scale-tool-draggable${selectedToolId === id ? ' scale-tool-draggable--selected' : ''}`}
+              title={`${def.label} – ${coarsePointer ? 'tap then tap a bowl' : 'drag to a bowl'}`}
             >
               <img
                 src={def.iconSrc}
@@ -1075,7 +1109,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                 className="scale-tool-img"
               />
               <span>{def.label}</span>
-            </div>
+            </button>
           )
         })}
       </div>
@@ -1294,7 +1328,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                 ))}
 
                 <div
-                  className={`crown-scale-pan crown-scale-pan-left ${dragOverPan === 'left' ? 'crown-scale-pan-drag-over' : ''} ${showLevelGuide ? `crown-scale-pan-${panStateForColor}` : ''}`}
+                  className={`crown-scale-pan crown-scale-pan-left ${dragOverPan === 'left' ? 'crown-scale-pan-drag-over' : ''}${selectedToolId ? ' crown-scale-pan--place-ready' : ''} ${showLevelGuide ? `crown-scale-pan-${panStateForColor}` : ''}`}
                   style={{
                     left: `${physicsSnapshot.leftPan.x}px`,
                     top: `${physicsSnapshot.leftPan.y}px`,
@@ -1306,9 +1340,20 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                   }}
                   onDrop={(e) => handleDropToPan(e, 'left')}
                   onDragLeave={handleDragLeave}
+                  onClick={() => handlePanTap('left')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handlePanTap('left')
+                    }
+                  }}
                   role="button"
                   tabIndex={0}
-                  aria-label="Left bowl – drop items here"
+                  aria-label={
+                    selectedToolId
+                      ? 'Left bowl – tap to place selected item'
+                      : 'Left bowl – drop items here'
+                  }
                 >
                   <div className="crown-scale-pan-items">
                     {renderPanItems('left')}
@@ -1316,7 +1361,7 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                 </div>
 
                 <div
-                  className={`crown-scale-pan crown-scale-pan-right ${dragOverPan === 'right' ? 'crown-scale-pan-drag-over' : ''} ${showLevelGuide ? `crown-scale-pan-${panStateForColor}` : ''}`}
+                  className={`crown-scale-pan crown-scale-pan-right ${dragOverPan === 'right' ? 'crown-scale-pan-drag-over' : ''}${selectedToolId ? ' crown-scale-pan--place-ready' : ''} ${showLevelGuide ? `crown-scale-pan-${panStateForColor}` : ''}`}
                   style={{
                     left: `${physicsSnapshot.rightPan.x}px`,
                     top: `${physicsSnapshot.rightPan.y}px`,
@@ -1328,9 +1373,20 @@ const CrownWeighScene: FC<CrownWeighSceneProps> = ({ onNavigate: _onNavigate }) 
                   }}
                   onDrop={(e) => handleDropToPan(e, 'right')}
                   onDragLeave={handleDragLeave}
+                  onClick={() => handlePanTap('right')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handlePanTap('right')
+                    }
+                  }}
                   role="button"
                   tabIndex={0}
-                  aria-label="Right bowl – drop items here"
+                  aria-label={
+                    selectedToolId
+                      ? 'Right bowl – tap to place selected item'
+                      : 'Right bowl – drop items here'
+                  }
                 >
                   <div className="crown-scale-pan-items">
                     {renderPanItems('right')}

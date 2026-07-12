@@ -744,6 +744,26 @@
   color: #3a230d;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
   user-select: none;
+  font-family: inherit;
+  text-align: center;
+  width: 100%;
+}
+
+button.scale-tool-draggable {
+  appearance: none;
+  margin: 0;
+}
+
+.scale-tool-draggable--selected {
+  border-color: #b8860b;
+  background: #fff3c4;
+  box-shadow: 0 0 0 3px rgba(214, 165, 51, 0.35);
+  transform: translateY(-1px);
+}
+
+.crown-scale-pan--place-ready {
+  outline: 2px dashed rgba(184, 134, 11, 0.75);
+  outline-offset: 4px;
 }
 
 .scale-tool-draggable:active {
