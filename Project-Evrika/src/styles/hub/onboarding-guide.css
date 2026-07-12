@@ -11,6 +11,8 @@
   inset: 0;
   z-index: 6500;
   pointer-events: none;
+  --guide-motion-duration: 1.25s;
+  --guide-motion-easing: cubic-bezier(0.33, 0.9, 0.25, 1);
 }
 
 .hub-guide-backdrop {
@@ -30,54 +32,58 @@
   opacity: 1;
 }
 
-/* When a target is spotlit, the spotlight ring provides the dimming instead. */
+/* When the SVG dim layer is active, the backdrop is click-through only. */
 .hub-guide-backdrop--clear {
   background: transparent;
 }
 
-.hub-guide-spotlight {
-  position: absolute;
-  border-radius: 14px;
-  box-shadow:
-    0 0 0 3px rgba(232, 188, 92, 0.9),
-    0 0 22px 6px rgba(245, 205, 110, 0.55),
-    0 0 0 9999px rgba(28, 18, 4, 0.5);
+.hub-guide-dim {
+  position: fixed;
+  inset: 0;
+  display: block;
   pointer-events: none;
   opacity: 0;
-  transition:
-    top 0.6s cubic-bezier(0.22, 0.8, 0.2, 1),
-    left 0.6s cubic-bezier(0.22, 0.8, 0.2, 1),
-    width 0.6s cubic-bezier(0.22, 0.8, 0.2, 1),
-    height 0.6s cubic-bezier(0.22, 0.8, 0.2, 1),
-    opacity 0.4s ease;
+  transition: opacity 0.4s ease;
 }
 
-.hub-guide--ready .hub-guide-spotlight {
+.hub-guide--ready .hub-guide-dim {
   opacity: 1;
 }
 
-.hub-guide-spotlight--cluster {
-  border-radius: 18px;
+.hub-guide-spotlight-ring {
+  position: fixed;
+  z-index: 1;
+  box-sizing: border-box;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 0 3px rgba(232, 188, 92, 0.92);
+  transition:
+    top var(--guide-motion-duration) var(--guide-motion-easing),
+    left var(--guide-motion-duration) var(--guide-motion-easing),
+    width var(--guide-motion-duration) var(--guide-motion-easing),
+    height var(--guide-motion-duration) var(--guide-motion-easing),
+    opacity 0.4s ease,
+    border-radius 0.4s ease;
 }
 
-.hub-guide-spotlight--head {
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 3px rgba(232, 188, 92, 0.9),
-    0 0 22px 6px rgba(245, 205, 110, 0.55);
+.hub-guide--ready .hub-guide-spotlight-ring {
+  opacity: 1;
 }
 
 .hub-guide-cluster {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 2;
   width: 332px;
   display: flex;
   flex-direction: column;
   align-items: center;
   pointer-events: auto;
-  will-change: transform;
-  transition: transform 0.66s cubic-bezier(0.22, 0.8, 0.2, 1);
+  transition:
+    left var(--guide-motion-duration) var(--guide-motion-easing),
+    top var(--guide-motion-duration) var(--guide-motion-easing),
+    opacity 0.4s ease;
 }
 
 .hub-guide:not(.hub-guide--ready) .hub-guide-cluster {
@@ -91,9 +97,6 @@
 
 .hub-guide--ready .hub-guide-cluster {
   opacity: 1;
-  transition:
-    transform 0.66s cubic-bezier(0.22, 0.8, 0.2, 1),
-    opacity 0.4s ease;
 }
 
 .hub-guide-head-slot {
@@ -224,16 +227,78 @@
 }
 
 .hub-guide--exiting .hub-guide-backdrop,
-.hub-guide--exiting .hub-guide-spotlight {
+.hub-guide--exiting .hub-guide-dim,
+.hub-guide--exiting .hub-guide-spotlight-ring,
+.hub-guide--exiting .hub-guide-head-cue {
   opacity: 0 !important;
   pointer-events: none;
-  transition: opacity 0.32s ease;
+  transition: opacity 0.48s ease;
+}
+
+.hub-guide-head-cues {
+  pointer-events: none;
+}
+
+.hub-guide-head-cue {
+  position: fixed;
+  z-index: 6601;
+  width: 44px;
+  height: 44px;
+  color: #e8bc5c;
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(var(--arrow-rotate, 90deg)) scale(0.78);
+  filter: drop-shadow(0 0 10px rgba(245, 205, 110, 0.65));
+  transition:
+    opacity 0.48s ease,
+    transform 0.48s cubic-bezier(0.33, 0.9, 0.25, 1);
+}
+
+.hub-guide-head-cues--visible .hub-guide-head-cue {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(var(--arrow-rotate, 90deg)) scale(1);
+}
+
+.hub-guide-head-cue__glyph {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  transform-origin: 82% 50%;
+  animation: hubGuideHeadCuePulse 1.85s ease-in-out infinite;
+  animation-delay: var(--arrow-delay, 0s);
+}
+
+.hub-guide-head-cue__glyph svg {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes hubGuideHeadCuePulse {
+  0%,
+  100% {
+    transform: scale(1) translate(0, 0);
+  }
+  35% {
+    transform: scale(1.18) translate(2px, 0);
+  }
+  65% {
+    transform: scale(0.9) translate(-2px, 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hub-guide-cluster,
-  .hub-guide-spotlight {
+  .hub-guide-dim,
+  .hub-guide-spotlight-ring {
     transition: opacity 0.3s ease;
+  }
+
+  .hub-guide-head-cue {
+    transition: opacity 0.3s ease;
+  }
+
+  .hub-guide-head-cue__glyph {
+    animation: none;
   }
 
   .archimedes-companion__head-btn--guide-flight--animate {

@@ -7,16 +7,23 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
   type RefObject,
+  type CSSProperties,
 } from 'react'
+import { computeHeadCueArrows, type HeadCueAnchor } from '../lib/hubGuideHeadCueArrows'
 import {
+  GUIDE_CUE_ENTER_DELAY_MS,
+  GUIDE_CUE_FADE_MS,
+  GUIDE_MOTION_MS,
   resetCompanionHeadFlight,
-  setCompanionHeadGuideHighlight,
   setCompanionHeadPosition,
 } from '../lib/hubGuideHeadFlight'
+import { buildGuideSpotlightLayout, type GuideSpotlightLayout } from '../lib/hubGuideSpotlight'
+import { HubGuideSpotlightLayer } from './HubGuideSpotlightLayer'
 
 interface HubOnboardingGuideProps {
   open: boolean
@@ -31,6 +38,8 @@ interface GuideStep {
   text: string
   /** Extra padding (px) around the spotlighted element. */
   pad?: number
+  /** Point a cue arrow at the companion dock (head flies there on finish). */
+  pointToDock?: boolean
 }
 
 const STEPS: GuideStep[] = [
@@ -40,7 +49,7 @@ const STEPS: GuideStep[] = [
     text: "Welcome to my workshop. Follow me and I'll show you how to crack King Hiero's puzzle.",
   },
   {
-    selector: '.hub-objective-text',
+    selector: '.hub-objective-text-copy',
     title: 'Your challenge',
     text: "The king fears his crown isn't pure gold. We must prove the truth — without melting or breaking it.",
   },
@@ -57,22 +66,33 @@ const STEPS: GuideStep[] = [
     pad: 8,
   },
   {
-    selector: '.archimedes-companion__head-btn',
+    selector: null,
+    pointToDock: true,
     title: 'Need a hand?',
     text: 'Tap my head any time for a hint. Now go — prove what the crown is truly made of!',
-    pad: 8,
   },
 ]
+
+const DOCK_SLOT_SELECTOR = '.archimedes-companion__head-slot'
 
 const CLUSTER_W = 332
 const CLUSTER_H = 210
 const CLUSTER_HEAD_CENTER_X = CLUSTER_W / 2
 const CLUSTER_HEAD_CENTER_Y = 42
-const CLUSTER_SPOTLIGHT_PAD = 12
-const HEAD_SPOTLIGHT_PAD = 10
 const MARGIN = 16
 const GAP = 22
-const FLIGHT_MS = 850
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function dockHintSpacing(viewportH: number) {
+  return {
+    aboveGap: Math.round(clamp(viewportH * 0.11, 88, 140)),
+    bottomMargin: Math.round(clamp(viewportH * 0.14, 88, 160)),
+    extraLift: Math.round(clamp(viewportH * 0.035, 20, 48)),
+  }
+}
 
 type GuidePhase = 'entering' | 'active' | 'exiting'
 
@@ -81,6 +101,31 @@ interface ClusterPos {
   y: number
   /** Which side of the cluster points at the target (for the pointer nub). */
   arrow: 'left' | 'right' | 'up' | 'down' | 'none'
+}
+
+function computeDockHintClusterPos(dockRect: DOMRect): ClusterPos {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const { aboveGap, bottomMargin, extraLift } = dockHintSpacing(vh)
+
+  let x = dockRect.left - CLUSTER_W - GAP
+  let y = dockRect.top + dockRect.height / 2 - CLUSTER_H / 2
+  let arrow: ClusterPos['arrow'] = 'right'
+
+  if (x < MARGIN) {
+    x = dockRect.left + dockRect.width / 2 - CLUSTER_W / 2
+    y = dockRect.top - CLUSTER_H - aboveGap - extraLift
+    arrow = 'down'
+  }
+
+  if (y < MARGIN) {
+    y = dockRect.bottom + GAP
+    arrow = 'up'
+  }
+
+  x = Math.min(Math.max(x, MARGIN), vw - CLUSTER_W - MARGIN)
+  y = Math.min(Math.max(y, MARGIN), vh - CLUSTER_H - bottomMargin)
+  return { x: Math.round(x), y: Math.round(y), arrow }
 }
 
 function rectCenter(rect: DOMRect) {
@@ -149,38 +194,93 @@ export function HubOnboardingGuide({
   onClose,
   companionHeadRef,
 }: HubOnboardingGuideProps) {
+  const maskId = useId().replace(/:/g, '')
   const [stepIndex, setStepIndex] = useState(0)
-  const [rect, setRect] = useState<DOMRect | null>(null)
   const [pos, setPos] = useState<ClusterPos>({ x: 0, y: 0, arrow: 'none' })
   const [ready, setReady] = useState(false)
   const [phase, setPhase] = useState<GuidePhase>('entering')
-  const [headRect, setHeadRect] = useState<DOMRect | null>(null)
+  const [spotlight, setSpotlight] = useState<GuideSpotlightLayout>({
+    maskHoles: [],
+    rings: [],
+  })
+  const [viewport, setViewport] = useState({ w: 0, h: 0 })
+  const [headCueAnchor, setHeadCueAnchor] = useState<HeadCueAnchor | null>(null)
+  const [headCueVisible, setHeadCueVisible] = useState(false)
+  const headCueAnchorRef = useRef<HeadCueAnchor | null>(null)
   const rafRef = useRef(0)
   const exitDoneRef = useRef(false)
   const enterStartedRef = useRef(false)
   const enterTimerRef = useRef<number | null>(null)
   const exitTimerRef = useRef<number | null>(null)
   const skipNextHeadMoveRef = useRef(false)
+  const targetRectRef = useRef<DOMRect | null>(null)
+  const spotlightRafRef = useRef(0)
 
   const step = STEPS[stepIndex]
   const isLast = stepIndex >= STEPS.length - 1
 
+  const refreshSpotlight = useCallback(() => {
+    const current = STEPS[stepIndex]
+    const head = companionHeadRef.current
+
+    if (current.pointToDock && head) {
+      const rect = head.getBoundingClientRect()
+      const next: HeadCueAnchor = {
+        cx: rect.left + rect.width / 2,
+        cy: rect.top + rect.height / 2,
+        radius: Math.max(rect.width, rect.height) / 2,
+      }
+      const prev = headCueAnchorRef.current
+      if (
+        !prev ||
+        Math.abs(prev.cx - next.cx) > 0.5 ||
+        Math.abs(prev.cy - next.cy) > 0.5 ||
+        Math.abs(prev.radius - next.radius) > 0.5
+      ) {
+        headCueAnchorRef.current = next
+        setHeadCueAnchor(next)
+      }
+    } else if (headCueAnchorRef.current) {
+      headCueAnchorRef.current = null
+      setHeadCueAnchor(null)
+    }
+
+    setSpotlight(
+      buildGuideSpotlightLayout(
+        companionHeadRef.current,
+        current.pointToDock ? null : targetRectRef.current,
+        current.pad ?? 8,
+      ),
+    )
+    setViewport({ w: window.innerWidth, h: window.innerHeight })
+  }, [stepIndex, companionHeadRef])
+
   const measure = useCallback(() => {
     const current = STEPS[stepIndex]
     let nextRect: DOMRect | null = null
-    if (current.selector) {
-      const el = document.querySelector(current.selector)
-      if (el) nextRect = el.getBoundingClientRect()
+    let nextPos: ClusterPos
+
+    if (current.pointToDock) {
+      const dockEl = document.querySelector(DOCK_SLOT_SELECTOR)
+      const dockRect = dockEl?.getBoundingClientRect() ?? null
+      nextPos = dockRect
+        ? computeDockHintClusterPos(dockRect)
+        : computeClusterPos(null)
+      setPos(nextPos)
+      targetRectRef.current = null
+    } else {
+      if (current.selector) {
+        const el = document.querySelector(current.selector)
+        if (el) nextRect = el.getBoundingClientRect()
+      }
+      nextPos = computeClusterPos(nextRect)
+      targetRectRef.current = nextRect
+      setPos(nextPos)
     }
-    const nextPos = computeClusterPos(nextRect)
-    setRect(nextRect)
-    setPos(nextPos)
 
-    const head = companionHeadRef.current
-    setHeadRect(head ? head.getBoundingClientRect() : null)
-
+    refreshSpotlight()
     return nextPos
-  }, [stepIndex, companionHeadRef])
+  }, [stepIndex, refreshSpotlight])
 
   const clearEnterTimer = useCallback(() => {
     if (enterTimerRef.current != null) {
@@ -206,12 +306,10 @@ export function HubOnboardingGuide({
     onClose()
   }, [clearExitTimer, companionHeadRef, onClose])
 
-  const beginExit = useCallback(() => {
-    if (phase === 'exiting') return
-
+  const startHeadExitFlight = useCallback(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const head = companionHeadRef.current
-    const dockEl = document.querySelector('.archimedes-companion__head-slot')
+    const dockEl = document.querySelector(DOCK_SLOT_SELECTOR)
 
     if (reduced || !head || !dockEl) {
       finishExit()
@@ -232,8 +330,25 @@ export function HubOnboardingGuide({
     })
 
     clearExitTimer()
-    exitTimerRef.current = window.setTimeout(() => finishExit(), FLIGHT_MS + 80)
-  }, [phase, clearExitTimer, companionHeadRef, finishExit])
+    exitTimerRef.current = window.setTimeout(() => finishExit(), GUIDE_MOTION_MS + 80)
+  }, [clearExitTimer, companionHeadRef, finishExit])
+
+  const beginExit = useCallback(() => {
+    if (phase === 'exiting') return
+
+    if (step.pointToDock) {
+      setHeadCueVisible(false)
+      setPhase('exiting')
+      clearExitTimer()
+      exitTimerRef.current = window.setTimeout(() => {
+        exitTimerRef.current = null
+        startHeadExitFlight()
+      }, GUIDE_CUE_FADE_MS)
+      return
+    }
+
+    startHeadExitFlight()
+  }, [phase, step.pointToDock, clearExitTimer, startHeadExitFlight])
 
   const runEnter = useCallback(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -245,7 +360,7 @@ export function HubOnboardingGuide({
       if (el) nextRect = el.getBoundingClientRect()
     }
     const nextPos = computeClusterPos(nextRect)
-    setRect(nextRect)
+    targetRectRef.current = nextRect
     setPos(nextPos)
 
     if (!head) {
@@ -281,7 +396,7 @@ export function HubOnboardingGuide({
       skipNextHeadMoveRef.current = true
       setPhase('active')
       setReady(true)
-    }, FLIGHT_MS)
+    }, GUIDE_MOTION_MS)
   }, [clearEnterTimer, companionHeadRef])
 
   useEffect(() => {
@@ -291,6 +406,10 @@ export function HubOnboardingGuide({
       setPhase('entering')
       exitDoneRef.current = false
       enterStartedRef.current = false
+      setHeadCueVisible(false)
+      headCueAnchorRef.current = null
+      setHeadCueAnchor(null)
+      targetRectRef.current = null
       clearEnterTimer()
       clearExitTimer()
       resetCompanionHeadFlight(companionHeadRef.current)
@@ -316,16 +435,37 @@ export function HubOnboardingGuide({
     const animate = !skipNextHeadMoveRef.current
     skipNextHeadMoveRef.current = false
     setCompanionHeadPosition(head, anchor.x, anchor.y, animate)
-    setHeadRect(head.getBoundingClientRect())
   }, [open, phase, pos, companionHeadRef])
 
   useEffect(() => {
-    if (!open || !ready || phase === 'exiting') {
-      setCompanionHeadGuideHighlight(companionHeadRef.current, false)
+    if (!open || phase === 'entering') {
+      window.cancelAnimationFrame(spotlightRafRef.current)
       return
     }
-    setCompanionHeadGuideHighlight(companionHeadRef.current, true)
-  }, [open, ready, phase, companionHeadRef, headRect, stepIndex])
+    if (!ready && phase !== 'exiting') return
+
+    const tick = () => {
+      refreshSpotlight()
+      spotlightRafRef.current = window.requestAnimationFrame(tick)
+    }
+
+    spotlightRafRef.current = window.requestAnimationFrame(tick)
+    return () => window.cancelAnimationFrame(spotlightRafRef.current)
+  }, [open, ready, phase, refreshSpotlight])
+
+  useEffect(() => {
+    if (!step.pointToDock || !ready || phase !== 'active') {
+      setHeadCueVisible(false)
+      return
+    }
+
+    setHeadCueVisible(false)
+    const timer = window.setTimeout(
+      () => setHeadCueVisible(true),
+      GUIDE_CUE_ENTER_DELAY_MS,
+    )
+    return () => window.clearTimeout(timer)
+  }, [step.pointToDock, ready, phase, pos, stepIndex])
 
   useEffect(() => {
     if (!open) return
@@ -365,20 +505,6 @@ export function HubOnboardingGuide({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, phase, beginExit, goNext, goPrev])
 
-  useEffect(() => {
-    const head = companionHeadRef.current
-    if (!head) return
-
-    const syncHeadRect = () => {
-      setHeadRect(head.getBoundingClientRect())
-    }
-
-    head.addEventListener('transitionend', syncHeadRect)
-    return () => {
-      head.removeEventListener('transitionend', syncHeadRect)
-    }
-  }, [companionHeadRef, open, phase])
-
   const handleHeadTransitionEnd = useCallback(
     (e: Event) => {
       if (phase !== 'exiting' || !(e instanceof TransitionEvent)) return
@@ -398,40 +524,11 @@ export function HubOnboardingGuide({
 
   if (!open) return null
 
-  const pad = step.pad ?? 8
-  const showGuideChrome = ready && phase !== 'exiting'
-  const headIsTarget = step.selector === '.archimedes-companion__head-btn'
-  const showClusterSpotlight = showGuideChrome && !rect
-  const showTargetSpotlight = showGuideChrome && !!rect
-  const showHeadSpotlight =
-    showGuideChrome && !!headRect && !!rect && !headIsTarget
-
-  const targetSpotlightStyle = rect
-    ? {
-        top: rect.top - pad,
-        left: rect.left - pad,
-        width: rect.width + pad * 2,
-        height: rect.height + pad * 2,
-      }
-    : undefined
-
-  const clusterSpotlightStyle = showClusterSpotlight
-    ? {
-        top: pos.y - CLUSTER_SPOTLIGHT_PAD,
-        left: pos.x - CLUSTER_SPOTLIGHT_PAD,
-        width: CLUSTER_W + CLUSTER_SPOTLIGHT_PAD * 2,
-        height: CLUSTER_H + CLUSTER_SPOTLIGHT_PAD * 2,
-      }
-    : undefined
-
-  const headSpotlightStyle = headRect
-    ? {
-        top: headRect.top - HEAD_SPOTLIGHT_PAD,
-        left: headRect.left - HEAD_SPOTLIGHT_PAD,
-        width: headRect.width + HEAD_SPOTLIGHT_PAD * 2,
-        height: headRect.height + HEAD_SPOTLIGHT_PAD * 2,
-      }
-    : undefined
+  const showSpotlight = ready && phase !== 'exiting'
+  const headCueArrows =
+    headCueAnchor && step.pointToDock
+      ? computeHeadCueArrows(headCueAnchor)
+      : null
 
   return (
     <div
@@ -442,41 +539,62 @@ export function HubOnboardingGuide({
       aria-modal="true"
       aria-label="Workshop guide"
     >
+      <HubGuideSpotlightLayer
+        maskId={maskId}
+        viewportW={viewport.w}
+        viewportH={viewport.h}
+        maskHoles={spotlight.maskHoles}
+        rings={spotlight.rings}
+        visible={showSpotlight}
+      />
+
       <button
         type="button"
-        className={`hub-guide-backdrop${
-          showClusterSpotlight || showTargetSpotlight
-            ? ' hub-guide-backdrop--clear'
-            : ''
-        }`}
+        className="hub-guide-backdrop hub-guide-backdrop--clear"
         aria-label="Skip guide"
         onClick={beginExit}
         disabled={phase !== 'active'}
       />
 
-      {showClusterSpotlight ? (
+      {headCueArrows ? (
         <div
-          className="hub-guide-spotlight hub-guide-spotlight--cluster"
-          style={clusterSpotlightStyle}
+          className={`hub-guide-head-cues${
+            headCueVisible ? ' hub-guide-head-cues--visible' : ''
+          }`}
           aria-hidden
-        />
-      ) : null}
-
-      {showTargetSpotlight ? (
-        <div className="hub-guide-spotlight" style={targetSpotlightStyle} aria-hidden />
-      ) : null}
-
-      {showHeadSpotlight ? (
-        <div
-          className="hub-guide-spotlight hub-guide-spotlight--head"
-          style={headSpotlightStyle}
-          aria-hidden
-        />
+        >
+          {headCueArrows.map((arrow, index) => (
+            <div
+              key={index}
+              className="hub-guide-head-cue"
+              style={
+                {
+                  left: `${arrow.x}px`,
+                  top: `${arrow.y}px`,
+                  '--arrow-rotate': `${arrow.rotation}deg`,
+                  '--arrow-delay': `${arrow.delay}s`,
+                } as CSSProperties
+              }
+            >
+              <span className="hub-guide-head-cue__glyph">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M5 12h11.5M14.5 8.5 18 12l-3.5 3.5"
+                    stroke="currentColor"
+                    strokeWidth="2.25"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </div>
+          ))}
+        </div>
       ) : null}
 
       <div
         className={`hub-guide-cluster hub-guide-cluster--arrow-${pos.arrow}`}
-        style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
+        style={{ left: pos.x, top: pos.y }}
       >
         <div className="hub-guide-head-slot" aria-hidden />
 
