@@ -65,8 +65,58 @@
   transform: scale(1.04);
 }
 
+.archimedes-companion__head-slot {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.archimedes-companion__head-btn--guide-flight {
+  position: fixed;
+  z-index: 6602;
+  left: var(--head-flight-x, 50%);
+  top: var(--head-flight-y, 50%);
+  margin: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.archimedes-companion__head-btn--guide-flight .archimedes-companion__head-bob {
+  animation: none;
+}
+
+.archimedes-companion__head-btn--guide-flight--animate {
+  transition:
+    left 0.85s cubic-bezier(0.22, 0.8, 0.2, 1),
+    top 0.85s cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archimedes-companion__head-btn--guide-flight--animate {
+    transition: none;
+  }
+}
+
 .archimedes-companion__head-btn:active {
   transform: scale(0.98);
+}
+
+.archimedes-companion__head-btn--guide-flight:active {
+  transform: translate(-50%, -50%);
+}
+
+.archimedes-companion__head-btn--guide-highlight {
+  box-shadow:
+    0 0 0 3px rgba(232, 188, 92, 0.9),
+    0 0 22px 6px rgba(245, 205, 110, 0.55),
+    0 0 0 2px rgba(184, 134, 11, 0.35),
+    0 6px 20px rgba(60, 35, 8, 0.35);
+}
+
+.archimedes-companion__head-btn--guide-highlight .archimedes-companion__head-aura {
+  opacity: 1;
+  animation-duration: 2.4s;
 }
 
 /* Soft halo — opacity pulse only (no layout / position shift) */

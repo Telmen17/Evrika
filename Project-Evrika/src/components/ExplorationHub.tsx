@@ -61,6 +61,7 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
   const [inboxOpen, setInboxOpen] = useState(false)
   const [bathOverlayOpen, setBathOverlayOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
+  const companionHeadRef = useRef<HTMLButtonElement>(null)
 
   const roomUnlocked = useMemo(() => getNavRoomUnlockState(progress), [progress])
 
@@ -307,11 +308,20 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
         {roomContent}
       </div>
 
-      {activeRoom !== 'waterLab' ? <ArchimedesCompanion /> : null}
+      {activeRoom !== 'waterLab' ? (
+        <ArchimedesCompanion
+          headRef={companionHeadRef}
+          headFloating={guideOpen}
+        />
+      ) : null}
 
       <HubAmbientMusic />
 
-      <HubOnboardingGuide open={guideOpen} onClose={closeGuide} />
+      <HubOnboardingGuide
+        open={guideOpen}
+        onClose={closeGuide}
+        companionHeadRef={companionHeadRef}
+      />
 
       <EurekaShareCard open={shareOpen} onClose={() => setShareOpen(false)} />
 

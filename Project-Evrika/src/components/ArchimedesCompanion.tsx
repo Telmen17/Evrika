@@ -4,12 +4,23 @@
  * Docs: docs/components/hub.md
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 import headImg from '../assets/head.png'
 import { useOptionalAudioEnabled } from '../context/GlobalAudioContext'
 import { useLessonHub } from '../context/LessonHubContext'
+import { resetCompanionHeadFlight } from '../lib/hubGuideHeadFlight'
 
-export function ArchimedesCompanion() {
+interface ArchimedesCompanionProps {
+  headRef?: RefObject<HTMLButtonElement | null>
+  /** Companion head is lifted for the onboarding guide (dock placeholder keeps layout). */
+  headFloating?: boolean
+}
+
+export function ArchimedesCompanion({
+  headRef,
+  headFloating = false,
+}: ArchimedesCompanionProps) {
+  const localHeadRef = useRef<HTMLButtonElement>(null)
   const { companion, setCompanionBubbleOpen, notifyInsightPlaybackEnded } =
     useLessonHub()
   const audioEnabled = useOptionalAudioEnabled()
@@ -17,6 +28,18 @@ export function ArchimedesCompanion() {
   const companionAudioSrcRef = useRef<string | null>(null)
   const latestAudioSessionRef = useRef(companion.audioSessionId)
   latestAudioSessionRef.current = companion.audioSessionId
+
+  const setHeadRef = (node: HTMLButtonElement | null) => {
+    localHeadRef.current = node
+    if (headRef) {
+      headRef.current = node
+    }
+  }
+
+  useLayoutEffect(() => {
+    if (headFloating) return
+    resetCompanionHeadFlight(localHeadRef.current)
+  }, [headFloating])
 
   useEffect(() => {
     const el = audioRef.current
@@ -117,27 +140,31 @@ export function ArchimedesCompanion() {
             </p>
           </div>
         ) : null}
-        <button
-          type="button"
-          className="archimedes-companion__head-btn"
-          onClick={() => setCompanionBubbleOpen(!companion.bubbleOpen)}
-          aria-expanded={companion.bubbleOpen}
-          aria-label="Archimedes companion"
-        >
-          <span className="archimedes-companion__head-aura" aria-hidden />
-          <span className="archimedes-companion__head-bob" aria-hidden>
-            <span className="archimedes-companion__head-ring">
-              <img
-                src={headImg}
-                alt=""
-                className="archimedes-companion__head-img"
-                width={56}
-                height={56}
-                draggable={false}
-              />
+        <div className="archimedes-companion__head-slot">
+          <button
+            ref={setHeadRef}
+            type="button"
+            className="archimedes-companion__head-btn"
+            onClick={() => setCompanionBubbleOpen(!companion.bubbleOpen)}
+            aria-expanded={companion.bubbleOpen}
+            aria-label="Archimedes companion"
+            tabIndex={headFloating ? -1 : undefined}
+          >
+            <span className="archimedes-companion__head-aura" aria-hidden />
+            <span className="archimedes-companion__head-bob" aria-hidden>
+              <span className="archimedes-companion__head-ring">
+                <img
+                  src={headImg}
+                  alt=""
+                  className="archimedes-companion__head-img"
+                  width={56}
+                  height={56}
+                  draggable={false}
+                />
+              </span>
             </span>
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
     </div>
   )
