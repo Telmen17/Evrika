@@ -9,6 +9,7 @@
 @import './base/reset.css';
 @import './components/cloud-transition.css';
 @import './layout/frame.css';
+@import './layout/mobile-responsive.css';
 @import './landing/landing.css';
 @import './scenes/scene-layout.css';
 @import './scenes/crown-weigh.css';

@@ -1,0 +1,355 @@
+/**
+ * mobile-responsive.css — portrait / narrow viewport adaptations (≤960px, ≤640px).
+ *
+ * Keeps lesson playable on phones: tighter insets, single-column scenes, static HUDs.
+ * Docs: docs/mobile-adaptation.md
+ */
+
+/* --- Shared narrow insets --- */
+
+@media (max-width: 960px) {
+  :root {
+    --frame-safe-top: clamp(2rem, 4.5vh, 2.75rem);
+    --frame-safe-x: clamp(0.55rem, 2.8vw, 1rem);
+  }
+
+  body.hub-active .frame-decoration {
+    display: none;
+  }
+
+  .exploration-hub {
+    padding:
+      max(0.45rem, env(safe-area-inset-top))
+      max(0.45rem, env(safe-area-inset-right))
+      max(0.35rem, env(safe-area-inset-bottom))
+      max(0.45rem, env(safe-area-inset-left));
+  }
+
+  .hub-objective-banner {
+    padding: 0.42rem clamp(2.6rem, 12vw, 3.2rem) 0.42rem 0.55rem;
+    gap: 0.35rem 0.4rem;
+  }
+
+  .hub-intro-button {
+    padding: 0.2rem 0.42rem;
+    font-size: 0.62rem;
+    margin-right: 0.15rem;
+  }
+
+  .hub-objective-text {
+    font-size: 0.76rem;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .hub-room-content {
+    padding-left: max(0.35rem, env(safe-area-inset-left));
+    padding-right: max(0.35rem, env(safe-area-inset-right));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .hub-room-content > .scene {
+    max-width: 100%;
+    padding: 1.1rem 0.85rem 1.35rem;
+    border-radius: 12px;
+  }
+
+  .scene {
+    max-width: 100%;
+    padding: 1.15rem 0.9rem;
+    border-radius: 12px;
+  }
+
+  .scene-header {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .scene-header h2,
+  .hub-room-content .hub-scene-header h2 {
+    font-size: clamp(0.95rem, 4.2vw, 1.15rem);
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .scene-body,
+  .experiment-layout {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+
+  .scene-footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .scene-footer-left,
+  .scene-footer-right,
+  .scene-footer-center {
+    justify-self: center;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+  }
+
+  .menu-button {
+    top: max(0.65rem, env(safe-area-inset-top));
+    left: max(0.65rem, env(safe-area-inset-left));
+    padding: 0.4rem 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .layout {
+    padding: 1.35rem;
+    border-radius: 14px;
+  }
+
+  .app-root {
+    padding: 0.65rem;
+    align-items: flex-start;
+  }
+
+  /* Weighing chamber */
+  .crown-weigh-scene {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .crown-weigh-scene .scene-body.experiment-layout {
+    grid-template-rows: none;
+  }
+
+  .crown-weigh-panel {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .crown-weigh-workspace {
+    width: min(100%, 440px);
+    margin-inline: auto;
+  }
+
+  .scale-toolset-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .weigh-showcase-pair {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* Furnace */
+  .crown-melt-scene .scene-body {
+    overflow: visible;
+  }
+
+  .crown-melt-panel-body {
+    max-height: none;
+  }
+
+  /* Displacement lab — scrollable stage, HUD below canvas */
+  .hub-room-content:has(> .displacement-lab-scene) {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .hub-room-content > .displacement-lab-scene {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding: 0.65rem 0.5rem 0.35rem;
+  }
+
+  .hub-room-content > .displacement-lab-scene .displacement-lab-body {
+    overflow: visible;
+    min-height: 0;
+  }
+
+  .displacement-lab-body {
+    max-width: 100%;
+    padding: 0 0.35rem 0.35rem;
+  }
+
+  .displacement-lab-stage-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+  }
+
+  .displacement-lab-stack {
+    min-width: min(100%, 320px);
+    max-width: 100%;
+  }
+
+  .displacement-lab-canvas-with-hud {
+    max-width: 100%;
+  }
+
+  .displacement-lab-hud-panels {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.55rem;
+    pointer-events: none;
+  }
+
+  .displacement-lab-hud {
+    position: static;
+    width: 100%;
+    left: auto !important;
+    bottom: auto;
+  }
+
+  .displacement-lab-tank-labels {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+  }
+
+  /* Water lab */
+  .water-discovery-scene .water-discovery-body {
+    max-width: 100%;
+    padding: 0 0.15rem 0.5rem;
+  }
+
+  .water-discovery-header {
+    align-items: flex-start;
+  }
+
+  .water-discovery-header-hint {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+
+  .water-discovery-stage-shell {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .water-discovery-matter-host {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Story / finale */
+  .story-finale-layout,
+  .story-finale-gate {
+    max-width: 100%;
+  }
+
+  .journey-scene {
+    padding: max(2.5rem, var(--frame-safe-top)) 0.85rem 1.25rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .scene-image-container {
+    width: min(100%, calc(52vh * 16 / 9));
+    max-width: 100%;
+  }
+
+  /* Archimedes study */
+  .archimedes-room-body,
+  .archimedes-study-layout {
+    max-width: 100%;
+  }
+
+  /* Share + feedback modals */
+  .eureka-share-modal,
+  .feedback-modal {
+    width: min(94vw, 420px);
+    margin: 0.75rem;
+  }
+
+  .landing-path-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .landing-path-actions .secondary-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --frame-safe-top: clamp(1.65rem, 4vh, 2.25rem);
+    --frame-safe-x: clamp(0.4rem, 2.2vw, 0.75rem);
+  }
+
+  .title {
+    font-size: 1.45rem;
+  }
+
+  .hub-room-content > .scene {
+    padding: 0.85rem 0.55rem 1rem;
+  }
+
+  .scene {
+    padding: 0.9rem 0.55rem;
+  }
+
+  .scale-toolset-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .scale-tool-draggable {
+    min-height: 72px;
+    padding: 0.4rem 0.35rem;
+    font-size: 0.68rem;
+  }
+
+  .crown-weigh-scene .scene-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .weigh-mission-card--compact h3 {
+    font-size: 0.92rem;
+  }
+
+  .landing-hero-note--mobile {
+    font-size: 0.82rem;
+    line-height: 1.4;
+    max-width: 22rem;
+    margin-inline: auto;
+  }
+
+  .landing-path-card {
+    padding: 1rem;
+  }
+
+  .landing-preview-card {
+    padding: 0.85rem;
+  }
+
+  .exploration-hub nav[aria-label='Room navigation'] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .exploration-hub nav[aria-label='Room navigation']::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .hub-intro-button.hub-tips-button {
+    /* Keep icon area; label still visible via title attr on button */
+    padding-inline: 0.35rem;
+  }
+
+  .hub-objective-icon {
+    display: none;
+  }
+}
