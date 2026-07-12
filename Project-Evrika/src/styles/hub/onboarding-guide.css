@@ -37,6 +37,11 @@
   background: transparent;
 }
 
+/* Blocks hub interaction without dismissing the guide. */
+.hub-guide-backdrop--inert {
+  cursor: default;
+}
+
 .hub-guide-dim {
   position: fixed;
   inset: 0;

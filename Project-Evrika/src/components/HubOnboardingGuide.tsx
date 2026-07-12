@@ -497,13 +497,12 @@ export function HubOnboardingGuide({
   useEffect(() => {
     if (!open || phase !== 'active') return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') beginExit()
-      else if (e.key === 'ArrowRight' || e.key === 'Enter') goNext()
+      if (e.key === 'ArrowRight' || e.key === 'Enter') goNext()
       else if (e.key === 'ArrowLeft') goPrev()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, phase, beginExit, goNext, goPrev])
+  }, [open, phase, goNext, goPrev])
 
   const handleHeadTransitionEnd = useCallback(
     (e: Event) => {
@@ -548,12 +547,9 @@ export function HubOnboardingGuide({
         visible={showSpotlight}
       />
 
-      <button
-        type="button"
-        className="hub-guide-backdrop hub-guide-backdrop--clear"
-        aria-label="Skip guide"
-        onClick={beginExit}
-        disabled={phase !== 'active'}
+      <div
+        className="hub-guide-backdrop hub-guide-backdrop--clear hub-guide-backdrop--inert"
+        aria-hidden
       />
 
       {headCueArrows ? (
