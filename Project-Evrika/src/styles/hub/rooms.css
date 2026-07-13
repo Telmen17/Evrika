@@ -101,19 +101,22 @@
 
 .hub-room-content:has(> .archimedes-room-scene) {
   overflow-x: clip;
-  overflow-y: hidden;
+  overflow-y: auto;
   min-height: 0;
+  align-items: stretch;
   padding-bottom: 0.35rem;
 }
 
 .hub-room-content > .archimedes-room-scene {
   flex: 1;
   min-height: 0;
+  height: 100%;
   max-width: min(1240px, 100%);
   padding: 0.45rem 0.55rem 0.35rem;
   min-height: calc(100% - 0.2rem);
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 .archimedes-room-header {
