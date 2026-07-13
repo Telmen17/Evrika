@@ -10,29 +10,24 @@ import papyrusImg from '../assets/papyrus.webp'
 import scrollPng from '../assets/scroll.png'
 import type { SceneId } from '../types/sceneId'
 import { useLessonHub } from '../context/LessonHubContext'
+import {
+  matchesDisplayedVolumeMl,
+  matchesRequiredMassG,
+  parseDecimalValue,
+  REQUIRED_CROWN_MASS_G,
+  REQUIRED_CROWN_VOLUME_ML,
+  REQUIRED_GOLD_VOLUME_ML,
+  REQUIRED_LUMP_MASS_G,
+} from '../lib/archimedesProofValidation'
 import { ProofScrollWithLock } from './ProofScrollWithLock'
 
 interface ArchimedesRoomSceneProps {
   onNavigate: (scene: SceneId) => void
 }
 
-const REQUIRED_MASS_G = 2000
-const REQUIRED_CROWN_VOLUME_ML = 129.66
-const REQUIRED_GOLD_VOLUME_ML = 103.52
-const EXACT_MATCH_EPSILON = 0.005
 /** Raster papyrus.webp — portrait source; displayed rotated 90° as a horizontal scroll. */
 const PAPYRUS_SRC_W = 1200
 const PAPYRUS_SRC_H = 1793
-
-function parseDecimalValue(raw: string) {
-  const value = parseFloat(raw.replace(',', '.').trim())
-  return Number.isFinite(value) ? value : null
-}
-
-function matchesRequiredValue(raw: string, target: number) {
-  const value = parseDecimalValue(raw)
-  return value !== null && Math.abs(value - target) <= EXACT_MATCH_EPSILON
-}
 
 const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
   void _props
@@ -67,10 +62,10 @@ const ArchimedesRoomScene: FC<ArchimedesRoomSceneProps> = (_props) => {
     a.lumpMassG.trim() &&
     a.lumpVolumeMl.trim()
 
-  const crownMassOk = matchesRequiredValue(a.crownMassG, REQUIRED_MASS_G)
-  const crownVolumeOk = matchesRequiredValue(a.crownVolumeMl, REQUIRED_CROWN_VOLUME_ML)
-  const lumpMassOk = matchesRequiredValue(a.lumpMassG, REQUIRED_MASS_G)
-  const lumpVolumeOk = matchesRequiredValue(a.lumpVolumeMl, REQUIRED_GOLD_VOLUME_ML)
+  const crownMassOk = matchesRequiredMassG(a.crownMassG, REQUIRED_CROWN_MASS_G)
+  const crownVolumeOk = matchesDisplayedVolumeMl(a.crownVolumeMl, REQUIRED_CROWN_VOLUME_ML)
+  const lumpMassOk = matchesRequiredMassG(a.lumpMassG, REQUIRED_LUMP_MASS_G)
+  const lumpVolumeOk = matchesDisplayedVolumeMl(a.lumpVolumeMl, REQUIRED_GOLD_VOLUME_ML)
   const exactValuesEntered = crownMassOk && crownVolumeOk && lumpMassOk && lumpVolumeOk
 
   const [sealUnlockPhase, setSealUnlockPhase] = useState<
