@@ -135,7 +135,13 @@ function ExplorationHubInner({ onNavigate, forceGuide = false }: ExplorationHubP
   }, [activeRoom, roomUnlocked])
 
   useEffect(() => {
-    contentRef.current?.scrollTo({ top: 0 })
+    const el = contentRef.current
+    if (!el) return
+    if (typeof el.scrollTo === 'function') {
+      el.scrollTo({ top: 0 })
+    } else {
+      el.scrollTop = 0
+    }
   }, [activeRoom])
 
   /** Open the onboarding guide once per hub visit, after a short orienting pause. */
