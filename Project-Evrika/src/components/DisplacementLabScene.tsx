@@ -212,7 +212,7 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
     Runner.run(runner, engine)
     Render.run(render)
 
-    const mouse = Mouse.create(render.canvas)
+    const mouse = Mouse.create(matterCanvas)
     const mc = MouseConstraint.create(engine, {
       mouse,
       constraint: { stiffness: 0.3, damping: 0.12, render: { visible: false } },
@@ -226,50 +226,83 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
         if (goldRef.current) Sleeping.set(goldRef.current, false)
       }
     }
-    Events.on(mouse, 'mousedown', wakeDragged)
 
-    matterCanvas.style.touchAction = 'none'
-
-    const mapTouchToMouse = (clientX: number, clientY: number) => {
+    /** Map browser pointer (CSS hotspot) → physics stage coords; bypass Matter pixelRatio drift. */
+    const pointerToStage = (clientX: number, clientY: number) => {
       const rect = matterCanvas.getBoundingClientRect()
-      const scaleX = LAB_W / rect.width
-      const scaleY = LAB_H / rect.height
+      if (rect.width < 2 || rect.height < 2) {
+        return { x: mouse.position.x, y: mouse.position.y }
+      }
       return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY,
+        x: ((clientX - rect.left) / rect.width) * LAB_W,
+        y: ((clientY - rect.top) / rect.height) * LAB_H,
       }
     }
 
-    const onTouchStart = (e: TouchEvent) => {
-      if (!e.touches[0]) return
-      e.preventDefault()
-      const p = mapTouchToMouse(e.touches[0].clientX, e.touches[0].clientY)
+    const applyPointer = (clientX: number, clientY: number) => {
+      const p = pointerToStage(clientX, clientY)
       mouse.position.x = p.x
       mouse.position.y = p.y
-      mouse.button = 0
-      Events.trigger(mouse, 'mousedown', { mouse })
+      return p
+    }
+
+    Mouse.setScale(mouse, { x: 1, y: 1 })
+    Mouse.setOffset(mouse, { x: 0, y: 0 })
+
+    matterCanvas.style.display = 'block'
+    matterCanvas.style.width = '100%'
+    matterCanvas.style.height = '100%'
+    matterCanvas.style.touchAction = 'none'
+
+    const onCanvasMouseMove = (e: MouseEvent) => {
+      applyPointer(e.clientX, e.clientY)
+    }
+
+    const onCanvasMouseDown = (e: MouseEvent) => {
+      const p = applyPointer(e.clientX, e.clientY)
+      mouse.button = e.button
+      mouse.mousedownPosition.x = p.x
+      mouse.mousedownPosition.y = p.y
       wakeDragged()
     }
 
-    const onTouchMove = (e: TouchEvent) => {
+    const onCanvasMouseUp = (e: MouseEvent) => {
+      applyPointer(e.clientX, e.clientY)
+      mouse.button = -1
+      mouse.mouseupPosition.x = mouse.position.x
+      mouse.mouseupPosition.y = mouse.position.y
+    }
+
+    const onCanvasTouchMove = (e: TouchEvent) => {
       if (!e.touches[0]) return
       e.preventDefault()
-      const p = mapTouchToMouse(e.touches[0].clientX, e.touches[0].clientY)
-      mouse.position.x = p.x
-      mouse.position.y = p.y
-      Events.trigger(mouse, 'mousemove', { mouse })
+      applyPointer(e.touches[0].clientX, e.touches[0].clientY)
     }
 
-    const onTouchEnd = (e: TouchEvent) => {
+    const onCanvasTouchStart = (e: TouchEvent) => {
+      if (!e.touches[0]) return
+      e.preventDefault()
+      const p = applyPointer(e.touches[0].clientX, e.touches[0].clientY)
+      mouse.button = 0
+      mouse.mousedownPosition.x = p.x
+      mouse.mousedownPosition.y = p.y
+      wakeDragged()
+    }
+
+    const onCanvasTouchEnd = (e: TouchEvent) => {
       e.preventDefault()
       mouse.button = -1
-      Events.trigger(mouse, 'mouseup', { mouse })
+      mouse.mouseupPosition.x = mouse.position.x
+      mouse.mouseupPosition.y = mouse.position.y
     }
 
-    matterCanvas.addEventListener('touchstart', onTouchStart, { passive: false })
-    matterCanvas.addEventListener('touchmove', onTouchMove, { passive: false })
-    matterCanvas.addEventListener('touchend', onTouchEnd, { passive: false })
-    matterCanvas.addEventListener('touchcancel', onTouchEnd, { passive: false })
+    matterCanvas.addEventListener('mousemove', onCanvasMouseMove)
+    matterCanvas.addEventListener('mousedown', onCanvasMouseDown)
+    matterCanvas.addEventListener('mouseup', onCanvasMouseUp)
+    matterCanvas.addEventListener('touchmove', onCanvasTouchMove, { passive: false })
+    matterCanvas.addEventListener('touchstart', onCanvasTouchStart, { passive: false })
+    matterCanvas.addEventListener('touchend', onCanvasTouchEnd, { passive: false })
+    matterCanvas.addEventListener('touchcancel', onCanvasTouchEnd, { passive: false })
 
     const bgEl = bgCanvasRef.current
 
@@ -370,11 +403,13 @@ const DisplacementLabScene: FC<DisplacementLabSceneProps> = ({ onNavigate: _onNa
 
     return () => {
       Events.off(engine, 'afterUpdate', tick)
-      Events.off(mouse, 'mousedown', wakeDragged)
-      matterCanvas.removeEventListener('touchstart', onTouchStart)
-      matterCanvas.removeEventListener('touchmove', onTouchMove)
-      matterCanvas.removeEventListener('touchend', onTouchEnd)
-      matterCanvas.removeEventListener('touchcancel', onTouchEnd)
+      matterCanvas.removeEventListener('mousemove', onCanvasMouseMove)
+      matterCanvas.removeEventListener('mousedown', onCanvasMouseDown)
+      matterCanvas.removeEventListener('mouseup', onCanvasMouseUp)
+      matterCanvas.removeEventListener('touchmove', onCanvasTouchMove)
+      matterCanvas.removeEventListener('touchstart', onCanvasTouchStart)
+      matterCanvas.removeEventListener('touchend', onCanvasTouchEnd)
+      matterCanvas.removeEventListener('touchcancel', onCanvasTouchEnd)
       Render.stop(render)
       Runner.stop(runner)
       if (render.canvas?.parentNode) {

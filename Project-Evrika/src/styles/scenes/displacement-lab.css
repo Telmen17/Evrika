@@ -68,6 +68,7 @@
 .displacement-matter-host {
   position: relative;
   z-index: 1;
+  touch-action: none;
 }
 
 .displacement-matter-host canvas {

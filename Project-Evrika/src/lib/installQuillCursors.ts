@@ -89,6 +89,7 @@ export function installQuillCursors() {
     .crown-melt-crown-pool:not([draggable='false']),
     .water-discovery-item,
     .water-discovery-matter-host,
+    .displacement-matter-host,
     .displacement-lab-item
   ) {
     cursor: grab !important;
@@ -98,7 +99,8 @@ export function installQuillCursors() {
     .scale-tool-draggable:active,
     .crown-melt-crown-in-forge-draggable:active,
     .crown-melt-crown-pool:active,
-    .water-discovery-matter-host:active
+    .water-discovery-matter-host:active,
+    .displacement-matter-host:active
   ) {
     cursor: grabbing !important;
   }
